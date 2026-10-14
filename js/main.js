@@ -131,6 +131,11 @@ function initCinemaPlayer() {
   const expandBtn = document.getElementById('btn-cinema-expand');
 
   const openActiveVideo = () => {
+    if (!activeList || activeList.length === 0) {
+      const fileInput = document.querySelector('.media-file-input');
+      if (fileInput) fileInput.click();
+      return;
+    }
     const work = activeList[currentIndex];
     if (work) openCinemaModal(work);
   };
@@ -266,15 +271,41 @@ function nextSlide() {
 }
 
 function renderCinemaSlide() {
-  const work = activeList[currentIndex];
-  if (!work) return;
-
   const mainImg = document.getElementById('cinema-main-img');
   const mainVideo = document.getElementById('cinema-main-video');
   const clientEl = document.getElementById('cinema-client');
   const badgeEl = document.getElementById('cinema-badge');
   const filmstrip = document.getElementById('cinema-filmstrip');
   const progressEl = document.getElementById('timeline-progress');
+
+  if (!activeList || activeList.length === 0) {
+    if (mainVideo) {
+      mainVideo.pause();
+      mainVideo.style.display = 'none';
+    }
+    if (mainImg) {
+      mainImg.style.display = 'block';
+      mainImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><rect width="800" height="450" fill="%230c0c0e"/><g fill="none" stroke="%23ffffff" stroke-width="1.5" opacity="0.3"><circle cx="400" cy="205" r="36"/><line x1="400" y1="187" x2="400" y2="223"/><line x1="382" y1="205" x2="418" y2="205"/></g><text x="400" y="275" fill="%23ffffff" font-family="-apple-system,sans-serif" font-size="14" font-weight="600" opacity="0.45" text-anchor="middle">Загрузите видео или фото</text></svg>';
+      mainImg.style.opacity = '1';
+    }
+    if (clientEl) clientEl.textContent = 'Нет работ';
+    if (badgeEl) badgeEl.textContent = currentTab === 'video' ? 'Shot on iPhone' : 'Креатив';
+    if (progressEl) progressEl.style.width = '0%';
+    if (filmstrip) {
+      filmstrip.innerHTML = `
+        <label class="filmstrip-thumb" style="display:flex; align-items:center; justify-content:center; border:1px dashed rgba(255,255,255,0.3); opacity:0.8; cursor:pointer;" title="Загрузить медиа">
+          <input type="file" class="media-file-input" accept="video/*,image/*" style="display: none;">
+          <span style="font-size:18px; color:#fff;">+</span>
+        </label>
+      `;
+      const input = filmstrip.querySelector('.media-file-input');
+      if (input) input.addEventListener('change', handleMediaUpload);
+    }
+    return;
+  }
+
+  const work = activeList[currentIndex];
+  if (!work) return;
 
   // Если это загруженный видеофайл — показываем и воспроизводим видео
   if (work.mediaType === 'video_file' || (work.mediaUrl && work.mediaUrl.startsWith('blob:'))) {

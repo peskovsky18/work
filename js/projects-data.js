@@ -1,13 +1,13 @@
 /**
- * Александр Песковский — Разнорабочий в медиа
- * База данных проектов (Год: 2026)
+ * Александр Песковский — Разнорабочий в медиа (2026)
+ * База данных проектов: только два раздела — «Видео» (Снято на iPhone) и «Креатив»
  */
 
 const PROFILE_DATA = {
   name: "Александр Песковский",
   role: "Разнорабочий в медиа",
-  tagline: "Видео • Фото • Монтаж • Веб",
   year: "2026",
+  tagline: "Снимаю на iPhone • Режу • Арт-дирекшн",
   contacts: {
     email: "peskovsky18@gmail.com",
     instagram: "https://instagram.com/peskovsky18",
@@ -16,6 +16,9 @@ const PROFILE_DATA = {
 };
 
 const PROJECTS = [
+  // ==========================================
+  // РАЗДЕЛ: ВИДЕО (Снято на iPhone)
+  // ==========================================
   {
     id: 1,
     title: "Имиджевый ролик «Concrete Lab»",
@@ -24,177 +27,171 @@ const PROJECTS = [
     year: "2026",
     client: "Concrete Lab",
     role: "Режиссер, оператор, колорист",
-    description: "Рекламный ролик в индустриальном цеху. Ручная камера, макропланы фактуры бетона, естественный контрастный свет.",
+    shotOnIphone: true,
+    iphoneBadge: "Снято на iPhone • ProRes Log",
+    description: "Рекламный ролик в цеху. Съемка полностью на iPhone в профиле Apple Log. Макропланы фактуры бетона, естественный контраст и глубокие тени.",
     specs: {
-      camera: "BMPCC 6K Pro",
-      format: "4K DCI • BRAW 5:1",
-      lens: "DZOFilm Vespid 35mm T2.1",
-      post: "DaVinci Resolve Studio"
+      gear: "Снято на iPhone",
+      format: "4K ProRes Log • 24 fps",
+      post: "DaVinci Resolve • ACES",
+      year: "2026"
     },
-    tools: ["BMPCC 6K Pro", "DaVinci Resolve", "DZOFilm"],
     mediaType: "youtube",
     mediaUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
-    thumbnail: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1600&auto=format&fit=crop&q=85",
-    tags: ["Видео", "Реклама", "4K DCI"]
+    thumbnail: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&auto=format&fit=crop&q=85"
   },
   {
     id: 2,
-    title: "Фотосерия «Ночные окраины»",
-    category: "photo",
-    categoryLabel: "Фото",
+    title: "Музыкальный клип «Стены и Эхо»",
+    category: "video",
+    categoryLabel: "Видео",
     year: "2026",
-    client: "Персональный проект",
-    role: "Фотограф",
-    description: "Аналоговая серия на среднеформатную черно-белую пленку. Геометрия архитектуры спальных районов и свет уличных фонарей.",
+    client: "Стены и Эхо",
+    role: "Режиссер, оператор, монтаж",
+    shotOnIphone: true,
+    iphoneBadge: "Снято на iPhone • 4K 120fps",
+    description: "Концертное и бэкстейдж видео. Скоростная съемка 120 кадров/сек на iPhone, ритмический темпоритм под ударные и аналоговая стилизация.",
     specs: {
-      camera: "Mamiya RB67 Pro-S",
-      format: "6×7 Medium Format",
-      film: "Ilford HP5 Plus @ 800",
-      lens: "Sekor C 90mm f/3.8"
+      gear: "Снято на iPhone",
+      format: "4K 120 fps Slow-Mo",
+      post: "Premiere Pro • After Effects",
+      year: "2026"
     },
-    tools: ["Mamiya RB67", "Ilford HP5+", "Darkroom"],
-    mediaType: "image",
-    mediaUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1600&auto=format&fit=crop&q=85",
-    thumbnail: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1600&auto=format&fit=crop&q=85",
-    gallery: [
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1600&auto=format&fit=crop&q=85",
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1600&auto=format&fit=crop&q=85",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&auto=format&fit=crop&q=85",
-      "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=1600&auto=format&fit=crop&q=85"
-    ],
-    tags: ["Фото", "Пленка 120", "Ч/Б"]
+    mediaType: "youtube",
+    mediaUrl: "https://www.youtube-nocookie.com/embed/kJQP7kiw5Fk",
+    thumbnail: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=85"
   },
   {
     id: 3,
-    title: "Клип «Стены и Эхо»",
-    category: "montage",
-    categoryLabel: "Монтаж",
-    year: "2026",
-    client: "Стены и Эхо",
-    role: "Режиссер монтажа, саунд-дизайн",
-    description: "Монтаж музыкального видео. Ритмическая сборка по биту ударных, аналоговые глитч-эффекты и многослойный саунд-дизайн шумов.",
-    specs: {
-      software: "Premiere Pro • After Effects",
-      timeline: "24 fps • Sound 48kHz / 24-bit",
-      source: "Multi-cam 6 sources",
-      color: "Film Print Emulation"
-    },
-    tools: ["Premiere Pro", "After Effects", "Ableton"],
-    mediaType: "youtube",
-    mediaUrl: "https://www.youtube-nocookie.com/embed/kJQP7kiw5Fk",
-    thumbnail: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&auto=format&fit=crop&q=85",
-    tags: ["Монтаж", "Музыкальное видео", "Саунд"]
-  },
-  {
-    id: 4,
-    title: "Веб-архив звуков города",
-    category: "web",
-    categoryLabel: "Веб",
-    year: "2026",
-    client: "Музей звуковой археологии",
-    role: "Креативный директор, UI/UX",
-    description: "Концепция и визуальное руководство интерактивного аудио-визуального архива. Интуитивная пространственная навигация.",
-    specs: {
-      role: "Creative Direction & UX",
-      stack: "Web Audio API • Three.js",
-      typography: "Grotesk & Monospace",
-      grid: "Swiss 12-Column Responsive"
-    },
-    tools: ["Creative Direction", "Figma", "Spatial UI"],
-    mediaType: "web",
-    mediaUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=85",
-    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=85",
-    externalLink: "https://github.com/peskovsky18/work",
-    tags: ["Веб", "Арт-дирекшн", "Интерактив"]
-  },
-  {
-    id: 5,
-    title: "Документальный проект «Ремесло»",
+    title: "Документальный очерк «Ремесло»",
     category: "video",
     categoryLabel: "Видео",
     year: "2026",
     client: "Культурный фонд",
-    role: "Оператор-постановщик, монтажер",
-    description: "Серия наблюдений за работой мастеров ручного труда. Живой синхронный звук, глубокие тени и минимальное вмешательство в сцену.",
+    role: "Оператор-постановщик, монтаж",
+    shotOnIphone: true,
+    iphoneBadge: "Снято на iPhone • Естественный свет",
+    description: "Серия наблюдений за работой мастеров ручного труда. Мобильный сетап без тяжелой техники, позволивший войти в доверие героям и снять живые эмоции.",
     specs: {
-      camera: "Sony FX3 Cinema Line",
-      profile: "S-Log3 / S-Gamut3.Cine",
-      audio: "Sennheiser MKH 416",
-      lens: "Carl Zeiss Planar 50mm T* 1.4"
+      gear: "Снято на iPhone",
+      format: "4K HDR Dolby Vision",
+      post: "DaVinci Studio • Grade",
+      year: "2026"
     },
-    tools: ["Sony FX3", "Zeiss Planar", "DaVinci"],
     mediaType: "youtube",
     mediaUrl: "https://www.youtube-nocookie.com/embed/ScMzIvxBSi4",
-    thumbnail: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=1600&auto=format&fit=crop&q=85",
-    tags: ["Видео", "Док", "Кинооптика"]
+    thumbnail: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=1200&auto=format&fit=crop&q=85"
+  },
+  {
+    id: 4,
+    title: "Динамичный ролик авто-проекта",
+    category: "video",
+    categoryLabel: "Видео",
+    year: "2026",
+    client: "YouTube-медиа",
+    role: "Оператор экшн-кадров, монтаж",
+    shotOnIphone: true,
+    iphoneBadge: "Снято на iPhone • Action Mode",
+    description: "Съемка в движении из салона и с внешних креплений. Встроенная стабилизация Action Mode и запись напрямую на внешний SSD.",
+    specs: {
+      gear: "Снято на iPhone",
+      format: "4K 60 fps Action Mode",
+      post: "Premiere Pro • Sound Design",
+      year: "2026"
+    },
+    mediaType: "youtube",
+    mediaUrl: "https://www.youtube-nocookie.com/embed/9bZkp7q19f0",
+    thumbnail: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&auto=format&fit=crop&q=85"
+  },
+
+  // ==========================================
+  // РАЗДЕЛ: КРЕАТИВ (Арт-дирекшн и Веб)
+  // ==========================================
+  {
+    id: 5,
+    title: "Веб-платформа «Архив звуков»",
+    category: "creative",
+    categoryLabel: "Креатив",
+    year: "2026",
+    client: "Музей звуковой археологии",
+    role: "Креативный директор, UI/UX",
+    shotOnIphone: false,
+    iphoneBadge: "Креативный дирекшн • 2026",
+    description: "Интерактивный архив городского аудио. Концепция аудиовизуального взаимодействия, строгая швейцарская сетка и пространственная карта звуков.",
+    specs: {
+      direction: "Creative Direction & UX",
+      stack: "Web Audio API • Three.js",
+      typography: "Custom Grid • Monospace",
+      year: "2026"
+    },
+    mediaType: "web",
+    mediaUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=85",
+    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=85",
+    externalLink: "https://github.com/peskovsky18/work"
   },
   {
     id: 6,
-    title: "Съемка коллекции «Сталь»",
-    category: "photo",
-    categoryLabel: "Фото",
+    title: "Айдентика и медиа «Цех»",
+    category: "creative",
+    categoryLabel: "Креатив",
     year: "2026",
-    client: "R&S Clothing",
-    role: "Фотограф, сет-дизайн",
-    description: "Каталожная и лукбук съемка в индустриальном пространстве. Жесткий направленный импульсный свет и строгая композиция.",
+    client: "Медиа «Цех»",
+    role: "Креативный директор, брендинг",
+    shotOnIphone: false,
+    iphoneBadge: "Арт-дирекшн • Айдентика",
+    description: "Разработка целостной визуальной системы журнала: черно-белая минималистичная типографика, гайдлайны для обложек и дизайн цифровой платформы.",
     specs: {
-      camera: "Nikon Z7 II (45.7 MP)",
-      lens: "Nikkor Z 50mm f/1.2 S",
-      lighting: "Godox AD300 Pro • Hard Reflector",
-      raw: "Capture One Pro"
+      direction: "Brand Identity & Art Direction",
+      deliverable: "Design System & Web App",
+      style: "Swiss Modernism • Editorial",
+      year: "2026"
     },
-    tools: ["Nikon Z7 II", "Nikkor 50mm", "Capture One"],
-    mediaType: "image",
-    mediaUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=85",
-    thumbnail: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=85",
-    gallery: [
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=85",
-      "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=1600&auto=format&fit=crop&q=85",
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1600&auto=format&fit=crop&q=85"
-    ],
-    tags: ["Фото", "Лукбук", "Studio"]
+    mediaType: "web",
+    mediaUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=1600&auto=format&fit=crop&q=85",
+    thumbnail: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=1200&auto=format&fit=crop&q=85",
+    externalLink: "https://github.com/peskovsky18/work"
   },
   {
     id: 7,
-    title: "Многокамерный пост-продакшн авто-шоу",
-    category: "montage",
-    categoryLabel: "Монтаж",
+    title: "Интерактивный лукбук «Сталь»",
+    category: "creative",
+    categoryLabel: "Креатив",
     year: "2026",
-    client: "YouTube-медиа",
-    role: "Монтаж, клинап, графическая упаковка",
-    description: "Сборка сложного 8-камерного выпуска с таймкодом. Цветокоррекция, очистка звуковых дорожек и динамичная инфографика.",
+    client: "R&S Clothing",
+    role: "Арт-директор, сет-дизайн",
+    shotOnIphone: false,
+    iphoneBadge: "Арт-дирекшн • Сет-дизайн",
+    description: "Креативное руководство визуальной кампанией: индустриальный сеттинг, жесткий направленный свет, концепция цифрового лукбука.",
     specs: {
-      software: "Premiere Pro Multi-Cam",
-      cameras: "8 synchronized angles",
-      grade: "ACEScc Color Workflow",
-      vfx: "After Effects Tracking"
+      direction: "Set Design & Art Direction",
+      medium: "Lookbook & Digital Campaign",
+      year: "2026"
     },
-    tools: ["Premiere Pro", "After Effects", "ACES"],
-    mediaType: "youtube",
-    mediaUrl: "https://www.youtube-nocookie.com/embed/9bZkp7q19f0",
-    thumbnail: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1600&auto=format&fit=crop&q=85",
-    tags: ["Монтаж", "Мультикам", "VFX"]
+    mediaType: "image",
+    mediaUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=85",
+    thumbnail: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200&auto=format&fit=crop&q=85",
+    gallery: [
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=1600&auto=format&fit=crop&q=85"
+    ]
   },
   {
     id: 8,
-    title: "Айдентика и цифровая платформа «Цех»",
-    category: "web",
-    categoryLabel: "Веб",
+    title: "Визуальная концепция арт-пространства",
+    category: "creative",
+    categoryLabel: "Креатив",
     year: "2026",
-    client: "Медиа «Цех»",
+    client: "Пространство «Линия»",
     role: "Креативный директор",
-    description: "Разработка целостной визуальной системы, черно-белой верстки в духе швейцарского модернизма и адаптивного веб-интерфейса.",
+    shotOnIphone: false,
+    iphoneBadge: "Концепция • Навигация",
+    description: "Разработка навигационной графики, вывесок и пространственной айдентики для независимого выставочного кластера.",
     specs: {
-      role: "Creative Direction",
-      identity: "Custom Grid & Typography",
-      deliverables: "Design System & Web App",
+      direction: "Spatial Identity & Branding",
       year: "2026"
     },
-    tools: ["Brand Identity", "Design System", "Art Direction"],
-    mediaType: "web",
-    mediaUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=1600&auto=format&fit=crop&q=85",
-    thumbnail: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=1600&auto=format&fit=crop&q=85",
-    externalLink: "https://github.com/peskovsky18/work",
-    tags: ["Веб", "Айдентика", "Швейцарский стиль"]
+    mediaType: "image",
+    mediaUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1600&auto=format&fit=crop&q=85",
+    thumbnail: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=85"
   }
 ];

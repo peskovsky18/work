@@ -174,7 +174,78 @@ function initCinemaPlayer() {
     if (e.key === 'ArrowLeft') prevSlide();
   });
 
+  // Загрузка локального видеофайла
+  const fileInput = document.getElementById('video-file-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', handleLocalVideoUpload);
+  }
+
   loadCategory();
+}
+
+function handleLocalVideoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const fileUrl = URL.createObjectURL(file);
+  const clientName = prompt('Имя клиента / проекта:', file.name.replace(/\.[^/.]+$/, '')) || 'Новый проект';
+
+  // Создаем невидимый видео-элемент для захвата стоп-кадра
+  const tempVideo = document.createElement('video');
+  tempVideo.src = fileUrl;
+  tempVideo.muted = true;
+  tempVideo.playsInline = true;
+  tempVideo.crossOrigin = 'anonymous';
+
+  tempVideo.addEventListener('loadeddata', () => {
+    tempVideo.currentTime = Math.min(1, (tempVideo.duration || 2) / 3);
+  });
+
+  tempVideo.addEventListener('seeked', () => {
+    let thumb = '';
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = tempVideo.videoWidth || 640;
+      canvas.height = tempVideo.videoHeight || 360;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+      thumb = canvas.toDataURL('image/jpeg', 0.85);
+    } catch (err) {
+      thumb = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1600&auto=format&fit=crop&q=85';
+    }
+
+    addNewVideoWork(clientName, fileUrl, thumb);
+  });
+
+  tempVideo.addEventListener('error', () => {
+    addNewVideoWork(clientName, fileUrl, 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1600&auto=format&fit=crop&q=85');
+  });
+}
+
+function addNewVideoWork(clientName, fileUrl, thumb) {
+  const newWork = {
+    id: Date.now(),
+    client: clientName,
+    title: clientName,
+    category: 'video',
+    categoryLabel: 'Видео',
+    badge: 'Shot on iPhone',
+    year: '2026',
+    mediaType: 'video_file',
+    mediaUrl: fileUrl,
+    thumbnail: thumb
+  };
+
+  PROJECTS.unshift(newWork);
+  currentTab = 'video';
+
+  document.querySelectorAll('.cat-switch-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === 'video');
+  });
+
+  currentIndex = 0;
+  loadCategory();
+  openCinemaModal(newWork);
 }
 
 function loadCategory() {
@@ -279,7 +350,23 @@ function openCinemaModal(work) {
   if (badgeEl) badgeEl.textContent = work.badge;
 
   if (videoContainer) {
-    if (work.mediaType === 'youtube') {
+    const isVideoFile = work.mediaType === 'video_file' || 
+                        (work.mediaUrl && work.mediaUrl.match(/\.(mp4|mov|webm|m4v)$/i)) || 
+                        (work.mediaUrl && work.mediaUrl.startsWith('blob:'));
+
+    if (isVideoFile) {
+      videoContainer.innerHTML = `
+        <video 
+          class="modal-video-frame" 
+          controls 
+          autoplay 
+          playsinline 
+          src="${escapeHtml(work.mediaUrl)}"
+          style="width: 100%; aspect-ratio: 16/9; background: #000; display: block;">
+          Ваш браузер не поддерживает встроенное видео.
+        </video>
+      `;
+    } else if (work.mediaType === 'youtube') {
       videoContainer.innerHTML = `
         <iframe 
           class="modal-video-frame" 
@@ -305,7 +392,11 @@ function closeCinemaModal() {
   if (!modal) return;
 
   const videoContainer = document.getElementById('modal-video-container');
-  if (videoContainer) videoContainer.innerHTML = '';
+  if (videoContainer) {
+    const video = videoContainer.querySelector('video');
+    if (video) video.pause();
+    videoContainer.innerHTML = '';
+  }
 
   modal.classList.remove('active');
   document.body.style.overflow = '';

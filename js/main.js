@@ -345,11 +345,17 @@ function renderCinemaSlide() {
 
   // Лента кадров (Filmstrip Scrubber) точно как на скриншоте
   if (filmstrip) {
-    filmstrip.innerHTML = activeList.map((item, idx) => `
-      <div class="filmstrip-thumb ${idx === currentIndex ? 'active' : ''}" data-idx="${idx}">
-        <img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.client)}">
-      </div>
-    `).join('');
+    filmstrip.innerHTML = activeList.map((item, idx) => {
+      const isVideoThumb = item.thumbnail && item.thumbnail.match(/\.(mp4|mov|webm)$/i);
+      const thumbContent = isVideoThumb
+        ? `<video src="${escapeHtml(item.thumbnail)}#t=0.5" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>`
+        : `<img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.client)}">`;
+      return `
+        <div class="filmstrip-thumb ${idx === currentIndex ? 'active' : ''}" data-idx="${idx}">
+          ${thumbContent}
+        </div>
+      `;
+    }).join('');
 
     filmstrip.querySelectorAll('.filmstrip-thumb').forEach(th => {
       th.addEventListener('click', (e) => {

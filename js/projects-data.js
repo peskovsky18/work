@@ -1,20 +1,6 @@
 /**
  * Александр Песковский — 2026
  * База данных: работы и контакты
- * 
- * Чтобы добавить работу вручную в код, вставьте объект в массив PROJECTS:
- * {
- *   id: 1,
- *   client: "Имя клиента / проекта",
- *   title: "Название работы",
- *   category: "video", // "video" (Видео) или "creative" (Креатив)
- *   categoryLabel: "Видео",
- *   badge: "Shot on iPhone",
- *   year: "2026",
- *   mediaType: "video_file", // "video_file" | "youtube" | "image"
- *   mediaUrl: "assets/videos/название_файла.mp4",
- *   thumbnail: "assets/images/превью.jpg"
- * }
  */
 
 const PROFILE_DATA = {
@@ -29,7 +15,28 @@ const PROFILE_DATA = {
 };
 
 const PROJECTS = [
-  // Поля оставлены пустыми по вашему запросу.
-  // Загружайте свои работы через кнопку «Загрузить медиа» на сайте
-  // или вставляйте новые объекты в этот массив.
+  {
+    id: 1,
+    client: "Работа 1",
+    title: "Shot on iPhone",
+    category: "video",
+    categoryLabel: "Видео",
+    badge: "Shot on iPhone",
+    year: "2026",
+    mediaType: "video_file",
+    mediaUrl: "assets/videos/ir8kYNcLb8sn6EK.MP4",
+    thumbnail: "assets/videos/ir8kYNcLb8sn6EK.MP4"
+  },
+  {
+    id: 2,
+    client: "Работа 2",
+    title: "Shot on iPhone",
+    category: "video",
+    categoryLabel: "Видео",
+    badge: "Shot on iPhone",
+    year: "2026",
+    mediaType: "video_file",
+    mediaUrl: "assets/videos/mppRNz4EpVE8gnQ.MP4",
+    thumbnail: "assets/videos/mppRNz4EpVE8gnQ.MP4"
+  }
 ];

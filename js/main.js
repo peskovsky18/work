@@ -1,21 +1,21 @@
 /**
- * Александр Песковский — Разнорабочий в медиа
- * Логика карусели работ, фильтров и модального окна просмотра
+ * Александр Песковский — 2026
+ * Интерфейс галереи в стиле Apple Photos
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  initProfile();
-  initCarousel();
+  initProfileLinks();
+  initPhotosGallery();
   initModal();
 });
 
 // ==========================================================================
-// 1. ТЕМА ОФОРМЛЕНИЯ
+// 1. ПЕРЕКЛЮЧЕНИЕ ТЕМЫ ОФОРМЛЕНИЯ
 // ==========================================================================
 function initTheme() {
   const toggleBtn = document.getElementById('theme-toggle');
-  const savedTheme = localStorage.getItem('peskovsky-portfolio-theme') || 'light';
+  const savedTheme = localStorage.getItem('peskovsky-theme-2026') || 'light';
   applyTheme(savedTheme);
 
   if (toggleBtn) {
@@ -23,7 +23,7 @@ function initTheme() {
       const current = document.documentElement.getAttribute('data-theme') || 'light';
       const next = current === 'light' ? 'dark' : 'light';
       applyTheme(next);
-      localStorage.setItem('peskovsky-portfolio-theme', next);
+      localStorage.setItem('peskovsky-theme-2026', next);
     });
   }
 }
@@ -37,18 +37,11 @@ function applyTheme(theme) {
 }
 
 // ==========================================================================
-// 2. ДАННЫЕ ПРОФИЛЯ И ДВЕ КНОПКИ (EMAIL & INSTAGRAM)
+// 2. ДВЕ КНОПКИ СВЯЗИ (EMAIL И INSTAGRAM)
 // ==========================================================================
-function initProfile() {
+function initProfileLinks() {
   if (typeof PROFILE_DATA === 'undefined') return;
 
-  const nameEl = document.getElementById('brand-name');
-  const roleEl = document.getElementById('brand-role');
-
-  if (nameEl) nameEl.textContent = PROFILE_DATA.name;
-  if (roleEl) roleEl.textContent = PROFILE_DATA.role;
-
-  // Настройка двух кнопок: Email и Instagram
   const emailBtns = document.querySelectorAll('.action-email-btn');
   const instaBtns = document.querySelectorAll('.action-insta-btn');
 
@@ -62,166 +55,222 @@ function initProfile() {
 }
 
 // ==========================================================================
-// 3. КАРУСЕЛЬ РАБОТ
+// 3. ГАЛЕРЕЯ В СТИЛЕ IOS PHOTOS
 // ==========================================================================
 let currentFilter = 'all';
-let filteredProjects = [];
+let filteredWorks = [];
 let currentIndex = 0;
 
-function initCarousel() {
+function initPhotosGallery() {
   if (typeof PROJECTS === 'undefined' || PROJECTS.length === 0) return;
 
-  filteredProjects = [...PROJECTS];
+  filteredWorks = [...PROJECTS];
   currentIndex = 0;
 
-  // Инициализация фильтров
-  const filterTabs = document.querySelectorAll('.filter-tab');
-  filterTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      filterTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+  // Сегментные фильтры
+  const segmentBtns = document.querySelectorAll('.segment-btn');
+  segmentBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      segmentBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
 
-      currentFilter = tab.dataset.filter;
-      filteredProjects = currentFilter === 'all' 
-        ? [...PROJECTS] 
+      currentFilter = btn.dataset.filter;
+      filteredWorks = currentFilter === 'all'
+        ? [...PROJECTS]
         : PROJECTS.filter(p => p.category === currentFilter);
 
       currentIndex = 0;
-      updateCarousel();
+      renderActiveWork();
     });
   });
 
-  // Кнопки карусели: влево / вправо
-  const prevBtn = document.getElementById('carousel-prev');
-  const nextBtn = document.getElementById('carousel-next');
+  // Стрелки навигации
+  const prevBtn = document.getElementById('stage-prev');
+  const nextBtn = document.getElementById('stage-next');
 
-  if (prevBtn) {
-    prevBtn.addEventListener('click', (e) => {
+  if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); prevWork(); });
+  if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); nextWork(); });
+
+  // Кнопка открытия работы
+  const openBtn = document.getElementById('stage-open');
+  const viewport = document.getElementById('ios-viewport');
+
+  if (openBtn) {
+    openBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      prevSlide();
+      if (filteredWorks[currentIndex]) openModal(filteredWorks[currentIndex].id);
     });
   }
 
-  if (nextBtn) {
-    nextBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      nextSlide();
-    });
-  }
-
-  // Клик по основному экрану открывает проект
-  const viewport = document.getElementById('carousel-viewport');
   if (viewport) {
     viewport.addEventListener('click', () => {
-      if (filteredProjects[currentIndex]) {
-        openModal(filteredProjects[currentIndex].id);
-      }
+      if (filteredWorks[currentIndex]) openModal(filteredWorks[currentIndex].id);
     });
-  }
 
-  // Навигация стрелками на клавиатуре
-  document.addEventListener('keydown', (e) => {
-    const modal = document.getElementById('project-modal');
-    if (modal && modal.classList.contains('active')) return;
-
-    if (e.key === 'ArrowRight') nextSlide();
-    if (e.key === 'ArrowLeft') prevSlide();
-  });
-
-  // Свайп на мобильных устройствах
-  if (viewport) {
+    // Свайп на сенсорных экранах
     let touchStartX = 0;
-    let touchEndX = 0;
-
     viewport.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
     }, { passive: true });
 
     viewport.addEventListener('touchend', (e) => {
-      touchEndX = e.changedTouches[0].screenX;
-      if (touchStartX - touchEndX > 50) nextSlide();
-      if (touchEndX - touchStartX > 50) prevSlide();
+      const touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 50) nextWork();
+      if (touchEndX - touchStartX > 50) prevWork();
     }, { passive: true });
   }
 
-  updateCarousel();
+  // Кнопка «Инфо»
+  const infoBtn = document.getElementById('stage-info');
+  if (infoBtn) {
+    infoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const infoCard = document.getElementById('ios-info-card');
+      if (infoCard) {
+        infoCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  // Навигация стрелками клавиатуры
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('project-modal');
+    if (modal && modal.classList.contains('active')) return;
+
+    if (e.key === 'ArrowRight') nextWork();
+    if (e.key === 'ArrowLeft') prevWork();
+  });
+
+  renderActiveWork();
 }
 
-function prevSlide() {
-  if (filteredProjects.length <= 1) return;
-  currentIndex = (currentIndex - 1 + filteredProjects.length) % filteredProjects.length;
-  updateCarousel();
+function prevWork() {
+  if (filteredWorks.length <= 1) return;
+  currentIndex = (currentIndex - 1 + filteredWorks.length) % filteredWorks.length;
+  renderActiveWork();
 }
 
-function nextSlide() {
-  if (filteredProjects.length <= 1) return;
-  currentIndex = (currentIndex + 1) % filteredProjects.length;
-  updateCarousel();
+function nextWork() {
+  if (filteredWorks.length <= 1) return;
+  currentIndex = (currentIndex + 1) % filteredWorks.length;
+  renderActiveWork();
 }
 
-function updateCarousel() {
-  const project = filteredProjects[currentIndex];
-  if (!project) return;
+function renderActiveWork() {
+  const work = filteredWorks[currentIndex];
+  if (!work) return;
 
-  // Элементы
-  const imgEl = document.getElementById('carousel-img');
-  const counterTop = document.getElementById('carousel-counter-top');
-  const catBadge = document.getElementById('carousel-category-badge');
-  const yearEl = document.getElementById('carousel-year');
-  const titleEl = document.getElementById('carousel-title');
-  const roleEl = document.getElementById('carousel-role');
-  const thumbsContainer = document.getElementById('carousel-thumbs');
+  const imgEl = document.getElementById('ios-main-image');
+  const counterEl = document.getElementById('gallery-counter');
+  const catBadge = document.getElementById('work-category-badge');
+  const titleEl = document.getElementById('work-title');
+  const roleEl = document.getElementById('work-role');
+  const descEl = document.getElementById('work-desc');
+  const specsContainer = document.getElementById('work-specs');
+  const filmstrip = document.getElementById('filmstrip-track');
 
   // Главное изображение
   if (imgEl) {
-    imgEl.src = project.thumbnail;
-    imgEl.alt = project.title;
+    imgEl.style.opacity = '0.4';
+    setTimeout(() => {
+      imgEl.src = work.thumbnail;
+      imgEl.alt = work.title;
+      imgEl.style.opacity = '1';
+    }, 120);
   }
 
-  // Счетчик вида: 01 / 08
-  const currentNum = String(currentIndex + 1).padStart(2, '0');
-  const totalNum = String(filteredProjects.length).padStart(2, '0');
-  if (counterTop) counterTop.textContent = `${currentNum} / ${totalNum}`;
+  // Счетчик кадров в галерее: 01 / 08 • 2026
+  if (counterEl) {
+    const cur = String(currentIndex + 1).padStart(2, '0');
+    const tot = String(filteredWorks.length).padStart(2, '0');
+    counterEl.textContent = `${cur} / ${tot} • 2026`;
+  }
 
-  // Метаданные
-  if (catBadge) catBadge.textContent = project.categoryLabel;
-  if (yearEl) yearEl.textContent = project.year;
-  if (titleEl) titleEl.textContent = project.title;
+  // Инфо о проекте
+  if (catBadge) catBadge.textContent = work.categoryLabel;
+  if (titleEl) titleEl.textContent = work.title;
   if (roleEl) {
-    const clientStr = project.client ? ` • ${project.client}` : '';
-    roleEl.textContent = `${project.role}${clientStr}`;
+    const clientText = work.client ? ` • ${work.client}` : '';
+    roleEl.textContent = `${work.role}${clientText}`;
+  }
+  if (descEl) descEl.textContent = work.description;
+
+  // Архитектурные технические спеки
+  if (specsContainer) {
+    if (work.specs) {
+      specsContainer.innerHTML = Object.entries(work.specs).map(([key, val]) => `
+        <div class="spec-cell">
+          <strong>${formatSpecLabel(key)}</strong>
+          <span>${escapeHtml(val)}</span>
+        </div>
+      `).join('');
+      specsContainer.style.display = 'grid';
+    } else {
+      specsContainer.style.display = 'none';
+    }
   }
 
-  // Обновление полосы миниатюр
-  if (thumbsContainer) {
-    thumbsContainer.innerHTML = filteredProjects.map((p, idx) => `
-      <img 
-        src="${escapeHtml(p.thumbnail)}" 
-        alt="${escapeHtml(p.title)}" 
-        class="thumb-item ${idx === currentIndex ? 'active' : ''}" 
-        data-index="${idx}"
-      >
+  // Лента кадров (Filmstrip Scrubber в стиле iOS)
+  if (filmstrip) {
+    filmstrip.innerHTML = filteredWorks.map((item, idx) => `
+      <div class="filmstrip-item ${idx === currentIndex ? 'active' : ''}" data-idx="${idx}">
+        <img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.title)}">
+      </div>
     `).join('');
 
-    thumbsContainer.querySelectorAll('.thumb-item').forEach(th => {
-      th.addEventListener('click', (e) => {
+    filmstrip.querySelectorAll('.filmstrip-item').forEach(thumb => {
+      thumb.addEventListener('click', (e) => {
         e.stopPropagation();
-        currentIndex = parseInt(th.dataset.index, 10);
-        updateCarousel();
+        currentIndex = parseInt(thumb.dataset.idx, 10);
+        renderActiveWork();
       });
     });
+
+    // Центрируем активный кадр в полосе
+    const activeItem = filmstrip.children[currentIndex];
+    if (activeItem) {
+      activeItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
   }
 }
 
+function formatSpecLabel(key) {
+  const map = {
+    camera: "Камера",
+    format: "Формат",
+    lens: "Оптика",
+    post: "Пост-продакшн",
+    film: "Пленка",
+    software: "Софт",
+    timeline: "Таймлайн",
+    source: "Исходники",
+    color: "Цветокор",
+    role: "Направление",
+    stack: "Стек",
+    typography: "Шрифт",
+    grid: "Сетка",
+    audio: "Звук",
+    profile: "Профиль",
+    lighting: "Свет",
+    raw: "Проявка",
+    cameras: "Камеры",
+    grade: "Грейдинг",
+    vfx: "VFX & Клинап",
+    identity: "Айдентика",
+    deliverables: "Результат",
+    year: "Год"
+  };
+  return map[key] || key;
+}
+
 // ==========================================================================
-// 4. МОДАЛЬНОЕ ОКНО ПРОЕКТА
+// 4. МОДАЛЬНЫЙ ПРОСМОТР РАБОТ
 // ==========================================================================
 function initModal() {
   const modal = document.getElementById('project-modal');
   const closeBtn = document.getElementById('modal-close-btn');
 
   if (!modal) return;
-
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
   modal.addEventListener('click', (e) => {
@@ -236,77 +285,36 @@ function initModal() {
 }
 
 function openModal(projectId) {
-  const project = PROJECTS.find(p => p.id === projectId);
-  if (!project) return;
+  const work = PROJECTS.find(p => p.id === projectId);
+  if (!work) return;
 
   const modal = document.getElementById('project-modal');
   const headerCat = document.getElementById('modal-header-cat');
   const mediaContainer = document.getElementById('modal-media-container');
   const titleEl = document.getElementById('modal-title');
-  const metaContainer = document.getElementById('modal-meta-container');
   const descEl = document.getElementById('modal-desc');
-  const toolsContainer = document.getElementById('modal-tools-container');
 
-  if (headerCat) headerCat.textContent = project.categoryLabel;
-  if (titleEl) titleEl.textContent = project.title;
-  if (descEl) descEl.textContent = project.description;
+  if (headerCat) headerCat.textContent = `${work.categoryLabel} • 2026`;
+  if (titleEl) titleEl.textContent = work.title;
+  if (descEl) descEl.textContent = work.description;
 
-  // Рендер плеера или фото
   if (mediaContainer) {
-    mediaContainer.innerHTML = renderModalMedia(project);
+    mediaContainer.innerHTML = renderModalMedia(work);
     initModalGalleryEvents();
-  }
-
-  // Метаданные
-  if (metaContainer) {
-    metaContainer.innerHTML = `
-      <div class="modal-meta-item">
-        <strong>Заказчик</strong>
-        <span>${escapeHtml(project.client || '—')}</span>
-      </div>
-      <div class="modal-meta-item">
-        <strong>Роль</strong>
-        <span>${escapeHtml(project.role)}</span>
-      </div>
-      <div class="modal-meta-item">
-        <strong>Год</strong>
-        <span>${escapeHtml(project.year)}</span>
-      </div>
-      ${project.externalLink ? `
-      <div class="modal-meta-item">
-        <strong>Ссылка</strong>
-        <a href="${escapeHtml(project.externalLink)}" target="_blank" rel="noopener" style="color: var(--text-color); font-weight: bold; text-decoration: underline;">Смотреть онлайн ↗</a>
-      </div>
-      ` : ''}
-    `;
-  }
-
-  // Сетап и инструменты
-  if (toolsContainer) {
-    if (project.tools && project.tools.length > 0) {
-      toolsContainer.innerHTML = `
-        <div class="modal-tools-list">
-          ${project.tools.map(t => `<span class="tag-badge">${escapeHtml(t)}</span>`).join('')}
-        </div>
-      `;
-    } else {
-      toolsContainer.innerHTML = '';
-    }
   }
 
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
-function renderModalMedia(project) {
-  // Видео с YouTube
-  if (project.mediaType === 'youtube') {
+function renderModalMedia(work) {
+  if (work.mediaType === 'youtube') {
     return `
-      <div class="modal-media-wrapper">
+      <div class="modal-video-wrapper">
         <iframe 
           class="modal-video-frame" 
-          src="${escapeHtml(project.mediaUrl)}?autoplay=1&rel=0&modestbranding=1" 
-          title="${escapeHtml(project.title)}" 
+          src="${escapeHtml(work.mediaUrl)}?autoplay=1&rel=0&modestbranding=1" 
+          title="${escapeHtml(work.title)}" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
           allowfullscreen>
         </iframe>
@@ -314,30 +322,28 @@ function renderModalMedia(project) {
     `;
   }
 
-  // Серия фотографий
-  if (project.gallery && project.gallery.length > 1) {
+  if (work.gallery && work.gallery.length > 1) {
     return `
-      <div class="modal-media-wrapper">
-        <img id="modal-main-img" class="modal-image-view" src="${escapeHtml(project.gallery[0])}" alt="${escapeHtml(project.title)}">
+      <div style="width: 100%; border-radius: 12px; overflow: hidden; background: #000;">
+        <img id="modal-main-img" class="modal-photo-view" src="${escapeHtml(work.gallery[0])}" alt="${escapeHtml(work.title)}">
       </div>
-      <div class="modal-gallery-thumbs">
-        ${project.gallery.map((img, idx) => `
-          <img src="${escapeHtml(img)}" class="modal-thumb ${idx === 0 ? 'active' : ''}" data-src="${escapeHtml(img)}" alt="Кадр ${idx + 1}">
+      <div class="modal-series-strip">
+        ${work.gallery.map((img, idx) => `
+          <img src="${escapeHtml(img)}" class="modal-series-thumb ${idx === 0 ? 'active' : ''}" data-src="${escapeHtml(img)}" alt="Кадр ${idx + 1}">
         `).join('')}
       </div>
     `;
   }
 
-  // Одиночное фото или скриншот
   return `
-    <div class="modal-media-wrapper">
-      <img class="modal-image-view" src="${escapeHtml(project.mediaUrl || project.thumbnail)}" alt="${escapeHtml(project.title)}">
+    <div style="width: 100%; border-radius: 12px; overflow: hidden; background: #000;">
+      <img class="modal-photo-view" src="${escapeHtml(work.mediaUrl || work.thumbnail)}" alt="${escapeHtml(work.title)}">
     </div>
   `;
 }
 
 function initModalGalleryEvents() {
-  const thumbs = document.querySelectorAll('.modal-thumb');
+  const thumbs = document.querySelectorAll('.modal-series-thumb');
   const mainImg = document.getElementById('modal-main-img');
   if (!mainImg || thumbs.length === 0) return;
 

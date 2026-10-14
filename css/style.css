@@ -1,37 +1,50 @@
 /* ==========================================================================
-   АЛЕКСАНДР ПЕСКОВСКИЙ — РАЗНОРАБОЧИЙ В МЕДИА
-   Минималистичный дизайн. Тетрадь в клетку. Фокус на работах.
+   АЛЕКСАНДР ПЕСКОВСКИЙ — 2026
+   Швейцарская архитектурная типографика • Тетрадь в клетку
+   Интерфейс галереи в стиле Apple Photos • Фирменные Pill-кнопки
    ========================================================================== */
 
 :root {
-  /* Светлая тема (Тетрадь в клетку) */
-  --bg-color: #fafaf8;
-  --text-color: #0f0f10;
-  --text-muted: #666668;
-  --border-color: #0f0f10;
+  /* Светлая тема (Белая архитектурная бумага в клетку) */
+  --bg-color: #faf9f6;
+  --text-main: #111113;
+  --text-muted: #5e5e64;
+  --grid-line: rgba(0, 0, 0, 0.07);
+  --border-subtle: rgba(0, 0, 0, 0.12);
+  --border-strong: #111113;
   --card-bg: #ffffff;
-  --grid-line: rgba(0, 0, 0, 0.08);
-  --accent-color: #000000;
-  --overlay-bg: rgba(10, 10, 12, 0.92);
+  --pill-bg: rgba(255, 255, 255, 0.85);
+  --pill-bg-hover: #111113;
+  --pill-text: #111113;
+  --pill-text-hover: #ffffff;
+  --pill-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --pill-shadow-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.16);
+  --overlay-bg: rgba(14, 14, 18, 0.94);
   --modal-bg: #ffffff;
-  --code-bg: #f0f0ed;
+  --spec-bg: #f4f3ef;
 }
 
 [data-theme="dark"] {
-  /* Темная тема (Чертежная сетка / Ночь) */
-  --bg-color: #0d0d10;
-  --text-color: #f4f4f2;
-  --text-muted: #8e8e92;
-  --border-color: #f4f4f2;
-  --card-bg: #141418;
-  --grid-line: rgba(255, 255, 255, 0.06);
-  --accent-color: #ffffff;
+  /* Темная тема (Чертежная сетка / Apple Dark Mode) */
+  --bg-color: #0c0c0e;
+  --text-main: #f5f5f7;
+  --text-muted: #96969e;
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --border-subtle: rgba(255, 255, 255, 0.14);
+  --border-strong: #f5f5f7;
+  --card-bg: #141417;
+  --pill-bg: rgba(24, 24, 28, 0.82);
+  --pill-bg-hover: #f5f5f7;
+  --pill-text: #f5f5f7;
+  --pill-text-hover: #0c0c0e;
+  --pill-shadow: 0 4px 22px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
+  --pill-shadow-hover: 0 8px 30px -4px rgba(0, 0, 0, 0.7);
   --overlay-bg: rgba(0, 0, 0, 0.96);
-  --modal-bg: #141418;
-  --code-bg: #1e1e24;
+  --modal-bg: #151519;
+  --spec-bg: #1b1b20;
 }
 
-/* Базовые стили */
+/* Базовый сброс */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -41,20 +54,21 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
   font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-color);
-  color: var(--text-color);
+  color: var(--text-main);
   line-height: 1.5;
   min-height: 100vh;
   position: relative;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
   overflow-x: hidden;
 }
 
-/* Тетрадь в клетку */
+/* Тетрадь в клетку (Четкая, элегантная 24px) */
 .notebook-grid {
   background-size: 24px 24px;
   background-image: 
@@ -64,54 +78,94 @@ body {
 
 .container {
   width: 100%;
-  max-width: 1140px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 28px;
 }
 
-/* Кнопки */
-.btn {
+/* ==========================================================================
+   ФИРМЕННЫЕ PILL-КНОПКИ В СТИЛЕ APPLE
+   ========================================================================== */
+.apple-pill-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  padding: 9px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
+  font-size: 0.86rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-color);
-  background: var(--card-bg);
-  border: 1.5px solid var(--border-color);
-  border-radius: 2px;
+  letter-spacing: -0.2px;
+  color: var(--pill-text);
+  background: var(--pill-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  box-shadow: var(--pill-shadow);
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s ease,
+              background-color 0.2s ease,
+              color 0.2s ease,
+              border-color 0.2s ease;
   user-select: none;
 }
 
-.btn:hover {
-  background: var(--text-color);
-  color: var(--bg-color);
+.apple-pill-btn:hover {
+  transform: scale(1.03) translateY(-1px);
+  box-shadow: var(--pill-shadow-hover);
+  background: var(--pill-bg-hover);
+  color: var(--pill-text-hover);
+  border-color: transparent;
 }
 
-.btn-primary {
-  background: var(--text-color);
-  color: var(--bg-color);
+.apple-pill-btn:active {
+  transform: scale(0.97);
 }
 
-.btn-primary:hover {
-  opacity: 0.88;
+/* Первичная черная кнопка-капсула */
+.apple-pill-primary {
+  background: var(--text-main);
+  color: var(--bg-color);
+  border-color: var(--text-main);
+}
+
+.apple-pill-primary:hover {
+  background: var(--pill-bg-hover);
+  color: var(--pill-text-hover);
+  opacity: 0.92;
+}
+
+.pill-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
-   ХЕДЕР
+   ХЕДЕР: ПАРИТ ВВЕРХУ С МАТОВЫМ РАЗМЫТИЕМ
    ========================================================================== */
 .site-header {
-  padding: 32px 0 24px;
-  border-bottom: 1.5px solid var(--border-color);
-  background-color: var(--bg-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 249, 246, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 18px 0;
+  transition: background 0.3s ease;
+}
+
+[data-theme="dark"] .site-header {
+  background: rgba(12, 12, 14, 0.75);
 }
 
 .header-row {
@@ -119,56 +173,65 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px;
 }
 
-.brand-info {
+.brand-block {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .brand-name {
-  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
   text-transform: uppercase;
-  line-height: 1.1;
 }
 
-.brand-role {
+.brand-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin-top: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+}
+
+.year-stamp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  color: var(--text-muted);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.theme-btn {
-  width: 40px;
-  height: 40px;
+.theme-pill-btn {
+  width: 38px;
+  height: 38px;
   padding: 0;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
 }
 
 /* ==========================================================================
-   ПАНЕЛЬ ФИЛЬТРОВ
+   ГАЛЕРЕЯ В СТИЛЕ ПРИЛОЖЕНИЯ «ФОТО» НА IPHONE
    ========================================================================== */
-.carousel-section {
+.gallery-section {
   padding: 36px 0 60px;
 }
 
-.filter-bar {
+/* Фильтры в стиле Apple сегментного контрола */
+.segment-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -177,292 +240,373 @@ body {
   margin-bottom: 24px;
 }
 
-.filter-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.segment-tabs {
+  display: inline-flex;
+  padding: 4px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.filter-tab {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  padding: 6px 14px;
-  border: 1.5px solid var(--border-color);
-  background: var(--bg-color);
-  color: var(--text-color);
+.segment-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 9999px;
   cursor: pointer;
-  text-transform: uppercase;
-  border-radius: 2px;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.filter-tab:hover {
-  background: var(--border-color);
+.segment-btn:hover {
+  color: var(--text-main);
+}
+
+.segment-btn.active {
+  background: var(--text-main);
   color: var(--bg-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.filter-tab.active {
-  background: var(--text-color);
-  color: var(--bg-color);
-}
-
-.carousel-counter-top {
+.gallery-status-counter {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 1px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
 }
 
 /* ==========================================================================
-   КАРУСЕЛЬ РАБОТ
+   СЦЕНА ПРОСМОТРА (IOS PHOTOS VIEWER)
    ========================================================================== */
-.carousel-wrapper {
+.ios-stage-container {
   position: relative;
-  border: 2px solid var(--border-color);
   background: var(--card-bg);
-  box-shadow: 6px 6px 0px var(--border-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.09), 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  transition: box-shadow 0.3s ease;
 }
 
-.carousel-viewport {
+[data-theme="dark"] .ios-stage-container {
+  box-shadow: 0 20px 54px -10px rgba(0, 0, 0, 0.6);
+}
+
+/* Главный видовой экран */
+.ios-viewport {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background-color: #000000;
+  background: #000000;
   overflow: hidden;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .carousel-viewport {
+@media (max-width: 820px) {
+  .ios-viewport {
     aspect-ratio: 4 / 3;
   }
 }
 
-.carousel-image {
+.ios-main-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease, filter 0.3s ease;
-  display: block;
-}
-
-.carousel-viewport:hover .carousel-image {
-  transform: scale(1.02);
-}
-
-.carousel-overlay-hint {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.carousel-viewport:hover .carousel-overlay-hint {
-  opacity: 1;
-}
-
-.open-work-btn {
-  background: var(--card-bg);
-  color: var(--text-color);
-  border: 1.5px solid var(--border-color);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 10px 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  pointer-events: none;
-}
-
-/* Информационная полоса слайда */
-.carousel-info-bar {
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
-  border-top: 2px solid var(--border-color);
-  background: var(--card-bg);
-}
-
-.carousel-project-details {
-  flex: 1;
-  min-width: 260px;
-}
-
-.carousel-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.carousel-category-badge {
-  padding: 2px 8px;
-  background: var(--text-color);
-  color: var(--bg-color);
-  font-weight: 700;
-}
-
-.carousel-title {
-  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
-.carousel-role {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-/* Кнопки навигации карусели */
-.carousel-nav-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.nav-arrow-btn {
-  width: 48px;
-  height: 48px;
-  border: 1.5px solid var(--border-color);
-  background: var(--card-bg);
-  color: var(--text-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1.3rem;
-  font-weight: bold;
-  transition: all 0.15s ease;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
   user-select: none;
 }
 
-.nav-arrow-btn:hover {
-  background: var(--text-color);
-  color: var(--bg-color);
+.ios-viewport:hover .ios-main-image {
+  transform: scale(1.015);
 }
 
-/* Миниатюры карусели для быстрого выбора */
-.carousel-thumbnails {
+/* Парящий вьюпорт-тулбар (Floating Glass Toolbar в стиле iOS) */
+.floating-stage-toolbar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  overflow-x: auto;
-  padding-bottom: 6px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(20, 20, 24, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 20;
 }
 
-.thumb-item {
-  width: 64px;
-  height: 44px;
-  border: 1.5px solid var(--border-color);
-  object-fit: cover;
+.stage-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 0.2s ease, transform 0.15s ease;
-  flex-shrink: 0;
+  transition: all 0.18s ease;
 }
 
-.thumb-item:hover {
-  opacity: 0.8;
+.stage-btn:hover {
+  background: #ffffff;
+  color: #000000;
+  transform: scale(1.04);
 }
 
-.thumb-item.active {
-  opacity: 1;
-  border-width: 2.5px;
-  transform: translateY(-2px);
+.stage-btn:active {
+  transform: scale(0.96);
+}
+
+.stage-arrow-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 /* ==========================================================================
-   КОНТАКТНАЯ ЗОНА (ТОЛЬКО ПОЧТА И ИНСТАГРАМ)
+   ИНСПЕКТОР И ДЕТАЛИ ПРОЕКТА (ТЕХНИЧЕСКИЕ СПЕКИ 2026)
    ========================================================================== */
-.contact-section {
-  padding: 40px 0 80px;
-  border-top: 1.5px solid var(--border-color);
+.ios-info-card {
+  padding: 24px 28px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--card-bg);
 }
 
-.contact-row {
+.info-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.info-title-group {
+  flex: 1;
+  min-width: 280px;
+}
+
+.project-year-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: var(--text-main);
+  color: var(--bg-color);
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+.project-title {
+  font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.2;
+  margin-top: 6px;
+}
+
+.project-role-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.project-desc-text {
+  font-size: 1rem;
+  color: var(--text-main);
+  line-height: 1.6;
+  max-width: 800px;
+  margin-bottom: 20px;
+}
+
+/* Архитектурные технические спеки (Camera, Format, Lens, Post) */
+.specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  padding: 16px 20px;
+  background: var(--spec-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+}
+
+.spec-cell strong {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.spec-cell span {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* ==========================================================================
+   ЛЕНТА КАДРОВ (FILMSTRIP / SCRUBBER КАК В IOS ФОТО)
+   ========================================================================== */
+.filmstrip-wrapper {
+  margin-top: 18px;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+}
+
+.filmstrip-wrapper::-webkit-scrollbar {
+  height: 4px;
+}
+.filmstrip-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+
+.filmstrip-item {
+  width: 76px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  opacity: 0.45;
+  border: 2px solid transparent;
+  transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.filmstrip-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.filmstrip-item:hover {
+  opacity: 0.85;
+}
+
+.filmstrip-item.active {
+  opacity: 1;
+  border-color: var(--text-main);
+  transform: scale(1.06);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* ==========================================================================
+   СЕКЦИЯ КОНТАКТОВ (ТОЛЬКО ДВЕ КНОПКИ: ПОЧТА И ИНСТАГРАМ)
+   ========================================================================== */
+.contact-section {
+  padding: 60px 0 80px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.contact-card {
+  padding: 40px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
 }
 
-.contact-left {
-  max-width: 450px;
+.contact-meta-left {
+  max-width: 440px;
 }
 
-.contact-heading {
-  font-size: 1.4rem;
+.contact-title {
+  font-size: 1.6rem;
   font-weight: 800;
+  letter-spacing: -0.4px;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-.contact-sub {
+.contact-subtitle {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
 }
 
-.contact-buttons-only {
+.contact-actions-only {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
 .contact-btn-large {
-  padding: 14px 28px;
-  font-size: 0.95rem;
+  padding: 13px 26px;
+  font-size: 0.92rem;
 }
 
 /* ==========================================================================
-   ПОДВАЛ
+   ПОДВАЛ САЙТА
    ========================================================================== */
 .site-footer {
-  padding: 24px 0;
-  border-top: 1.5px solid var(--border-color);
+  padding: 28px 0;
+  border-top: 1px solid var(--border-subtle);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 /* ==========================================================================
-   МОДАЛЬНОЕ ОКНО ПРОЕКТА
+   МОДАЛЬНОЕ ОКНО ПРОСМОТРА
    ========================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
   background-color: var(--overlay-bg);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .modal-overlay.active {
@@ -472,24 +616,25 @@ body {
 
 .modal-box {
   width: 100%;
-  max-width: 980px;
+  max-width: 1040px;
   max-height: 90vh;
   background: var(--modal-bg);
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  box-shadow: 10px 10px 0px var(--border-color);
 }
 
 .modal-header {
-  padding: 14px 20px;
-  border-bottom: 1.5px solid var(--border-color);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-color);
+  background: var(--card-bg);
 }
 
 .modal-header-title {
@@ -499,26 +644,27 @@ body {
   text-transform: uppercase;
 }
 
-.modal-close-btn {
-  background: transparent;
-  border: 1.5px solid var(--border-color);
+.modal-close-pill {
   width: 34px;
   height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 1.1rem;
-  color: var(--text-color);
   transition: all 0.15s ease;
 }
 
-.modal-close-btn:hover {
-  background: var(--text-color);
+.modal-close-pill:hover {
+  background: var(--text-main);
   color: var(--bg-color);
 }
 
-.modal-content-scroll {
+.modal-scroll-area {
   overflow-y: auto;
   padding: 24px;
   display: flex;
@@ -526,92 +672,50 @@ body {
   gap: 20px;
 }
 
-.modal-media-wrapper {
+.modal-video-wrapper {
   position: relative;
   width: 100%;
-  border: 1.5px solid var(--border-color);
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
   overflow: hidden;
   background: #000;
 }
 
 .modal-video-frame {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 100%;
   border: none;
   display: block;
 }
 
-.modal-image-view {
+.modal-photo-view {
   width: 100%;
   max-height: 70vh;
   object-fit: contain;
   display: block;
   background: #000;
+  border-radius: 12px;
 }
 
-.modal-gallery-thumbs {
+.modal-series-strip {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 6px;
 }
 
-.modal-thumb {
+.modal-series-thumb {
   width: 80px;
   height: 56px;
-  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
   object-fit: cover;
   cursor: pointer;
   opacity: 0.5;
-  transition: opacity 0.2s ease;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
 }
 
-.modal-thumb.active, .modal-thumb:hover {
+.modal-series-thumb.active, .modal-series-thumb:hover {
   opacity: 1;
-}
-
-.modal-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.modal-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 14px;
-  background: var(--code-bg);
-  border: 1.5px solid var(--border-color);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-}
-
-.modal-meta-item strong {
-  display: block;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 2px;
-}
-
-.modal-desc {
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.modal-tools-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag-badge {
-  display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-color);
-  color: var(--text-color);
+  border-color: var(--text-main);
 }

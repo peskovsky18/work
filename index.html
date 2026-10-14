@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Александр Песковский — Разнорабочий в медиа</title>
-  <meta name="description" content="Портфолио: Александр Песковский — Разнорабочий в медиа. Видео, фотография, монтаж, веб-проекты.">
+  <title>Александр Песковский — 2026</title>
+  <meta name="description" content="Александр Песковский — Разнорабочий в медиа (2026). Видеопроизводство, аналоговая и цифровая фотография, монтаж, креативный дирекшн.">
   
-  <!-- Шрифты Google Fonts: Space Grotesk и JetBrains Mono -->
+  <!-- Шрифты: Space Grotesk и JetBrains Mono с поддержкой кириллицы -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
   
   <!-- Стили -->
   <link rel="stylesheet" href="css/style.css">
@@ -17,95 +17,130 @@
 <body class="notebook-grid">
 
   <!-- ==========================================
-       ХЕДЕР: ИМЯ, РОЛЬ И ДВЕ КНОПКИ
+       ХЕДЕР: APPLE GLASS ПАНЕЛЬ
        ========================================== -->
   <header class="site-header">
     <div class="container header-row">
-      <div class="brand-info">
-        <h1 class="brand-name" id="brand-name">Александр Песковский</h1>
-        <div class="brand-role" id="brand-role">Разнорабочий в медиа</div>
+      <div class="brand-block">
+        <h1 class="brand-name">Александр Песковский</h1>
+        <span class="brand-label">Разнорабочий в медиа</span>
+        <span class="year-stamp">2026</span>
       </div>
 
       <div class="header-actions">
-        <!-- Только две кнопки: Почта и Инст -->
-        <a href="mailto:peskovsky18@gmail.com" class="btn btn-primary action-email-btn">Email</a>
-        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="btn action-insta-btn">Instagram ↗</a>
-        <button id="theme-toggle" class="btn theme-btn" aria-label="Сменить тему">🌙</button>
+        <!-- Фирменные Pill-кнопки в стиле Apple -->
+        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary action-email-btn">
+          <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          <span>Email</span>
+        </a>
+
+        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn action-insta-btn">
+          <svg class="pill-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+          <span>Instagram ↗</span>
+        </a>
+
+        <button id="theme-toggle" class="apple-pill-btn theme-pill-btn" aria-label="Сменить тему">
+          🌙
+        </button>
       </div>
     </div>
   </header>
 
   <main>
     <!-- ==========================================
-         СЕКЦИЯ КАРУСЕЛИ РАБОТ
+         ГАЛЕРЕЯ В СТИЛЕ ПРИЛОЖЕНИЯ «ФОТО» НА IPHONE
          ========================================== -->
-    <section class="carousel-section">
+    <section class="gallery-section">
       <div class="container">
-        <!-- Фильтры и счетчик -->
-        <div class="filter-bar">
-          <div class="filter-tabs">
-            <button class="filter-tab active" data-filter="all">Все</button>
-            <button class="filter-tab" data-filter="video">Видео</button>
-            <button class="filter-tab" data-filter="photo">Фото</button>
-            <button class="filter-tab" data-filter="montage">Монтаж</button>
-            <button class="filter-tab" data-filter="web">Веб</button>
+        
+        <!-- Верхняя полоса: Сегментный контрол и счетчик -->
+        <div class="segment-bar">
+          <div class="segment-tabs" role="tablist">
+            <button class="segment-btn active" data-filter="all">Все</button>
+            <button class="segment-btn" data-filter="video">Видео</button>
+            <button class="segment-btn" data-filter="photo">Фото</button>
+            <button class="segment-btn" data-filter="montage">Монтаж</button>
+            <button class="segment-btn" data-filter="web">Веб</button>
           </div>
-          <div class="carousel-counter-top" id="carousel-counter-top">01 / 08</div>
+          <div class="gallery-status-counter" id="gallery-counter">01 / 08 • 2026</div>
         </div>
 
-        <!-- Контейнер карусели -->
-        <div class="carousel-wrapper">
-          <!-- Главный экран работы (клик открывает видео / фото) -->
-          <div class="carousel-viewport" id="carousel-viewport" title="Нажмите, чтобы открыть">
-            <img id="carousel-img" class="carousel-image" src="" alt="Работа">
-            <div class="carousel-overlay-hint">
-              <span class="open-work-btn">Смотреть проект ↗</span>
+        <!-- Центральный контейнер галереи -->
+        <div class="ios-stage-container">
+          <!-- Видовой экран (клик открывает полноэкранный плеер/фото) -->
+          <div class="ios-viewport" id="ios-viewport" title="Кликните для просмотра в полном качестве">
+            <img id="ios-main-image" class="ios-main-image" src="" alt="Работа">
+
+            <!-- Парящий Glass-тулбар поверх кадра -->
+            <div class="floating-stage-toolbar">
+              <button class="stage-btn stage-arrow-btn" id="stage-prev" aria-label="Предыдущий кадр">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+
+              <button class="stage-btn" id="stage-open">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Смотреть</span>
+              </button>
+
+              <button class="stage-btn" id="stage-info">
+                <span>ⓘ Спеки</span>
+              </button>
+
+              <button class="stage-btn stage-arrow-btn" id="stage-next" aria-label="Следующий кадр">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
             </div>
           </div>
 
-          <!-- Информационная полоса работы -->
-          <div class="carousel-info-bar">
-            <div class="carousel-project-details">
-              <div class="carousel-meta-row">
-                <span class="carousel-category-badge" id="carousel-category-badge">Видео</span>
-                <span id="carousel-year">2024</span>
+          <!-- Нижняя информационная карточка: Типографика и спеки -->
+          <div class="ios-info-card" id="ios-info-card">
+            <div class="info-header-row">
+              <div class="info-title-group">
+                <div>
+                  <span class="project-year-badge" id="work-category-badge">Видео</span>
+                </div>
+                <h2 class="project-title" id="work-title">Загрузка...</h2>
+                <div class="project-role-text" id="work-role">—</div>
               </div>
-              <h2 class="carousel-title" id="carousel-title">Загрузка...</h2>
-              <div class="carousel-role" id="carousel-role">—</div>
             </div>
 
-            <!-- Стрелки карусели -->
-            <div class="carousel-nav-controls">
-              <button class="nav-arrow-btn" id="carousel-prev" aria-label="Предыдущий проект">←</button>
-              <button class="nav-arrow-btn" id="carousel-next" aria-label="Следующий проект">→</button>
+            <p class="project-desc-text" id="work-desc">—</p>
+
+            <!-- Архитектурные спецификации 2026 -->
+            <div class="specs-grid" id="work-specs">
+              <!-- Заполняется main.js -->
             </div>
           </div>
         </div>
 
-        <!-- Полоса миниатюр для быстрого перехода -->
-        <div class="carousel-thumbnails" id="carousel-thumbs">
-          <!-- Миниатюры генерируются скриптом main.js -->
+        <!-- Лента кадров (Filmstrip Scrubber в стиле iOS Фото) -->
+        <div class="filmstrip-wrapper" id="filmstrip-track" aria-label="Лента миниатюр">
+          <!-- Миниатюры генерируются автоматически -->
         </div>
+
       </div>
     </section>
 
     <!-- ==========================================
-         БЛОК СВЯЗИ (ТОЛЬКО ДВЕ КНОПКИ)
+         СЕКЦИЯ КОНТАКТОВ (ТОЛЬКО ДВЕ КНОПКИ)
          ========================================== -->
     <section class="contact-section">
       <div class="container">
-        <div class="contact-row">
-          <div class="contact-left">
-            <div class="contact-heading">Связаться</div>
-            <div class="contact-sub">Почта или личные сообщения</div>
+        <div class="contact-card">
+          <div class="contact-meta-left">
+            <h3 class="contact-title">Связь • 2026</h3>
+            <p class="contact-subtitle">Прямой контакт для съемок, монтажа и проектов</p>
           </div>
 
-          <div class="contact-buttons-only">
-            <a href="mailto:peskovsky18@gmail.com" class="btn btn-primary contact-btn-large action-email-btn">
-              Написать на Email
+          <div class="contact-actions-only">
+            <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary contact-btn-large action-email-btn">
+              <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <span>peskovsky18@gmail.com</span>
             </a>
-            <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="btn contact-btn-large action-insta-btn">
-              Instagram ↗
+
+            <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn contact-btn-large action-insta-btn">
+              <svg class="pill-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+              <span>Instagram @peskovsky18 ↗</span>
             </a>
           </div>
         </div>
@@ -117,41 +152,26 @@
        ПОДВАЛ
        ========================================== -->
   <footer class="container site-footer">
-    <div>© 2024–2025 Александр Песковский</div>
-    <div>Разнорабочий в медиа</div>
+    <div>© 2026 Александр Песковский</div>
+    <div>Разнорабочий в медиа • Apple Photos UI</div>
   </footer>
 
   <!-- ==========================================
-       МОДАЛЬНОЕ ОКНО ПРОСМОТРА РАБОТЫ
+       МОДАЛЬНОЕ ОКНО ПРОСМОТРА
        ========================================== -->
   <div class="modal-overlay" id="project-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-header-title">
-          <span id="modal-header-cat">Проект</span>
-        </div>
-        <button class="modal-close-btn" id="modal-close-btn" aria-label="Закрыть">✕</button>
+        <span class="modal-header-title" id="modal-header-cat">Проект</span>
+        <button class="modal-close-pill" id="modal-close-btn" aria-label="Закрыть">✕</button>
       </div>
 
-      <div class="modal-content-scroll">
-        <!-- Медиа (плеер YouTube / фотогалерея) -->
+      <div class="modal-scroll-area">
         <div id="modal-media-container"></div>
 
-        <!-- Описание и детали -->
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-          <h2 class="modal-title" id="modal-title">Название</h2>
-          
-          <div class="modal-meta-grid" id="modal-meta-container">
-            <!-- Заполняется main.js -->
-          </div>
-
-          <div class="modal-desc" id="modal-desc">
-            <!-- Описание -->
-          </div>
-
-          <div id="modal-tools-container">
-            <!-- Инструменты -->
-          </div>
+        <div>
+          <h2 class="project-title" id="modal-title">Название</h2>
+          <p class="project-desc-text" id="modal-desc" style="margin-top: 10px;">Описание</p>
         </div>
       </div>
     </div>

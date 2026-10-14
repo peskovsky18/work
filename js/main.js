@@ -1,13 +1,13 @@
 /**
  * Александр Песковский — 2026
- * Логика интерфейса iOS Photos: только 2 раздела («Видео» и «Креатив»)
+ * Логика плеера в стиле iOS Photos (по скриншоту)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initContactLinks();
-  initIOSPhotos();
-  initModal();
+  initCinemaPlayer();
+  initCinemaModal();
 });
 
 // ==========================================================================
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================================================
 function initTheme() {
   const toggleBtn = document.getElementById('theme-toggle');
-  const saved = localStorage.getItem('peskovsky-theme-ios') || 'light';
+  const saved = localStorage.getItem('peskovsky-theme-player') || 'light';
   applyTheme(saved);
 
   if (toggleBtn) {
@@ -23,7 +23,7 @@ function initTheme() {
       const current = document.documentElement.getAttribute('data-theme') || 'light';
       const next = current === 'light' ? 'dark' : 'light';
       applyTheme(next);
-      localStorage.setItem('peskovsky-theme-ios', next);
+      localStorage.setItem('peskovsky-theme-player', next);
     });
   }
 }
@@ -55,248 +55,243 @@ function initContactLinks() {
 }
 
 // ==========================================================================
-// 3. ИНТЕРФЕЙС IOS PHOTOS: 2 РАЗДЕЛА («ВИДЕО» И «КРЕАТИВ»)
+// 3. ПЛЕЕР IOS PHOTOS (В ТОЧНОСТИ ПО СКРИНШОТУ)
 // ==========================================================================
 let currentTab = 'video'; // 'video' | 'creative'
-let currentCategoryWorks = [];
-let activeWorkIndex = 0;
+let activeList = [];
+let currentIndex = 0;
+let isMuted = false;
+let isLiked = false;
 
-function initIOSPhotos() {
+function initCinemaPlayer() {
   if (typeof PROJECTS === 'undefined') return;
 
-  // Инициализация парящего таб-бара (Видео / Креатив)
-  const tabPills = document.querySelectorAll('.ios-tab-pill');
-  tabPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      tabPills.forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
+  // Переключатель двух разделов: «Видео» и «Креатив»
+  const tabBtns = document.querySelectorAll('.cat-switch-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
 
-      currentTab = pill.dataset.tab;
-      activeWorkIndex = 0;
-      loadCategoryWorks();
+      currentTab = btn.dataset.tab;
+      currentIndex = 0;
+      loadCategory();
     });
   });
 
-  // Стрелки перелистывания внутри кадра
-  const prevBtn = document.getElementById('ios-prev-arrow');
-  const nextBtn = document.getElementById('ios-next-arrow');
+  // Стрелки навигации в левой и правой верхней капсуле
+  const prevBtn = document.getElementById('btn-cinema-prev');
+  const nextBtn = document.getElementById('btn-cinema-next');
 
-  if (prevBtn) {
-    prevBtn.addEventListener('click', (e) => {
+  if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); prevSlide(); });
+  if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); nextSlide(); });
+
+  // Сердечко (лайк) как в iOS
+  const heartBtn = document.getElementById('btn-cinema-heart');
+  if (heartBtn) {
+    heartBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      navigateWork(-1);
+      isLiked = !isLiked;
+      heartBtn.classList.toggle('liked', isLiked);
+      heartBtn.innerHTML = isLiked 
+        ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`
+        : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
     });
   }
 
-  if (nextBtn) {
-    nextBtn.addEventListener('click', (e) => {
+  // Кнопка «Поделиться»
+  const shareBtn = document.getElementById('btn-cinema-share');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      navigateWork(1);
+      navigator.clipboard.writeText(window.location.href);
+      const originalTitle = document.getElementById('cinema-client').textContent;
+      document.getElementById('cinema-client').textContent = 'Ссылка скопирована ✓';
+      setTimeout(() => {
+        document.getElementById('cinema-client').textContent = originalTitle;
+      }, 1500);
     });
   }
 
-  // Клик по карточке открывает просмотр видео или проект
-  const mainCard = document.getElementById('ios-main-card');
-  if (mainCard) {
-    mainCard.addEventListener('click', () => {
-      const work = currentCategoryWorks[activeWorkIndex];
-      if (work) openModal(work.id);
+  // Кнопка звука
+  const soundBtn = document.getElementById('btn-sound-toggle');
+  if (soundBtn) {
+    soundBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isMuted = !isMuted;
+      soundBtn.innerHTML = isMuted 
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
     });
+  }
 
-    // Свайп на смартфонах
-    let startX = 0;
-    mainCard.addEventListener('touchstart', (e) => {
-      startX = e.changedTouches[0].screenX;
+  // Клик по экрану или кнопке Play открывает видео в кинотеатре
+  const viewport = document.getElementById('cinema-viewport');
+  const playBtn = document.getElementById('btn-play-pause');
+  const expandBtn = document.getElementById('btn-cinema-expand');
+
+  const openActiveVideo = () => {
+    const work = activeList[currentIndex];
+    if (work) openCinemaModal(work);
+  };
+
+  if (viewport) viewport.addEventListener('click', openActiveVideo);
+  if (playBtn) playBtn.addEventListener('click', (e) => { e.stopPropagation(); openActiveVideo(); });
+  if (expandBtn) expandBtn.addEventListener('click', (e) => { e.stopPropagation(); openActiveVideo(); });
+
+  // Клик по таймлайну (скруббер)
+  const timelineWrap = document.getElementById('timeline-wrap');
+  const progressEl = document.getElementById('timeline-progress');
+  if (timelineWrap && progressEl) {
+    timelineWrap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = timelineWrap.getBoundingClientRect();
+      const percent = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0.05), 0.95);
+      progressEl.style.width = `${percent * 100}%`;
+    });
+  }
+
+  // Свайпы на мобильных устройствах
+  if (viewport) {
+    let touchStartX = 0;
+    viewport.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
     }, { passive: true });
 
-    mainCard.addEventListener('touchend', (e) => {
-      const endX = e.changedTouches[0].screenX;
-      if (startX - endX > 45) navigateWork(1);
-      if (endX - startX > 45) navigateWork(-1);
+    viewport.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 50) nextSlide();
+      if (touchEndX - touchStartX > 50) prevSlide();
     }, { passive: true });
   }
 
-  // Клавиатурные стрелки
+  // Стрелки клавиатуры
   document.addEventListener('keydown', (e) => {
-    const modal = document.getElementById('project-modal');
+    const modal = document.getElementById('cinema-modal');
     if (modal && modal.classList.contains('active')) return;
 
-    if (e.key === 'ArrowRight') navigateWork(1);
-    if (e.key === 'ArrowLeft') navigateWork(-1);
+    if (e.key === 'ArrowRight') nextSlide();
+    if (e.key === 'ArrowLeft') prevSlide();
   });
 
-  loadCategoryWorks();
+  loadCategory();
 }
 
-function loadCategoryWorks() {
-  currentCategoryWorks = PROJECTS.filter(p => p.category === currentTab);
-  renderWork();
+function loadCategory() {
+  activeList = PROJECTS.filter(p => p.category === currentTab);
+  renderCinemaSlide();
 }
 
-function navigateWork(direction) {
-  if (currentCategoryWorks.length <= 1) return;
-  activeWorkIndex = (activeWorkIndex + direction + currentCategoryWorks.length) % currentCategoryWorks.length;
-  renderWork();
+function prevSlide() {
+  if (activeList.length <= 1) return;
+  currentIndex = (currentIndex - 1 + activeList.length) % activeList.length;
+  renderCinemaSlide();
 }
 
-function renderWork() {
-  const work = currentCategoryWorks[activeWorkIndex];
+function nextSlide() {
+  if (activeList.length <= 1) return;
+  currentIndex = (currentIndex + 1) % activeList.length;
+  renderCinemaSlide();
+}
+
+function renderCinemaSlide() {
+  const work = activeList[currentIndex];
   if (!work) return;
 
-  // Элементы экрана iOS
-  const titleHeader = document.getElementById('ios-photos-title');
-  const countHeader = document.getElementById('ios-photos-count');
-  const imgEl = document.getElementById('ios-card-img');
-  const badgeEl = document.getElementById('shot-badge');
-  const workCatBadge = document.getElementById('work-cat-badge');
-  const workYear = document.getElementById('work-year');
-  const workTitle = document.getElementById('work-title');
-  const workRole = document.getElementById('work-role');
-  const specsBox = document.getElementById('work-specs-box');
-  const filmstrip = document.getElementById('ios-filmstrip');
+  const mainImg = document.getElementById('cinema-main-img');
+  const clientEl = document.getElementById('cinema-client');
+  const badgeEl = document.getElementById('cinema-badge');
+  const filmstrip = document.getElementById('cinema-filmstrip');
+  const progressEl = document.getElementById('timeline-progress');
 
-  // Заголовок раздела
-  if (titleHeader) {
-    titleHeader.textContent = currentTab === 'video' ? 'Видео' : 'Креатив';
-  }
-
-  // Счетчик: 1 из 4
-  if (countHeader) {
-    countHeader.textContent = `${activeWorkIndex + 1} из ${currentCategoryWorks.length} • 2026`;
-  }
-
-  // Изображение с микро-переходом
-  if (imgEl) {
-    imgEl.style.opacity = '0.3';
+  // Главный стоп-кадр с мягким переходом
+  if (mainImg) {
+    mainImg.style.opacity = '0.35';
     setTimeout(() => {
-      imgEl.src = work.thumbnail;
-      imgEl.alt = work.title;
-      imgEl.style.opacity = '1';
-    }, 80);
+      mainImg.src = work.thumbnail;
+      mainImg.alt = work.client;
+      mainImg.style.opacity = '1';
+    }, 90);
   }
 
-  // Подпись «Снято на iPhone» или креативный статус
-  if (badgeEl) {
-    badgeEl.textContent = work.iphoneBadge || (work.shotOnIphone ? 'Снято на iPhone' : 'Креатив');
+  // Только: ДЛЯ КОГО РАБОТА и SHOT ON IPHONE
+  if (clientEl) clientEl.textContent = work.client;
+  if (badgeEl) badgeEl.textContent = work.badge || (work.category === 'video' ? 'Shot on iPhone' : 'Креатив');
+
+  // Случайный реалистичный прогресс таймлайна (как на скриншоте)
+  if (progressEl) {
+    const percentages = [28, 45, 18, 62, 35, 50];
+    progressEl.style.width = `${percentages[currentIndex % percentages.length]}%`;
   }
 
-  // Метаданные работы
-  if (workCatBadge) workCatBadge.textContent = work.categoryLabel;
-  if (workYear) workYear.textContent = work.year;
-  if (workTitle) workTitle.textContent = work.title;
-  if (workRole) {
-    const clientStr = work.client ? ` • ${work.client}` : '';
-    workRole.textContent = `${work.role}${clientStr}`;
-  }
-
-  // Архитектурные спеки
-  if (specsBox) {
-    if (work.specs) {
-      specsBox.innerHTML = Object.entries(work.specs).map(([key, val]) => `
-        <div class="ios-spec-item">
-          <strong>${formatSpecLabel(key)}</strong>
-          <span>${escapeHtml(val)}</span>
-        </div>
-      `).join('');
-      specsBox.style.display = 'grid';
-    } else {
-      specsBox.style.display = 'none';
-    }
-  }
-
-  // Лента миниатюр (Filmstrip)
+  // Лента кадров (Filmstrip Scrubber) точно как на скриншоте
   if (filmstrip) {
-    filmstrip.innerHTML = currentCategoryWorks.map((item, idx) => `
-      <img 
-        src="${escapeHtml(item.thumbnail)}" 
-        alt="${escapeHtml(item.title)}" 
-        class="ios-filmstrip-thumb ${idx === activeWorkIndex ? 'active' : ''}" 
-        data-index="${idx}"
-      >
+    filmstrip.innerHTML = activeList.map((item, idx) => `
+      <div class="filmstrip-thumb ${idx === currentIndex ? 'active' : ''}" data-idx="${idx}">
+        <img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.client)}">
+      </div>
     `).join('');
 
-    filmstrip.querySelectorAll('.ios-filmstrip-thumb').forEach(th => {
+    filmstrip.querySelectorAll('.filmstrip-thumb').forEach(th => {
       th.addEventListener('click', (e) => {
         e.stopPropagation();
-        activeWorkIndex = parseInt(th.dataset.index, 10);
-        renderWork();
+        currentIndex = parseInt(th.dataset.idx, 10);
+        renderCinemaSlide();
       });
     });
 
-    // Центрируем активный кадр
-    const activeThumb = filmstrip.children[activeWorkIndex];
+    // Центрируем выбранную миниатюру
+    const activeThumb = filmstrip.children[currentIndex];
     if (activeThumb) {
       activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }
 }
 
-function formatSpecLabel(key) {
-  const map = {
-    gear: "Камера",
-    format: "Формат",
-    post: "Пост-продакшн",
-    year: "Год",
-    direction: "Направление",
-    stack: "Стек",
-    typography: "Шрифт",
-    deliverable: "Результат",
-    style: "Стиль",
-    medium: "Формат"
-  };
-  return map[key] || key;
-}
-
 // ==========================================================================
-// 4. МОДАЛЬНЫЙ ПРОСМОТР ВИДЕО И РАБОТ
+// 4. МОДАЛЬНЫЙ КИНОТЕАТР (ВОСПРОИЗВЕДЕНИЕ)
 // ==========================================================================
-function initModal() {
-  const modal = document.getElementById('project-modal');
+function initCinemaModal() {
+  const modal = document.getElementById('cinema-modal');
   const closeBtn = document.getElementById('modal-close-btn');
 
   if (!modal) return;
-  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeCinemaModal);
 
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
+    if (e.target === modal) closeCinemaModal();
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeCinemaModal();
+    }
   });
 }
 
-function openModal(projectId) {
-  const work = PROJECTS.find(p => p.id === projectId);
-  if (!work) return;
+function openCinemaModal(work) {
+  const modal = document.getElementById('cinema-modal');
+  const clientNameEl = document.getElementById('modal-client-name');
+  const badgeEl = document.getElementById('modal-badge');
+  const videoContainer = document.getElementById('modal-video-container');
 
-  const modal = document.getElementById('project-modal');
-  const catEl = document.getElementById('modal-header-cat');
-  const mediaContainer = document.getElementById('modal-media-container');
-  const titleEl = document.getElementById('modal-title');
-  const descEl = document.getElementById('modal-desc');
+  if (clientNameEl) clientNameEl.textContent = work.client;
+  if (badgeEl) badgeEl.textContent = work.badge;
 
-  if (catEl) catEl.textContent = `${work.categoryLabel} • 2026`;
-  if (titleEl) titleEl.textContent = work.title;
-  if (descEl) descEl.textContent = work.description;
-
-  if (mediaContainer) {
+  if (videoContainer) {
     if (work.mediaType === 'youtube') {
-      mediaContainer.innerHTML = `
-        <div class="modal-video-wrap">
-          <iframe 
-            src="${escapeHtml(work.mediaUrl)}?autoplay=1&rel=0&modestbranding=1" 
-            title="${escapeHtml(work.title)}" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowfullscreen>
-          </iframe>
-        </div>
+      videoContainer.innerHTML = `
+        <iframe 
+          class="modal-video-frame" 
+          src="${escapeHtml(work.mediaUrl)}?autoplay=1&rel=0&modestbranding=1" 
+          title="${escapeHtml(work.client)}" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
       `;
     } else {
-      mediaContainer.innerHTML = `
-        <div class="modal-video-wrap">
-          <img src="${escapeHtml(work.mediaUrl || work.thumbnail)}" style="width:100%; height:100%; object-fit:contain;" alt="${escapeHtml(work.title)}">
-        </div>
+      videoContainer.innerHTML = `
+        <img src="${escapeHtml(work.mediaUrl || work.thumbnail)}" style="width:100%; aspect-ratio:16/9; object-fit:cover; display:block;" alt="${escapeHtml(work.client)}">
       `;
     }
   }
@@ -305,12 +300,12 @@ function openModal(projectId) {
   document.body.style.overflow = 'hidden';
 }
 
-function closeModal() {
-  const modal = document.getElementById('project-modal');
+function closeCinemaModal() {
+  const modal = document.getElementById('cinema-modal');
   if (!modal) return;
 
-  const mediaContainer = document.getElementById('modal-media-container');
-  if (mediaContainer) mediaContainer.innerHTML = '';
+  const videoContainer = document.getElementById('modal-video-container');
+  if (videoContainer) videoContainer.innerHTML = '';
 
   modal.classList.remove('active');
   document.body.style.overflow = '';

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Александр Песковский — 2026</title>
-  <meta name="description" content="Александр Песковский — Разнорабочий в медиа (2026). Видео (Снято на iPhone) и Креатив.">
+  <meta name="description" content="Александр Песковский — Разнорабочий в медиа (2026). Видео (Shot on iPhone) и Креатив.">
   
   <!-- Шрифты: Space Grotesk и JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,17 +17,27 @@
 <body class="notebook-grid">
 
   <!-- ==========================================
-       ХЕДЕР: АЛЕКСАНДР ПЕСКОВСКИЙ И ДВЕ КНОПКИ СВЯЗИ
+       ВЕРХНЯЯ СТРОКА: ИМЯ, 2 РАЗДЕЛА И ДВЕ КНОПКИ
        ========================================== -->
   <header class="site-header">
     <div class="container header-row">
-      <div>
+      <div class="brand-block">
         <h1 class="brand-name">Александр Песковский</h1>
-        <span class="brand-label">Разнорабочий в медиа • 2026</span>
+        <span class="brand-badge">2026</span>
       </div>
 
+      <!-- Переключатель всего 2 разделов: «Видео» и «Креатив» -->
+      <nav class="category-switch-bar" aria-label="Разделы портфолио">
+        <button class="cat-switch-btn active" data-tab="video">
+          🎬 Видео
+        </button>
+        <button class="cat-switch-btn" data-tab="creative">
+          ✦ Креатив
+        </button>
+      </nav>
+
+      <!-- Фирменные Pill-кнопки Apple: Email и Instagram -->
       <div class="header-actions">
-        <!-- Только две фирменные кнопки Apple: Email и Instagram -->
         <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary action-email-btn">
           <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
           <span>Email</span>
@@ -47,83 +57,87 @@
 
   <main>
     <!-- ==========================================
-         ЦЕНТРАЛЬНЫЙ МОБИЛЬНЫЙ ФРЕЙМ IOS (ГАЛЕРЕЯ)
+         ГАЛЕРЕЯ IOS PHOTOS (ПО СКРИНШОТУ ПОЛЬЗОВАТЕЛЯ)
          ========================================== -->
-    <section class="ios-stage-wrapper">
-      <div class="ios-phone-frame">
+    <section class="gallery-section">
+      <div class="container">
         
-        <!-- Статус-бар iOS: 9:41 и Dynamic Island -->
-        <div class="ios-status-bar">
-          <span class="ios-time">9:41</span>
-          <div class="ios-dynamic-island"></div>
-          <div class="ios-status-icons">
-            <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M1 8.5C2.5 7 4.5 6 8 6s5.5 1 7 2.5M3 11C4.5 9.5 6 9 8 9s3.5.5 5 2M8 12a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
-            <svg width="18" height="10" viewBox="0 0 22 12" fill="currentColor"><rect x="1" y="1" width="18" height="10" rx="3" stroke="currentColor" stroke-width="1.5" fill="none"/><rect x="3" y="3" width="12" height="6" rx="1.5"/><path d="M21 4.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-        </div>
-
-        <!-- Заголовок раздела внутри iOS Photos -->
-        <div class="ios-photos-header">
-          <div class="ios-photos-title" id="ios-photos-title">Видео</div>
-          <div class="ios-photos-count" id="ios-photos-count">1 из 4 • 2026</div>
-        </div>
-
-        <!-- Контент экрана -->
-        <div class="ios-screen-content">
-          <!-- Главная карточка работы -->
-          <div class="ios-main-card" id="ios-main-card" title="Нажмите, чтобы воспроизвести">
-            <img id="ios-card-img" class="ios-card-img" src="" alt="Работа">
+        <div class="ios-cinema-container">
+          
+          <!-- ВЕРХНИЙ ПАРИТЕТ: 3 ПАВШИЕ КАПСУЛЫ -->
+          <div class="cinema-top-overlay">
             
-            <!-- Подпись «Снято на iPhone» прямо на кадре -->
-            <div class="shot-on-iphone-pill" id="shot-badge">Снято на iPhone • ProRes Log</div>
+            <!-- Левая капсула: Назад, Поделиться, Сердечко -->
+            <div class="glass-capsule">
+              <button class="glass-icon-btn" id="btn-cinema-prev" aria-label="Предыдущее видео">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
 
-            <!-- Иконка Play -->
-            <div class="ios-play-bubble">
-              <div class="ios-play-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+              <button class="glass-icon-btn" id="btn-cinema-share" aria-label="Поделиться">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+              </button>
+
+              <button class="glass-icon-btn" id="btn-cinema-heart" aria-label="В избранное">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              </button>
+            </div>
+
+            <!-- Центральная капсула: ДЛЯ КОГО РАБОТА + SHOT ON IPHONE -->
+            <div class="glass-capsule center-info-capsule">
+              <span class="client-name-title" id="cinema-client">Concrete Lab</span>
+              <span class="shot-on-iphone-sub" id="cinema-badge">Shot on iPhone</span>
+            </div>
+
+            <!-- Правая капсула: Инфо, На весь экран, Вперед -->
+            <div class="glass-capsule">
+              <button class="glass-icon-btn" id="btn-cinema-info" aria-label="Информация">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </button>
+
+              <button class="glass-icon-btn" id="btn-cinema-expand" aria-label="Смотреть видео">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+              </button>
+
+              <button class="glass-icon-btn" id="btn-cinema-next" aria-label="Следующее видео">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- ВИДОВОЙ ЭКРАН (СТОП-КАДР ВИДЕО) -->
+          <div class="ios-cinema-viewport" id="cinema-viewport" title="Нажмите для воспроизведения">
+            <img id="cinema-main-img" class="ios-cinema-image" src="" alt="Кадр из видео">
+          </div>
+
+          <!-- НИЖНИЙ ПАРИТЕТ: ПАВШАЯ ПАНЕЛЬ ПЛЕЕРА И ЛЕНТА КАДРОВ -->
+          <div class="cinema-bottom-overlay">
+            
+            <!-- Вытянутая капсула плеера с кнопкой Play, таймлайном и звуком -->
+            <div class="floating-video-scrubber-bar">
+              <button class="play-pause-btn" id="btn-play-pause" aria-label="Воспроизвести">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+              </button>
+
+              <div class="timeline-track-wrap" id="timeline-wrap">
+                <div class="timeline-track">
+                  <div class="timeline-progress" id="timeline-progress"></div>
+                </div>
               </div>
+
+              <button class="mute-btn" id="btn-sound-toggle" aria-label="Звук">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              </button>
             </div>
 
-            <!-- Стрелки листания внутри кадра -->
-            <button class="ios-card-nav-arrow ios-arrow-prev" id="ios-prev-arrow" aria-label="Предыдущий">‹</button>
-            <button class="ios-card-nav-arrow ios-arrow-next" id="ios-next-arrow" aria-label="Следующий">›</button>
-          </div>
-
-          <!-- Лента кадров (Filmstrip Scrubber в стиле iOS) -->
-          <div class="ios-filmstrip" id="ios-filmstrip">
-            <!-- Миниатюры генерируются автоматически -->
-          </div>
-
-          <!-- Детали работы и технические спеки -->
-          <div class="ios-work-details">
-            <div class="ios-work-meta-top">
-              <span class="ios-work-cat-badge" id="work-cat-badge">Видео</span>
-              <span class="ios-work-year" id="work-year">2026</span>
+            <!-- Лента кадров (Filmstrip Scrubber в стиле iOS) -->
+            <div class="ios-filmstrip-row" id="cinema-filmstrip">
+              <!-- Миниатюры генерируются автоматически -->
             </div>
-            <h2 class="ios-work-title" id="work-title">Загрузка...</h2>
-            <div class="ios-work-role" id="work-role">—</div>
 
-            <!-- Архитектурные спеки кадра -->
-            <div class="ios-work-specs-box" id="work-specs-box">
-              <!-- Заполняется main.js -->
-            </div>
           </div>
+
         </div>
-
-        <!-- Парящая капсула снизу (Floating Tab Bar: всего 2 раздела) -->
-        <div class="ios-tab-bar-container">
-          <nav class="ios-floating-tab-bar" aria-label="Разделы портфолио">
-            <button class="ios-tab-pill active" data-tab="video">
-              <span>🎬 Видео</span>
-            </button>
-            <button class="ios-tab-pill" data-tab="creative">
-              <span>✦ Креатив</span>
-            </button>
-          </nav>
-        </div>
-
-        <!-- Home Indicator полоска iPhone -->
-        <div class="ios-home-indicator"></div>
 
       </div>
     </section>
@@ -133,39 +147,36 @@
          ========================================== -->
     <section class="container bottom-contact-bar">
       <div class="contact-pill-group">
-        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary action-email-btn">
+        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary contact-btn-large action-email-btn">
           <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
           <span>Написать на Email</span>
         </a>
 
-        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn action-insta-btn">
+        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn contact-btn-large action-insta-btn">
           <svg class="pill-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
           <span>Instagram @peskovsky18 ↗</span>
         </a>
       </div>
 
       <div class="site-footer">
-        © 2026 Александр Песковский • Разнорабочий в медиа
+        © 2026 Александр Песковский • Shot on iPhone
       </div>
     </section>
   </main>
 
   <!-- ==========================================
-       МОДАЛЬНОЕ ОКНО ПРОСМОТРА ВИДЕО
+       МОДАЛЬНЫЙ КИНОТЕАТР (ВОСПРОИЗВЕДЕНИЕ ВИДЕО)
        ========================================== -->
-  <div class="modal-overlay" id="project-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-box">
-      <div class="modal-header">
-        <span class="ios-work-cat-badge" id="modal-header-cat">Проект</span>
-        <button class="modal-close-pill" id="modal-close-btn" aria-label="Закрыть">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="modal-media-container"></div>
-        <div style="margin-top: 14px;">
-          <h2 class="ios-work-title" id="modal-title" style="font-size: 1.3rem;">Название</h2>
-          <p id="modal-desc" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 6px;">Описание</p>
+  <div class="modal-overlay" id="cinema-modal" role="dialog" aria-modal="true">
+    <div class="modal-cinema-box">
+      <div class="modal-top-bar">
+        <div>
+          <span style="font-weight: 700; font-size: 0.95rem;" id="modal-client-name">Concrete Lab</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; opacity: 0.7; margin-left: 8px;" id="modal-badge">Shot on iPhone</span>
         </div>
+        <button class="modal-close-btn" id="modal-close-btn" aria-label="Закрыть">✕</button>
       </div>
+      <div id="modal-video-container"></div>
     </div>
   </div>
 

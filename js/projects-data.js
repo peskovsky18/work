@@ -17,8 +17,8 @@ const PROFILE_DATA = {
 const PROJECTS = [
   {
     id: 1,
-    client: "Работа 1",
-    title: "Shot on iPhone",
+    client: "Свэг",
+    title: "Свэг",
     category: "video",
     categoryLabel: "Видео",
     badge: "Shot on iPhone",
@@ -29,8 +29,8 @@ const PROJECTS = [
   },
   {
     id: 2,
-    client: "Работа 2",
-    title: "Shot on iPhone",
+    client: "Мини свэг",
+    title: "Мини свэг",
     category: "video",
     categoryLabel: "Видео",
     badge: "Shot on iPhone",

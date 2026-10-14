@@ -132,17 +132,24 @@ function initCinemaPlayer() {
     soundBtn.innerHTML = mainVideo.muted
       ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`
       : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
-    soundBtn.title = mainVideo.muted ? "Включить звук" : "Выключить звук";
+    soundBtn.title = isMuted ? "Включить звук" : "Выключить звук";
   };
 
   if (mainVideo) {
+    mainVideo.defaultMuted = true;
     mainVideo.muted = true;
+    mainVideo.volume = 0;
   }
   updateSoundBtnIcon();
 
   const togglePlayback = () => {
     if (!mainVideo) return;
     if (mainVideo.paused) {
+      if (isMuted) {
+        mainVideo.defaultMuted = true;
+        mainVideo.muted = true;
+        mainVideo.volume = 0;
+      }
       mainVideo.play().then(() => updatePlayBtnIcon(true)).catch(() => {});
     } else {
       mainVideo.pause();
@@ -168,16 +175,33 @@ function initCinemaPlayer() {
     soundBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (mainVideo) {
-        mainVideo.muted = !mainVideo.muted;
-        isMuted = mainVideo.muted;
+        isMuted = !isMuted;
+        mainVideo.defaultMuted = isMuted;
+        mainVideo.muted = isMuted;
+        mainVideo.volume = isMuted ? 0 : 1;
         updateSoundBtnIcon();
       }
     });
   }
 
   if (mainVideo) {
-    mainVideo.addEventListener('play', () => updatePlayBtnIcon(true));
+    mainVideo.addEventListener('play', () => {
+      if (isMuted) {
+        mainVideo.defaultMuted = true;
+        mainVideo.muted = true;
+        mainVideo.volume = 0;
+      }
+      updatePlayBtnIcon(true);
+    });
     mainVideo.addEventListener('pause', () => updatePlayBtnIcon(false));
+    mainVideo.addEventListener('volumechange', () => {
+      if (isMuted && (!mainVideo.muted || mainVideo.volume > 0)) {
+        mainVideo.defaultMuted = true;
+        mainVideo.muted = true;
+        mainVideo.volume = 0;
+      }
+      updateSoundBtnIcon();
+    });
     mainVideo.addEventListener('timeupdate', () => {
       if (progressEl && mainVideo.duration) {
         const percent = (mainVideo.currentTime / mainVideo.duration) * 100;
@@ -356,13 +380,16 @@ function renderCinemaSlide() {
       mainVideo.style.display = 'block';
       mainVideo.loop = true;
       mainVideo.playsInline = true;
-      mainVideo.muted = isMuted;
       if (work.thumbnail) mainVideo.poster = work.thumbnail;
       if (mainVideo.src !== work.mediaUrl) {
         mainVideo.src = work.mediaUrl;
         mainVideo.preload = 'auto';
-        mainVideo.play().catch(() => {});
       }
+      // Принудительно глушим звук после смены источника
+      mainVideo.defaultMuted = isMuted;
+      mainVideo.muted = isMuted;
+      mainVideo.volume = isMuted ? 0 : 1;
+      mainVideo.play().catch(() => {});
     }
   } else {
     if (mainVideo) {

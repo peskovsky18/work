@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>РАЗНОРАБОЧИЙ В МЕДИА — Видео, Фото, Монтаж, Веб</title>
+  <meta name="description" content="Портфолио разнорабочего в медиа: режиссура, операторская работа, фотосъемка, ритмичный монтаж и веб-проекты в качестве креативного директора.">
+  
+  <!-- Шрифты Google Fonts с поддержкой кириллицы: Space Grotesk, JetBrains Mono, Caveat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Стили -->
+  <link rel="stylesheet" href="css/doodles.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="notebook-grid">
+
+  <!-- ==========================================
+       ВЕРХНЯЯ ПАНЕЛЬ НАВИГАЦИИ
+       ========================================== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand-logo">
+        <span class="brand-badge">Р.В.М.</span>
+        <span class="brand-title" id="profile-alias">РАЗНОРАБОЧИЙ В МЕДИА</span>
+      </a>
+
+      <div class="header-actions">
+        <a href="#gallery" class="rough-btn" style="padding: 6px 14px; font-size: 0.85rem;">Работы</a>
+        <a href="#services" class="rough-btn" style="padding: 6px 14px; font-size: 0.85rem;">Навыки</a>
+        <a href="#contact" class="rough-btn" style="padding: 6px 14px; font-size: 0.85rem;">Контакт</a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">
+          <span>🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ==========================================
+         ГЕРОЙ-СЕКЦИЯ (HERO)
+         ========================================== -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-grid">
+          <div>
+            <div class="hero-badge-row">
+              <span class="hero-badge">⚡️ Solo Production</span>
+              <div class="rubber-stamp">100% HANDMADE • БЕЗ ПАФОСА</div>
+            </div>
+
+            <h1 class="hero-title">
+              <span id="hero-name">РАЗНОРАБОЧИЙ В МЕДИА</span>
+              <br>
+              <span class="marker-underline" id="hero-tagline">Снимаю • Режу • Направляю</span>
+            </h1>
+
+            <p class="hero-bio" id="hero-bio">
+              Загрузка манифеста...
+            </p>
+
+            <div class="hero-buttons">
+              <a href="#gallery" class="rough-btn" style="background: var(--text-color); color: var(--bg-color);">
+                <span>Смотреть работы</span>
+                <span class="doodle-icon">↓</span>
+              </a>
+              <a href="#contact" class="rough-btn">
+                <span>Обсудить задачу</span>
+                <span>✍️</span>
+              </a>
+              <div class="scribble-note" style="margin-left: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                <span>(никаких лишних продюсеров)</span>
+              </div>
+            </div>
+
+            <!-- Счетчики опыта -->
+            <div class="hero-stats-row" id="hero-stats">
+              <!-- Заполняется динамически из projects-data.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ГАЛЕРЕЯ ПРОЕКТОВ (ВИДЕО / ФОТО / МОНТАЖ / ВЕБ)
+         ========================================== -->
+    <section class="gallery-section" id="gallery">
+      <div class="container">
+        <div class="section-head">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <h2 class="section-title">
+              <span>Архив проектов</span>
+              <span class="hand-arrow">⤴ кликай для просмотра</span>
+            </h2>
+            <div class="scribble-note">Видео, фото, кейсы монтажа и веб</div>
+          </div>
+
+          <!-- Фильтры категорий -->
+          <nav class="filter-bar" aria-label="Фильтр работ">
+            <button class="rough-btn filter-btn active" data-filter="all">
+              Все работы <span class="count"></span>
+            </button>
+            <button class="rough-btn filter-btn" data-filter="video">
+              🎬 Видео <span class="count"></span>
+            </button>
+            <button class="rough-btn filter-btn" data-filter="photo">
+              📸 Фото <span class="count"></span>
+            </button>
+            <button class="rough-btn filter-btn" data-filter="montage">
+              ✂️ Монтаж <span class="count"></span>
+            </button>
+            <button class="rough-btn filter-btn" data-filter="web">
+              🌐 Веб & Креатив <span class="count"></span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Сетка карточек -->
+        <div class="projects-grid" id="projects-grid">
+          <!-- Карточки рендерятся из projects-data.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         СЕКЦИЯ НАВЫКОВ («РУЧНОЙ ТРУД»)
+         ========================================== -->
+    <section class="services-section" id="services">
+      <div class="container">
+        <div style="max-width: 650px;">
+          <div class="rubber-stamp" style="margin-bottom: 12px;">МЕДИА-МУЛЬТИТУЛ</div>
+          <h2 class="section-title">Что я умею делать руками</h2>
+          <p style="color: var(--text-muted); font-size: 1.1rem; margin-top: 8px;">
+            Один универсальный специалист вместо раздутой съемочной группы и бесконечных согласований в чатах.
+          </p>
+        </div>
+
+        <div class="services-grid" id="services-grid">
+          <!-- Карточки услуг из projects-data.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         КОНТАКТЫ («ЗАКАЗ НА САЛФЕТКЕ»)
+         ========================================== -->
+    <section class="contact-section" id="contact">
+      <div class="container">
+        <div class="napkin-card rough-box">
+          <div class="tape"></div>
+          
+          <div class="napkin-header">
+            <div class="rubber-stamp" style="margin-bottom: 14px;">ЗАКАЗ НА САЛФЕТКЕ</div>
+            <h2 class="napkin-title">Есть проект? Обсудим.</h2>
+            <p class="napkin-subtitle" id="contact-status">Открыт к проектам и безумным коллаборациям</p>
+          </div>
+
+          <div class="contact-options">
+            <a href="#" class="contact-item" id="contact-telegram" target="_blank" rel="noopener">
+              <span style="display: flex; align-items: center; gap: 10px;">
+                <span>💬</span>
+                <span>Telegram:</span>
+                <span class="contact-label">@your_telegram</span>
+              </span>
+              <span class="copy-badge">Написать ↗</span>
+            </a>
+
+            <a href="#" class="contact-item copy-trigger" id="contact-email" data-copy-text="hello@yourdomain.com">
+              <span style="display: flex; align-items: center; gap: 10px;">
+                <span>✉️</span>
+                <span>Email:</span>
+                <span class="contact-label">hello@yourdomain.com</span>
+              </span>
+              <span class="copy-badge">Скопировать 📋</span>
+            </a>
+          </div>
+
+          <div style="text-align: center; margin-top: 24px;">
+            <p class="scribble-note" style="font-size: 1.3rem;">
+              Обычно отвечаю в течение пары часов. Брифов на 40 страниц не требую.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==========================================
+       ПОДВАЛ САЙТА
+       ========================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <p style="margin-bottom: 8px;">
+        © 2024–2025 «РАЗНОРАБОЧИЙ В МЕДИА». Ручная работа.
+      </p>
+      <p style="font-size: 0.75rem; color: var(--text-muted);">
+        Собрано на чистом HTML/CSS/JS. 0 рублей инвестиций. 0 трекеров.
+      </p>
+    </div>
+  </footer>
+
+  <!-- ==========================================
+       МОДАЛЬНОЕ ОКНО ПРОЕКТА (LIGHTBOX & PLAYER)
+       ========================================== -->
+  <div class="modal-overlay" id="project-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <span id="modal-header-cat">🎬 ВИДЕО</span>
+        </div>
+        <button class="modal-close-btn" id="modal-close-btn" aria-label="Закрыть модальное окно">✕</button>
+      </div>
+
+      <div class="modal-content-scroll">
+        <!-- Медиа (плеер YouTube / фото / галерея) -->
+        <div id="modal-media-container"></div>
+
+        <!-- Описание и детали -->
+        <div class="modal-details">
+          <h2 class="modal-title" id="modal-title">Название проекта</h2>
+          
+          <div class="modal-meta-grid" id="modal-meta-container">
+            <!-- Метаданные проекта -->
+          </div>
+
+          <div class="modal-desc" id="modal-desc">
+            <!-- Текст описания -->
+          </div>
+
+          <div id="modal-tools-container">
+            <!-- Теги инструментов -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрипты данных и логики -->
+  <script src="js/projects-data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

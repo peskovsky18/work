@@ -1,0 +1,712 @@
+/* ==========================================================================
+   ОСНОВНЫЕ СТИЛИ САЙТА-ПОРТФОЛИО «РАЗНОРАБОЧИЙ В МЕДИА»
+   ========================================================================== */
+
+:root {
+  /* Светлая тема (Скетчбук / Крафтовая бумага) */
+  --bg-color: #f7f6f0;
+  --text-color: #121212;
+  --text-muted: #555555;
+  --border-color: #121212;
+  --card-bg: #ffffff;
+  --grid-line: rgba(0, 0, 0, 0.06);
+  --stamp-color: #b91c1c;
+  --accent-color: #1a1a1a;
+  --overlay-bg: rgba(20, 20, 20, 0.85);
+  --modal-bg: #ffffff;
+  --code-bg: #eae8df;
+  --badge-bg: #ededed;
+}
+
+[data-theme="dark"] {
+  /* Темная тема (Темная комната / Ночной монтаж) */
+  --bg-color: #111113;
+  --text-color: #f0f0ed;
+  --text-muted: #9e9e9e;
+  --border-color: #f0f0ed;
+  --card-bg: #19191d;
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --stamp-color: #ef4444;
+  --accent-color: #ffffff;
+  --overlay-bg: rgba(0, 0, 0, 0.92);
+  --modal-bg: #1c1c21;
+  --code-bg: #25252b;
+  --badge-bg: #282830;
+}
+
+/* Базовый сброс */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  min-height: 100vh;
+  position: relative;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* Контейнер */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ==========================================================================
+   НАВИГАЦИЯ И ВЕРХНЯЯ ПАНЕЛЬ
+   ========================================================================== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--bg-color);
+  border-bottom: 2px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  padding: 16px 0;
+  transition: background-color 0.3s ease;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-color);
+}
+
+.brand-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 1.1rem;
+  padding: 4px 10px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle {
+  background: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(25deg);
+}
+
+/* ==========================================================================
+   ГЕРОЙ-СЕКЦИЯ (HERO)
+   ========================================================================== */
+.hero-section {
+  padding: 60px 0 40px;
+  position: relative;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+.hero-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.hero-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  background-color: var(--card-bg);
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+
+.hero-title {
+  font-size: clamp(2.4rem, 6vw, 4.4rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.hero-bio {
+  font-size: clamp(1.05rem, 2vw, 1.3rem);
+  color: var(--text-muted);
+  max-width: 850px;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.hero-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 48px;
+}
+
+.stat-card {
+  padding: 20px;
+  text-align: left;
+  position: relative;
+}
+
+.stat-number {
+  font-size: 2.2rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   ФИЛЬТРЫ И ГАЛЕРЕЯ РАБОТ
+   ========================================================================== */
+.gallery-section {
+  padding: 60px 0;
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.section-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.filter-btn {
+  font-size: 0.88rem;
+  padding: 8px 16px;
+}
+
+/* Сетка карточек проектов */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 28px;
+}
+
+@media (max-width: 600px) {
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Карточка проекта */
+.project-card {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background-color: #000;
+  overflow: hidden;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%) contrast(110%);
+  transition: transform 0.4s ease, filter 0.4s ease;
+}
+
+.project-card:hover .card-media img {
+  filter: grayscale(0%) contrast(100%);
+  transform: scale(1.04);
+}
+
+.card-action-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.project-card:hover .card-action-overlay {
+  opacity: 1;
+}
+
+.play-doodle-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 3px 3px 0px var(--border-color);
+  transform: scale(0.85);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.project-card:hover .play-doodle-btn {
+  transform: scale(1);
+}
+
+.card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.card-meta-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+}
+
+.card-category {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card-year {
+  color: var(--text-muted);
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.card-role {
+  font-size: 0.88rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+/* ==========================================================================
+   СЕКЦИЯ НАВЫКОВ («РУЧНОЙ ТРУД»)
+   ========================================================================== */
+.services-section {
+  padding: 60px 0;
+  border-top: 2px dashed var(--border-color);
+  border-bottom: 2px dashed var(--border-color);
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  margin-top: 36px;
+}
+
+.service-card {
+  padding: 28px 24px;
+}
+
+.service-icon-box {
+  width: 52px;
+  height: 52px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 2px 2px 0px var(--border-color);
+  background: var(--bg-color);
+}
+
+.service-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.service-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   КОНТАКТЫ («ЗАКАЗ НА САЛФЕТКЕ»)
+   ========================================================================== */
+.contact-section {
+  padding: 80px 0;
+}
+
+.napkin-card {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 36px;
+  position: relative;
+}
+
+.napkin-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.napkin-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.napkin-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.contact-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 32px 0;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  text-decoration: none;
+  color: var(--text-color);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.contact-item:hover {
+  transform: translateX(4px);
+  box-shadow: 4px 4px 0px var(--border-color);
+}
+
+.copy-badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+/* Подвал */
+.site-footer {
+  padding: 40px 0;
+  border-top: 2px solid var(--border-color);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   МОДАЛЬНОЕ ОКНО ПРОЕКТА (LIGHTBOX & PLAYER)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--overlay-bg);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  background: var(--modal-bg);
+  border: 3px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 8px 8px 0px var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.active .modal-box {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  padding: 16px 24px;
+  border-bottom: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-color);
+}
+
+.modal-header-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-color);
+  transition: all 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+.modal-content-scroll {
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Медиа-плеер / Изображение в модалке */
+.modal-media-wrapper {
+  position: relative;
+  width: 100%;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+}
+
+.modal-video-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: none;
+  display: block;
+}
+
+.modal-image-view {
+  width: 100%;
+  max-height: 65vh;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+/* Галерея превью в модалке */
+.modal-gallery-thumbs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.modal-thumb {
+  width: 80px;
+  height: 60px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  object-fit: cover;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.modal-thumb.active, .modal-thumb:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.modal-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.modal-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: var(--code-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.modal-meta-item strong {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.modal-desc {
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.modal-tools-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Уведомление о копировании */
+.toast-msg {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--text-color);
+  color: var(--bg-color);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  padding: 10px 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 4px 4px 0px var(--border-color);
+  z-index: 2000;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.toast-msg.show {
+  opacity: 1;
+  transform: translateY(0);
+}

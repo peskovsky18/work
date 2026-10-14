@@ -312,8 +312,10 @@ function renderCinemaSlide() {
     if (mainImg) mainImg.style.display = 'none';
     if (mainVideo) {
       mainVideo.style.display = 'block';
+      if (work.thumbnail) mainVideo.poster = work.thumbnail;
       if (mainVideo.src !== work.mediaUrl) {
         mainVideo.src = work.mediaUrl;
+        mainVideo.preload = 'metadata';
         mainVideo.play().catch(() => {});
       }
     }
@@ -415,6 +417,8 @@ function openCinemaModal(work) {
           controls 
           autoplay 
           playsinline 
+          preload="auto"
+          poster="${escapeHtml(work.thumbnail || '')}"
           src="${escapeHtml(work.mediaUrl)}"
           style="width: 100%; aspect-ratio: 16/9; background: #000; display: block;">
           Ваш браузер не поддерживает встроенное видео.

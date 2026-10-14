@@ -109,9 +109,18 @@ body {
 
 .brand-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 4px 10px;
+  background: var(--pill-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 /* Переключатель 2 разделов: «Видео» и «Креатив» */

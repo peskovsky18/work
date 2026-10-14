@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initContactLinks();
   initCinemaPlayer();
-  initCinemaModal();
 });
 
 // ==========================================================================
@@ -115,43 +114,80 @@ function initCinemaPlayer() {
 
   // Кнопка звука
   const soundBtn = document.getElementById('btn-sound-toggle');
-  if (soundBtn) {
-    soundBtn.addEventListener('click', (e) => {
+  const mainVideo = document.getElementById('cinema-main-video');
+  const viewport = document.getElementById('cinema-viewport');
+  const playBtn = document.getElementById('btn-play-pause');
+  const timelineWrap = document.getElementById('timeline-wrap');
+  const progressEl = document.getElementById('timeline-progress');
+
+  const updatePlayBtnIcon = (isPlaying) => {
+    if (!playBtn) return;
+    playBtn.innerHTML = isPlaying
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
+  };
+
+  const updateSoundBtnIcon = () => {
+    if (!soundBtn || !mainVideo) return;
+    soundBtn.innerHTML = mainVideo.muted
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+  };
+
+  const togglePlayback = () => {
+    if (!mainVideo) return;
+    if (mainVideo.paused) {
+      mainVideo.play().then(() => updatePlayBtnIcon(true)).catch(() => {});
+    } else {
+      mainVideo.pause();
+      updatePlayBtnIcon(false);
+    }
+  };
+
+  if (viewport) {
+    viewport.addEventListener('click', (e) => {
       e.stopPropagation();
-      isMuted = !isMuted;
-      soundBtn.innerHTML = isMuted 
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`
-        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+      togglePlayback();
     });
   }
 
-  // Клик по экрану или кнопке Play открывает видео в кинотеатре
-  const viewport = document.getElementById('cinema-viewport');
-  const playBtn = document.getElementById('btn-play-pause');
-  const expandBtn = document.getElementById('btn-cinema-expand');
+  if (playBtn) {
+    playBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePlayback();
+    });
+  }
 
-  const openActiveVideo = () => {
-    if (!activeList || activeList.length === 0) {
-      const fileInput = document.querySelector('.media-file-input');
-      if (fileInput) fileInput.click();
-      return;
-    }
-    const work = activeList[currentIndex];
-    if (work) openCinemaModal(work);
-  };
+  if (soundBtn) {
+    soundBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (mainVideo) {
+        mainVideo.muted = !mainVideo.muted;
+        isMuted = mainVideo.muted;
+        updateSoundBtnIcon();
+      }
+    });
+  }
 
-  if (viewport) viewport.addEventListener('click', openActiveVideo);
-  if (playBtn) playBtn.addEventListener('click', (e) => { e.stopPropagation(); openActiveVideo(); });
-  if (expandBtn) expandBtn.addEventListener('click', (e) => { e.stopPropagation(); openActiveVideo(); });
+  if (mainVideo) {
+    mainVideo.addEventListener('play', () => updatePlayBtnIcon(true));
+    mainVideo.addEventListener('pause', () => updatePlayBtnIcon(false));
+    mainVideo.addEventListener('timeupdate', () => {
+      if (progressEl && mainVideo.duration) {
+        const percent = (mainVideo.currentTime / mainVideo.duration) * 100;
+        progressEl.style.width = `${percent}%`;
+      }
+    });
+  }
 
   // Клик по таймлайну (скруббер)
-  const timelineWrap = document.getElementById('timeline-wrap');
-  const progressEl = document.getElementById('timeline-progress');
   if (timelineWrap && progressEl) {
     timelineWrap.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!mainVideo || !mainVideo.duration) return;
       const rect = timelineWrap.getBoundingClientRect();
-      const percent = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0.05), 0.95);
+      const percent = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+      mainVideo.currentTime = percent * mainVideo.duration;
       progressEl.style.width = `${percent * 100}%`;
     });
   }
@@ -307,15 +343,18 @@ function renderCinemaSlide() {
   const work = activeList[currentIndex];
   if (!work) return;
 
-  // Если это загруженный видеофайл — показываем и воспроизводим видео
+  // Если это видеофайл — воспроизводим прямо на экране
   if (work.mediaType === 'video_file' || (work.mediaUrl && work.mediaUrl.startsWith('blob:'))) {
     if (mainImg) mainImg.style.display = 'none';
     if (mainVideo) {
       mainVideo.style.display = 'block';
+      mainVideo.loop = true;
+      mainVideo.playsInline = true;
+      mainVideo.muted = isMuted;
       if (work.thumbnail) mainVideo.poster = work.thumbnail;
       if (mainVideo.src !== work.mediaUrl) {
         mainVideo.src = work.mediaUrl;
-        mainVideo.preload = 'metadata';
+        mainVideo.preload = 'auto';
         mainVideo.play().catch(() => {});
       }
     }
@@ -339,10 +378,9 @@ function renderCinemaSlide() {
   if (clientEl) clientEl.textContent = work.client;
   if (badgeEl) badgeEl.textContent = work.badge || (work.category === 'video' ? 'Shot on iPhone' : 'Креатив');
 
-  // Случайный реалистичный прогресс таймлайна (как на скриншоте)
+  // Сброс прогресса таймлайна для нового видео
   if (progressEl) {
-    const percentages = [28, 45, 18, 62, 35, 50];
-    progressEl.style.width = `${percentages[currentIndex % percentages.length]}%`;
+    progressEl.style.width = '0%';
   }
 
   // Лента кадров (Filmstrip Scrubber) точно как на скриншоте
@@ -373,91 +411,6 @@ function renderCinemaSlide() {
       activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }
-}
-
-// ==========================================================================
-// 4. МОДАЛЬНЫЙ КИНОТЕАТР (ВОСПРОИЗВЕДЕНИЕ)
-// ==========================================================================
-function initCinemaModal() {
-  const modal = document.getElementById('cinema-modal');
-  const closeBtn = document.getElementById('modal-close-btn');
-
-  if (!modal) return;
-  if (closeBtn) closeBtn.addEventListener('click', closeCinemaModal);
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeCinemaModal();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.classList.contains('active')) {
-      closeCinemaModal();
-    }
-  });
-}
-
-function openCinemaModal(work) {
-  const modal = document.getElementById('cinema-modal');
-  const clientNameEl = document.getElementById('modal-client-name');
-  const badgeEl = document.getElementById('modal-badge');
-  const videoContainer = document.getElementById('modal-video-container');
-
-  if (clientNameEl) clientNameEl.textContent = work.client;
-  if (badgeEl) badgeEl.textContent = work.badge;
-
-  if (videoContainer) {
-    const isVideoFile = work.mediaType === 'video_file' || 
-                        (work.mediaUrl && work.mediaUrl.match(/\.(mp4|mov|webm|m4v)$/i)) || 
-                        (work.mediaUrl && work.mediaUrl.startsWith('blob:'));
-
-    if (isVideoFile) {
-      videoContainer.innerHTML = `
-        <video 
-          class="modal-video-frame" 
-          controls 
-          autoplay 
-          playsinline 
-          preload="auto"
-          poster="${escapeHtml(work.thumbnail || '')}"
-          src="${escapeHtml(work.mediaUrl)}"
-          style="width: 100%; aspect-ratio: 16/9; background: #000; display: block;">
-          Ваш браузер не поддерживает встроенное видео.
-        </video>
-      `;
-    } else if (work.mediaType === 'youtube') {
-      videoContainer.innerHTML = `
-        <iframe 
-          class="modal-video-frame" 
-          src="${escapeHtml(work.mediaUrl)}?autoplay=1&rel=0&modestbranding=1" 
-          title="${escapeHtml(work.client)}" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          allowfullscreen>
-        </iframe>
-      `;
-    } else {
-      videoContainer.innerHTML = `
-        <img src="${escapeHtml(work.mediaUrl || work.thumbnail)}" style="width:100%; aspect-ratio:16/9; object-fit:cover; display:block;" alt="${escapeHtml(work.client)}">
-      `;
-    }
-  }
-
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeCinemaModal() {
-  const modal = document.getElementById('cinema-modal');
-  if (!modal) return;
-
-  const videoContainer = document.getElementById('modal-video-container');
-  if (videoContainer) {
-    const video = videoContainer.querySelector('video');
-    if (video) video.pause();
-    videoContainer.innerHTML = '';
-  }
-
-  modal.classList.remove('active');
-  document.body.style.overflow = '';
 }
 
 function escapeHtml(str) {

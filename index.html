@@ -36,15 +36,15 @@
         </button>
       </nav>
 
-      <!-- Фирменные Pill-кнопки Apple: Загрузить видео, Email и Instagram -->
+      <!-- Фирменные Pill-кнопки Apple: Загрузить медиа, Email и Instagram -->
       <div class="header-actions">
-        <label class="apple-pill-btn" style="cursor: pointer;" title="Загрузить локальное видео с устройства (.mp4, .mov)">
-          <input type="file" id="video-file-input" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" style="display: none;">
+        <label class="apple-pill-btn upload-media-pill" style="cursor: pointer;" title="Загрузить видео или фото с устройства">
+          <input type="file" class="media-file-input" accept="video/*,image/*" style="display: none;">
           <svg class="pill-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          <span>Загрузить видео</span>
+          <span>Загрузить медиа</span>
         </label>
 
-        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary action-email-btn">
+        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn action-email-btn">
           <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
           <span>Email</span>
         </a>
@@ -94,11 +94,12 @@
               <span class="shot-on-iphone-sub" id="cinema-badge">Shot on iPhone</span>
             </div>
 
-            <!-- Правая капсула: Инфо, На весь экран, Вперед -->
+            <!-- Правая капсула: Добавить (+), Инфо, Смотреть, Вперед -->
             <div class="glass-capsule">
-              <button class="glass-icon-btn" id="btn-cinema-info" aria-label="Информация">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-              </button>
+              <label class="glass-icon-btn" title="Загрузить медиа" style="cursor: pointer;">
+                <input type="file" class="media-file-input" accept="video/*,image/*" style="display: none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </label>
 
               <button class="glass-icon-btn" id="btn-cinema-expand" aria-label="Смотреть видео">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
@@ -111,9 +112,10 @@
 
           </div>
 
-          <!-- ВИДОВОЙ ЭКРАН (СТОП-КАДР ВИДЕО) -->
+          <!-- ВИДОВОЙ ЭКРАН (СТОП-КАДР ИЛИ ВИДЕО) -->
           <div class="ios-cinema-viewport" id="cinema-viewport" title="Нажмите для воспроизведения">
             <img id="cinema-main-img" class="ios-cinema-image" src="" alt="Кадр из видео">
+            <video id="cinema-main-video" class="ios-cinema-video" playsinline muted loop style="display: none; width: 100%; height: 100%; object-fit: cover;"></video>
           </div>
 
           <!-- НИЖНИЙ ПАРИТЕТ: ПАВШАЯ ПАНЕЛЬ ПЛЕЕРА И ЛЕНТА КАДРОВ -->

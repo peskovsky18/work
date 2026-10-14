@@ -174,78 +174,78 @@ function initCinemaPlayer() {
     if (e.key === 'ArrowLeft') prevSlide();
   });
 
-  // Загрузка локального видеофайла
-  const fileInput = document.getElementById('video-file-input');
-  if (fileInput) {
-    fileInput.addEventListener('change', handleLocalVideoUpload);
-  }
+  // Загрузка локального медиафайла (через все кнопки загрузки на странице)
+  const fileInputs = document.querySelectorAll('.media-file-input, #video-file-input');
+  fileInputs.forEach(input => {
+    input.addEventListener('change', handleMediaUpload);
+  });
 
   loadCategory();
 }
 
-function handleLocalVideoUpload(e) {
+function handleMediaUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const fileUrl = URL.createObjectURL(file);
-  const clientName = prompt('Имя клиента / проекта:', file.name.replace(/\.[^/.]+$/, '')) || 'Новый проект';
+  const isVideo = file.type.startsWith('video') || file.name.match(/\.(mp4|mov|webm|m4v)$/i);
+  const clientName = file.name.replace(/\.[^/.]+$/, '').trim() || 'Новый проект';
 
-  // Создаем невидимый видео-элемент для захвата стоп-кадра
-  const tempVideo = document.createElement('video');
-  tempVideo.src = fileUrl;
-  tempVideo.muted = true;
-  tempVideo.playsInline = true;
-  tempVideo.crossOrigin = 'anonymous';
-
-  tempVideo.addEventListener('loadeddata', () => {
-    tempVideo.currentTime = Math.min(1, (tempVideo.duration || 2) / 3);
-  });
-
-  tempVideo.addEventListener('seeked', () => {
-    let thumb = '';
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = tempVideo.videoWidth || 640;
-      canvas.height = tempVideo.videoHeight || 360;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
-      thumb = canvas.toDataURL('image/jpeg', 0.85);
-    } catch (err) {
-      thumb = 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1600&auto=format&fit=crop&q=85';
-    }
-
-    addNewVideoWork(clientName, fileUrl, thumb);
-  });
-
-  tempVideo.addEventListener('error', () => {
-    addNewVideoWork(clientName, fileUrl, 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1600&auto=format&fit=crop&q=85');
-  });
-}
-
-function addNewVideoWork(clientName, fileUrl, thumb) {
+  // Создаем работу МГНОВЕННО
   const newWork = {
     id: Date.now(),
     client: clientName,
     title: clientName,
-    category: 'video',
-    categoryLabel: 'Видео',
-    badge: 'Shot on iPhone',
+    category: isVideo ? 'video' : 'creative',
+    categoryLabel: isVideo ? 'Видео' : 'Креатив',
+    badge: isVideo ? 'Shot on iPhone' : 'Медиа',
     year: '2026',
-    mediaType: 'video_file',
+    mediaType: isVideo ? 'video_file' : 'image',
     mediaUrl: fileUrl,
-    thumbnail: thumb
+    thumbnail: isVideo ? 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80' : fileUrl
   };
 
   PROJECTS.unshift(newWork);
-  currentTab = 'video';
+  currentTab = newWork.category;
 
   document.querySelectorAll('.cat-switch-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === 'video');
+    btn.classList.toggle('active', btn.dataset.tab === currentTab);
   });
 
   currentIndex = 0;
   loadCategory();
-  openCinemaModal(newWork);
+
+  // Если это видео, пытаемся захватить стоп-кадр асинхронно
+  if (isVideo) {
+    const tempVideo = document.createElement('video');
+    tempVideo.src = fileUrl;
+    tempVideo.muted = true;
+    tempVideo.playsInline = true;
+    tempVideo.crossOrigin = 'anonymous';
+
+    const captureThumb = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 480;
+        canvas.height = 270;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        if (dataUrl && dataUrl.length > 500) {
+          newWork.thumbnail = dataUrl;
+          renderCinemaSlide();
+        }
+      } catch (err) {}
+    };
+
+    tempVideo.addEventListener('loadeddata', () => {
+      tempVideo.currentTime = Math.min(0.5, (tempVideo.duration || 1) / 3);
+    });
+    tempVideo.addEventListener('seeked', captureThumb);
+  }
+
+  // Сбрасываем input для возможности повторной загрузки
+  e.target.value = '';
 }
 
 function loadCategory() {
@@ -270,19 +270,36 @@ function renderCinemaSlide() {
   if (!work) return;
 
   const mainImg = document.getElementById('cinema-main-img');
+  const mainVideo = document.getElementById('cinema-main-video');
   const clientEl = document.getElementById('cinema-client');
   const badgeEl = document.getElementById('cinema-badge');
   const filmstrip = document.getElementById('cinema-filmstrip');
   const progressEl = document.getElementById('timeline-progress');
 
-  // Главный стоп-кадр с мягким переходом
-  if (mainImg) {
-    mainImg.style.opacity = '0.35';
-    setTimeout(() => {
-      mainImg.src = work.thumbnail;
-      mainImg.alt = work.client;
-      mainImg.style.opacity = '1';
-    }, 90);
+  // Если это загруженный видеофайл — показываем и воспроизводим видео
+  if (work.mediaType === 'video_file' || (work.mediaUrl && work.mediaUrl.startsWith('blob:'))) {
+    if (mainImg) mainImg.style.display = 'none';
+    if (mainVideo) {
+      mainVideo.style.display = 'block';
+      if (mainVideo.src !== work.mediaUrl) {
+        mainVideo.src = work.mediaUrl;
+        mainVideo.play().catch(() => {});
+      }
+    }
+  } else {
+    if (mainVideo) {
+      mainVideo.pause();
+      mainVideo.style.display = 'none';
+    }
+    if (mainImg) {
+      mainImg.style.display = 'block';
+      mainImg.style.opacity = '0.35';
+      setTimeout(() => {
+        mainImg.src = work.thumbnail || work.mediaUrl;
+        mainImg.alt = work.client;
+        mainImg.style.opacity = '1';
+      }, 90);
+    }
   }
 
   // Только: ДЛЯ КОГО РАБОТА и SHOT ON IPHONE

@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
+import { getSubwayMapTexture } from './subwayMap.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ
@@ -219,7 +220,7 @@ function loadSubwayModel() {
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
 
-        // Поиск экранов
+        // 1. Интерактивные экраны для видео
         if (child.name === 'Screen_1_Display') {
           screen1Mesh = child;
           if (videoTexture1) {
@@ -232,6 +233,7 @@ function loadSubwayModel() {
               metalness: 0.05
             });
           }
+          return;
         } else if (child.name === 'Screen_2_Display') {
           screen2Mesh = child;
           if (videoTexture2) {
@@ -244,6 +246,72 @@ function loadSubwayModel() {
               metalness: 0.05
             });
           }
+          return;
+        }
+
+        // 2. Рамки экранов мониторов (темный титан/графит с безелем)
+        if (child.name === 'Screen_1_Housing' || child.name === 'Screen_2_Housing') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x16181e),
+            roughness: 0.25,
+            metalness: 0.88
+          });
+          return;
+        }
+
+        // 3. Крепежи экранов к стене вагона (темная индустриальная сталь)
+        if (child.name.startsWith('Screen_1_Mount') || child.name.startsWith('Screen_2_Mount')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x22252c),
+            roughness: 0.35,
+            metalness: 0.92
+          });
+          return;
+        }
+
+        // 4. Лайтбокс со схемой линий метро на стене станции
+        if (child.name === 'Platform_Map_Display') {
+          const mapTex = getSubwayMapTexture(THREE);
+          child.material = new THREE.MeshStandardMaterial({
+            map: mapTex,
+            emissive: new THREE.Color(0xffffff),
+            emissiveMap: mapTex,
+            emissiveIntensity: 0.92,
+            roughness: 0.25,
+            metalness: 0.05,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        if (child.name === 'Platform_Map_Housing') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x14161a),
+            roughness: 0.45,
+            metalness: 0.75
+          });
+          return;
+        }
+
+        if (child.name === 'Platform_Map_Header_Trim') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xd21b28),
+            emissive: new THREE.Color(0xd21b28),
+            emissiveIntensity: 0.25,
+            roughness: 0.35,
+            metalness: 0.40
+          });
+          return;
+        }
+
+        // 5. Стойка обшивки стены возле окна (закрытие щели)
+        if (child.name === 'Wall_Window_Right_Pier') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xb2b8c2),
+            roughness: 0.30,
+            metalness: 0.82
+          });
+          return;
         }
 
         const matName = child.material ? child.material.name : '';

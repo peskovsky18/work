@@ -538,47 +538,21 @@ export function getNoLeanDecalTexture(THREE) {
 
   ctx.clearRect(0, 0, 1024, 256);
 
-  // Прямоугольная предупреждающая табличка метрополитена
-  const bx = 40;
-  const by = 28;
-  const bw = 1024 - 80;
-  const bh = 256 - 56;
-  const r = 24;
-
-  // 1. Красный фон таблички
+  // Классическая белая надпись трафаретом прямо на стекле по образцу Ильи Бирмана
+  // (только чистый белый текст, без плашек, рамок, значков и дублирования)
   ctx.save();
-  ctx.fillStyle = '#d31f26';
-  ctx.beginPath();
-  ctx.roundRect(bx, by, bw, bh, r);
-  ctx.fill();
-
-  // 2. Белая окантовка таблички
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 6;
-  ctx.stroke();
-
-  // Внутренняя тонкая белая рамка
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.roundRect(bx + 10, by + 10, bw - 20, bh - 20, r - 6);
-  ctx.stroke();
-
-  // 3. Основной текст: крупный жирный гротеск «НЕ ПРИСЛОНЯТЬСЯ»
-  ctx.font = '900 68px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = 8;
-  ctx.shadowOffsetY = 3;
-  ctx.fillText('НЕ ПРИСЛОНЯТЬСЯ', 512, 105);
+  ctx.font = '900 92px "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
-  // 4. Дополнительный текст на латинице: «DO NOT LEAN»
-  ctx.shadowColor = 'transparent';
-  ctx.font = '700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillStyle = '#ffe2e4';
-  ctx.fillText('DO NOT LEAN', 512, 168);
+  // Деликатная полупрозрачная тень для читаемости белой краски на фоне света станции
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+
+  // Текст: аутентичный советский/московский трафарет на дверях метро
+  ctx.fillText('НЕ ПРИСЛОНЯТЬСЯ', 512, 128);
   ctx.restore();
 
   cachedNoLeanTexture = new THREE.CanvasTexture(canvas);

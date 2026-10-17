@@ -304,7 +304,34 @@ function loadSubwayModel() {
           return;
         }
 
-        // 5. Стойка обшивки стены возле окна (закрытие щели)
+        // 5. Архитектурная отделка окна и стен вагона
+        if (child.name === 'Window_Sill_Ledge') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xa4acb8), // сатинированный подоконник
+            roughness: 0.28,
+            metalness: 0.76
+          });
+          return;
+        }
+
+        if (child.name.startsWith('Window_Reveal_')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x88909c), // алюминиевые откосы окна
+            roughness: 0.35,
+            metalness: 0.65
+          });
+          return;
+        }
+
+        if (child.name === 'Subway_Wall_Crown_Frieze') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xb2b8c2), // карнизный фриз под потолком
+            roughness: 0.28,
+            metalness: 0.82
+          });
+          return;
+        }
+
         if (child.name === 'Wall_Window_Right_Pier') {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xb2b8c2),

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Александр Песковский — 2026</title>
-  <meta name="description" content="Александр Песковский — Разнорабочий в медиа (2026). Видео (Shot on iPhone) и Креатив.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Александр Песковский — 2026 | 3D Портфолио</title>
+  <meta name="description" content="Александр Песковский — Разнорабочий в медиа (2026). Видео (Shot on iPhone) и Креатив в иммерсивном 3D пространстве.">
   
   <!-- Шрифты: Space Grotesk и JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,152 +13,249 @@
   
   <!-- Стили -->
   <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="notebook-grid">
 
-  <!-- ==========================================
-       ВЕРХНЯЯ СТРОКА: ИМЯ, 2 РАЗДЕЛА И ДВЕ КНОПКИ
-       ========================================== -->
+  <!-- GSAP & ScrollTrigger -->
+  <script src="js/vendor/gsap.min.js"></script>
+  <script src="js/vendor/ScrollTrigger.min.js"></script>
+
+  <!-- Three.js Import Map (полностью автономные локальные файлы) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./js/vendor/three.module.js",
+      "three/addons/": "./js/vendor/"
+    }
+  }
+  </script>
+</head>
+<body class="dark-cinema-body">
+
+  <!-- =========================================================================
+       ПРЕЛОАДЕР 3D СЦЕНЫ
+       ========================================================================= -->
+  <div id="scene-preloader" class="scene-preloader">
+    <div class="preloader-content">
+      <div class="preloader-brand">
+        <span class="preloader-badge">2026 • 3D EXPERIENCE</span>
+        <h2 class="preloader-title">Александр Песковский</h2>
+        <p class="preloader-subtitle">Разнорабочий в медиа</p>
+      </div>
+      <div class="preloader-bar-wrap">
+        <div id="loader-progress-bar" class="preloader-bar-fill"></div>
+      </div>
+      <span class="preloader-hint">Загрузка пространства вагона...</span>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       ФИКСИРОВАННЫЙ CANVAS THREE.JS (ЗАДНИЙ ПЛАН)
+       ========================================================================= -->
+  <canvas id="webgl-canvas" class="webgl-fixed-canvas"></canvas>
+
+  <!-- =========================================================================
+       СКРЫТЫЕ ИСТОЧНИКИ ВИДЕО ДЛЯ THREE.VIDEOTEXTURE
+       ========================================================================= -->
+  <div class="video-texture-sources" aria-hidden="true">
+    <video id="video-swag" src="assets/videos/ir8kYNcLb8sn6EK.MP4" playsinline webkit-playsinline loop muted defaultMuted preload="auto"></video>
+    <video id="video-mini-swag" src="assets/videos/mppRNz4EpVE8gnQ.MP4" playsinline webkit-playsinline loop muted defaultMuted preload="auto"></video>
+  </div>
+
+  <!-- =========================================================================
+       ВЕРХНЯЯ ШАПКА: БРЕНД, НАВИГАЦИЯ ПО ВАГОНУ И КНОПКИ СВЯЗИ
+       ========================================================================= -->
   <header class="site-header">
-    <div class="container header-row">
+    <div class="header-container">
+      
+      <!-- Бренд -->
       <div class="brand-block">
         <h1 class="brand-name">Александр Песковский</h1>
         <span class="brand-badge">Разнорабочий в медиа</span>
       </div>
 
-      <!-- Переключатель всего 2 разделов: «Видео» и «Креатив» -->
-      <nav class="category-switch-bar" aria-label="Разделы портфолио">
-        <button class="cat-switch-btn active" data-tab="video">
-          Видео
-        </button>
-        <button class="cat-switch-btn" data-tab="creative">
-          Креатив
-        </button>
+      <!-- Переключатель этапов (Вход, Свэг, Мини свэг, Контакты) -->
+      <nav class="stage-nav-bar" aria-label="Навигация по 3D вагону">
+        <button class="apple-pill-btn stage-nav-pill active" data-stage="0">Вход</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="1">Свэг</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="2">Мини свэг</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="3">Контакты</button>
       </nav>
 
-      <!-- Фирменные Pill-кнопки Apple: Email и Instagram -->
+      <!-- Действия: Звук, Email, Instagram -->
       <div class="header-actions">
-        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn action-email-btn">
+        <button class="apple-pill-btn sound-toggle-btn" id="header-sound-btn" aria-label="Включить / выключить звук" title="Включить / выключить звук">
+          <span class="sound-btn-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </span>
+          <span class="sound-btn-label">Без звука</span>
+        </button>
+
+        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn action-email-btn" title="Написать на Email">
           <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
           <span>Email</span>
         </a>
 
-        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn action-insta-btn">
+        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn action-insta-btn" title="Instagram">
           <svg class="pill-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
           <span>Instagram ↗</span>
         </a>
-
-        <button id="theme-toggle" class="apple-pill-btn theme-pill-btn" aria-label="Сменить тему">
-          🌙
-        </button>
       </div>
+
     </div>
   </header>
 
-  <main>
-    <!-- ==========================================
-         ГАЛЕРЕЯ IOS PHOTOS (ПО СКРИНШОТУ ПОЛЬЗОВАТЕЛЯ)
-         ========================================== -->
-    <section class="gallery-section">
-      <div class="container">
-        
-        <div class="ios-cinema-container">
+  <!-- =========================================================================
+       SCROLLYTELLING ТРЕК: 4 ЭТАПА ПОГРУЖЕНИЯ В ПРОСТРАНСТВО
+       ========================================================================= -->
+  <main class="scroll-story" id="scroll-story">
+
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 0: ВХОД В ВАГОН (ОБЩИЙ ВИД)
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-intro active" id="stage-0" data-stage-index="0">
+      <div class="stage-container intro-layout">
+        <div class="intro-glass-panel">
+          <span class="intro-kicker">CINEMATIC 3D PORTFOLIO</span>
+          <h2 class="intro-headline">Александр Песковский</h2>
+          <p class="intro-subheadline">Разнорабочий в медиа • Shot on iPhone • 2026</p>
           
-          <!-- ВЕРХНИЙ ПАРИТЕТ: 3 ПАВШИЕ КАПСУЛЫ -->
-          <div class="cinema-top-overlay">
-            
-            <!-- Левая капсула: Назад, Поделиться, Сердечко -->
-            <div class="glass-capsule">
-              <button class="glass-icon-btn" id="btn-cinema-prev" aria-label="Предыдущее видео">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
-
-              <button class="glass-icon-btn" id="btn-cinema-share" aria-label="Поделиться">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-              </button>
-
-              <button class="glass-icon-btn" id="btn-cinema-heart" aria-label="В избранное">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-              </button>
+          <div class="intro-hint-block" id="scroll-down-hint">
+            <span class="hint-text">Листайте вниз для осмотра вагона</span>
+            <div class="scroll-indicator-arrow">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
-
-            <!-- Центральная капсула: ДЛЯ КОГО РАБОТА + SHOT ON IPHONE -->
-            <div class="glass-capsule center-info-capsule">
-              <span class="client-name-title" id="cinema-client">Свэг</span>
-              <span class="shot-on-iphone-sub" id="cinema-badge">Shot on iPhone</span>
-            </div>
-
-            <!-- Правая капсула: Вперед -->
-            <div class="glass-capsule">
-              <button class="glass-icon-btn" id="btn-cinema-next" aria-label="Следующее видео">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
-            </div>
-
           </div>
+        </div>
+      </div>
+    </section>
 
-          <!-- ВИДОВОЙ ЭКРАН (СТОП-КАДР ИЛИ ВИДЕО) -->
-          <div class="ios-cinema-viewport" id="cinema-viewport" title="Нажмите для воспроизведения">
-            <img id="cinema-main-img" class="ios-cinema-image" src="" alt="Кадр из видео">
-            <video id="cinema-main-video" class="ios-cinema-video" playsinline muted defaultMuted loop style="display: none; width: 100%; height: 100%;"></video>
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 1: ЭКРАН 1 («СВЭГ»)
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-video" id="stage-1" data-stage-index="1">
+      <div class="stage-container">
+        
+        <!-- Верхняя капсула заголовка -->
+        <div class="floating-hud-top">
+          <div class="glass-capsule title-capsule">
+            <span class="hud-category-label">Видео</span>
+            <span class="hud-item-title">Свэг</span>
+            <span class="hud-badge">Shot on iPhone</span>
           </div>
+        </div>
 
-          <!-- НИЖНИЙ ПАРИТЕТ: ПАВШАЯ ПАНЕЛЬ ПЛЕЕРА И ЛЕНТА КАДРОВ -->
-          <div class="cinema-bottom-overlay">
+        <!-- Нижняя капсула плеера -->
+        <div class="floating-hud-bottom">
+          <div class="glass-capsule player-capsule">
             
-            <!-- Вытянутая капсула плеера с кнопкой Play, таймлайном и звуком -->
-            <div class="floating-video-scrubber-bar">
-              <button class="play-pause-btn" id="btn-play-pause" aria-label="Воспроизвести">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-              </button>
+            <button class="player-icon-btn play-pause-btn" id="play-btn-stage1" aria-label="Воспроизвести / пауза">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+            </button>
 
-              <div class="timeline-track-wrap" id="timeline-wrap">
-                <div class="timeline-track">
-                  <div class="timeline-progress" id="timeline-progress"></div>
-                </div>
+            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage1" title="Перемотка">
+              <div class="timeline-bar-bg">
+                <div class="timeline-bar-fill" id="timeline-progress-stage1"></div>
               </div>
+            </div>
 
-              <button class="mute-btn" id="btn-sound-toggle" aria-label="Включить звук" title="Включить звук">
+            <span class="timeline-time-display" id="time-text-stage1">0:00</span>
+
+            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук">
+              <span class="sound-btn-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-              </button>
-            </div>
+              </span>
+            </button>
 
-            <!-- Лента кадров (Filmstrip Scrubber в стиле iOS) -->
-            <div class="ios-filmstrip-row" id="cinema-filmstrip">
-              <!-- Миниатюры генерируются автоматически -->
-            </div>
+            <button class="player-icon-btn heart-btn" id="heart-btn-stage1" aria-label="В избранное">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </button>
 
           </div>
-
         </div>
 
       </div>
     </section>
 
-    <!-- ==========================================
-         НИЖНИЙ БЛОК: ТОЛЬКО ДВЕ КНОПКИ СВЯЗИ
-         ========================================== -->
-    <section class="container bottom-contact-bar">
-      <div class="contact-pill-group">
-        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary contact-btn-large action-email-btn">
-          <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-          <span>Написать на Email</span>
-        </a>
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 2: ЭКРАН 2 («МИНИ СВЭГ»)
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-video" id="stage-2" data-stage-index="2">
+      <div class="stage-container">
+        
+        <!-- Верхняя капсула заголовка -->
+        <div class="floating-hud-top">
+          <div class="glass-capsule title-capsule">
+            <span class="hud-category-label">Видео</span>
+            <span class="hud-item-title">Мини свэг</span>
+            <span class="hud-badge">Shot on iPhone</span>
+          </div>
+        </div>
 
-        <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn contact-btn-large action-insta-btn">
-          <svg class="pill-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-          <span>Instagram @peskovsky18 ↗</span>
-        </a>
-      </div>
+        <!-- Нижняя капсула плеера -->
+        <div class="floating-hud-bottom">
+          <div class="glass-capsule player-capsule">
+            
+            <button class="player-icon-btn play-pause-btn" id="play-btn-stage2" aria-label="Воспроизвести / пауза">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+            </button>
 
-      <div class="site-footer">
-        © 2026 Александр Песковский • Shot on iPhone
+            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage2" title="Перемотка">
+              <div class="timeline-bar-bg">
+                <div class="timeline-bar-fill" id="timeline-progress-stage2"></div>
+              </div>
+            </div>
+
+            <span class="timeline-time-display" id="time-text-stage2">0:00</span>
+
+            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук">
+              <span class="sound-btn-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+              </span>
+            </button>
+
+            <button class="player-icon-btn heart-btn" id="heart-btn-stage2" aria-label="В избранное">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </button>
+
+          </div>
+        </div>
+
       </div>
     </section>
+
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 3: ФИНАЛЬНЫЙ ПЛАН И КОНТАКТЫ
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-contact" id="stage-3" data-stage-index="3">
+      <div class="stage-container contact-layout">
+        
+        <div class="contact-glass-card">
+          <span class="contact-card-badge">СВЯЗЬ И СОТРУДНИЧЕСТВО</span>
+          <h2 class="contact-card-title">Александр Песковский</h2>
+          <p class="contact-card-role">Разнорабочий в медиа • Видеопродакшн • Режиссура</p>
+
+          <div class="contact-action-row">
+            <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary contact-btn-large">
+              <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <span>Написать на Email</span>
+            </a>
+
+            <a href="https://instagram.com/peskovsky18" target="_blank" rel="noopener" class="apple-pill-btn contact-btn-large">
+              <svg class="pill-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+              <span>Instagram @peskovsky18 ↗</span>
+            </a>
+          </div>
+
+          <div class="contact-card-footer">
+            © 2026 Александр Песковский • Shot on iPhone • 3D Scrollytelling
+          </div>
+        </div>
+
+      </div>
+    </section>
+
   </main>
 
-  <!-- Скрипты -->
-  <script src="js/projects-data.js"></script>
-  <script src="js/main.js"></script>
+  <!-- Скрипт приложения -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

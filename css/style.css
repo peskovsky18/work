@@ -1,46 +1,22 @@
 /* ==========================================================================
    АЛЕКСАНДР ПЕСКОВСКИЙ — 2026
-   Точный интерфейс плеера iOS Photos (по скриншоту)
-   Тетрадь в клетку • Без макетов телефонов • Только Клиент и Shot on iPhone
+   3D SCROLLYTELLING • APPLE DARK CINEMATIC SUBWAY
    ========================================================================== */
 
 :root {
-  /* Светлая тема (Тетрадь в клетку + Apple Glass) */
-  --bg-color: #faf9f6;
-  --text-main: #0c0c0e;
-  --text-muted: #64646c;
-  --grid-line: rgba(0, 0, 0, 0.075);
-  --border-subtle: rgba(0, 0, 0, 0.12);
-  --glass-bg: rgba(28, 28, 34, 0.68);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-text: #ffffff;
-  --pill-bg: rgba(255, 255, 255, 0.88);
-  --pill-text: #0c0c0e;
-  --pill-hover-bg: #0c0c0e;
-  --pill-hover-text: #ffffff;
-  --pill-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
-  --stage-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.22);
+  --bg-deep: #07080a;
+  --bg-panel: rgba(18, 20, 26, 0.72);
+  --bg-capsule: rgba(24, 27, 36, 0.78);
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-glow: rgba(255, 255, 255, 0.25);
+  --text-primary: #ffffff;
+  --text-muted: #8e95a5;
+  --accent-amber: #f5a623;
+  --accent-cyan: #38bdf8;
+  --glass-blur: blur(24px);
+  --stage-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
 }
 
-[data-theme="dark"] {
-  /* Темная тема (Чертежная сетка + Apple Glass Dark) */
-  --bg-color: #0b0b0e;
-  --text-main: #f5f5f7;
-  --text-muted: #96969e;
-  --grid-line: rgba(255, 255, 255, 0.055);
-  --border-subtle: rgba(255, 255, 255, 0.14);
-  --glass-bg: rgba(18, 18, 22, 0.78);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-text: #f5f5f7;
-  --pill-bg: rgba(26, 26, 32, 0.88);
-  --pill-text: #f5f5f7;
-  --pill-hover-bg: #f5f5f7;
-  --pill-hover-text: #0b0b0e;
-  --pill-shadow: 0 4px 22px -2px rgba(0, 0, 0, 0.6);
-  --stage-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
-}
-
-/* Сброс стилей */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -48,849 +24,712 @@
 }
 
 html {
-  scroll-behavior: smooth;
   font-size: 16px;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  line-height: 1.45;
-  min-height: 100vh;
-  position: relative;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
   overflow-x: hidden;
 }
 
-/* Тетрадь в клетку */
-.notebook-grid {
-  background-size: 24px 24px;
-  background-image: 
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-}
-
-.container {
-  width: 100%;
-  max-width: 1060px;
-  margin: 0 auto;
-  padding: 0 20px;
+body.dark-cinema-body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
-   ВЕРХНЯЯ СТРОКА: ИМЯ, ПЕРЕКЛЮЧАТЕЛЬ 2 РАЗДЕЛОВ И ДВЕ КНОПКИ СВЯЗИ
+   ПРЕЛОАДЕР 3D СЦЕНЫ
    ========================================================================== */
-.site-header {
-  padding: 24px 0 16px;
+.scene-preloader {
+  position: fixed;
+  inset: 0;
+  background-color: #07080a;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s ease;
 }
 
-.header-row {
+.scene-preloader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.preloader-content {
+  text-align: center;
+  max-width: 380px;
+  padding: 24px;
+}
+
+.preloader-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: var(--accent-amber);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.preloader-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.preloader-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.preloader-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.preloader-bar-fill {
+  width: 15%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-amber), #fff);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.preloader-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   ФИКСИРОВАННЫЙ CANVAS THREE.JS
+   ========================================================================== */
+.webgl-fixed-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  display: block;
+}
+
+.video-texture-sources {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   ВЕРХНЯЯ ШАПКА САЙТА (HEADER)
+   ========================================================================== */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  padding: 16px 24px;
+  background: linear-gradient(to bottom, rgba(7, 8, 10, 0.85) 0%, rgba(7, 8, 10, 0.4) 70%, transparent 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.header-container {
+  max-width: 1280px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .brand-block {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 12px;
 }
 
 .brand-name {
-  font-size: clamp(1.2rem, 2.2vw, 1.55rem);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
   font-weight: 800;
   letter-spacing: -0.5px;
   text-transform: uppercase;
+  color: #fff;
 }
 
 .brand-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 4px 10px;
-  background: var(--pill-bg);
-  border: 1px solid var(--border-subtle);
+  padding: 3px 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
 }
 
-/* Переключатель 2 разделов: «Видео» и «Креатив» */
-.category-switch-bar {
-  display: inline-flex;
-  padding: 3px;
-  background: var(--pill-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 9999px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.cat-switch-btn {
-  border: none;
-  background: transparent;
-  padding: 7px 18px;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  border-radius: 9999px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.cat-switch-btn:hover {
-  color: var(--text-main);
-}
-
-.cat-switch-btn.active {
-  background: var(--text-main);
-  color: var(--bg-color);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
-}
-
-/* Фирменные Pill-кнопки в стиле Apple */
-.header-actions {
+/* Навигация по вагону (Pill Buttons) */
+.stage-nav-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  background: rgba(20, 22, 28, 0.75);
+  padding: 4px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .apple-pill-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  padding: 8px 18px;
-  font-size: 0.85rem;
+  padding: 7px 15px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: -0.2px;
-  color: var(--pill-text);
-  background: var(--pill-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 9999px;
-  box-shadow: var(--pill-shadow);
-  text-decoration: none;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s ease,
-              background-color 0.2s ease,
-              color 0.2s ease;
-  user-select: none;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
 
 .apple-pill-btn:hover {
-  transform: scale(1.03) translateY(-1px);
-  background: var(--pill-hover-bg);
-  color: var(--pill-hover-text);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.apple-pill-btn:active {
-  transform: scale(0.97);
+.stage-nav-pill.active {
+  color: #07080a;
+  background: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.25);
 }
 
-.apple-pill-primary {
-  background: var(--text-main);
-  color: var(--bg-color);
-  border-color: var(--text-main);
+/* Действия в правой части шапки */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.upload-media-pill {
-  background: var(--text-main);
-  color: var(--bg-color);
-  border-color: var(--text-main);
-  font-weight: 700;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+.header-actions .apple-pill-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-subtle);
+  color: #fff;
 }
 
-.upload-media-pill:hover {
-  opacity: 0.92;
-  transform: scale(1.03) translateY(-1px);
+.header-actions .apple-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-glow);
+}
+
+.sound-toggle-btn.sound-on {
+  color: var(--accent-amber);
+  border-color: rgba(245, 166, 35, 0.4);
+  background: rgba(245, 166, 35, 0.12);
 }
 
 .pill-icon {
   width: 15px;
   height: 15px;
+  fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  fill: none;
-  flex-shrink: 0;
 }
 
-.theme-pill-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 50%;
+/* ==========================================================================
+   SCROLLYTELLING ТРЕК: 4 ЭТАПА
+   ========================================================================= */
+.scroll-story {
+  position: relative;
+  z-index: 10;
+  pointer-events: none; /* Пропускаем клики на 3D сцену, кроме UI элементов */
+}
+
+.story-stage {
+  min-height: 100vh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* ==========================================================================
-   ГАЛЕРЕЯ IOS PHOTOS (ТОЧНО ПО СКРИНШОТУ ПОЛЬЗОВАТЕЛЯ)
-   ========================================================================== */
-.gallery-section {
-  padding: 20px 0 50px;
-}
-
-.ios-cinema-container {
   position: relative;
+}
+
+.stage-container {
   width: 100%;
-  background: #000000;
-  border-radius: 22px;
-  overflow: hidden;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   ЭТАП 0: ИНТРО (ВХОД В ВАГОН)
+   -------------------------------------------------------------------------- */
+.intro-layout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 85vh;
+}
+
+.intro-glass-panel {
+  pointer-events: auto;
+  max-width: 520px;
+  padding: 36px 40px;
+  background: rgba(14, 16, 22, 0.65);
+  border: 1px solid var(--border-subtle);
+  border-radius: 28px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--stage-shadow);
-  user-select: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: floatIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Видовой экран (16:9 widescreen) */
-.ios-cinema-viewport {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #000000;
-  overflow: hidden;
-  cursor: pointer;
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.ios-cinema-image,
-.ios-cinema-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease, opacity 0.25s ease;
+.intro-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  letter-spacing: 2px;
+  color: var(--accent-amber);
+  text-transform: uppercase;
+  margin-bottom: 12px;
   display: block;
 }
 
-.ios-cinema-viewport:hover .ios-cinema-image {
-  transform: scale(1.015);
+.intro-headline {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  color: #fff;
 }
 
-/* ==========================================================================
-   ВЕРХНИЙ ПАРИТЕТ: 3 ПАВШИЕ КАПСУЛЫ (ТОЧНО КАК НА СКРИНШОТЕ)
-   ========================================================================== */
-.cinema-top-overlay {
-  position: absolute;
-  top: 18px;
-  left: 20px;
-  right: 20px;
-  display: flex;
+.intro-subheadline {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 28px;
+}
+
+.intro-hint-block {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  z-index: 20;
+  gap: 12px;
+  cursor: pointer;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  transition: all 0.25s ease;
+}
+
+.intro-hint-block:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: #fff;
+}
+
+.hint-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.scroll-indicator-arrow {
+  animation: bounceDown 1.8s infinite ease-in-out;
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+/* --------------------------------------------------------------------------
+   ЭТАПЫ 1 И 2: ЭКРАНЫ ВАГОНА (FLOATING GLASS CAPSULES)
+   -------------------------------------------------------------------------- */
+.floating-hud-top {
+  position: fixed;
+  top: 92px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 50;
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-hud-bottom {
+  position: fixed;
+  bottom: 32px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* При активации этапа HUD капсулы плавно появляются */
+.story-stage.active .floating-hud-top {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.story-stage.active .floating-hud-bottom {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .glass-capsule {
   pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid var(--glass-border);
-  border-radius: 9999px;
-  color: var(--glass-text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.glass-icon-btn {
-  background: transparent;
-  border: none;
-  color: var(--glass-text);
-  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  opacity: 0.85;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  background: var(--bg-capsule);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
 }
 
-.glass-icon-btn:hover {
-  opacity: 1;
-  transform: scale(1.12);
+/* Верхняя капсула заголовка */
+.title-capsule {
+  padding: 8px 20px;
+  gap: 12px;
 }
 
-.glass-icon-btn.liked {
-  color: #ff3b30;
-  opacity: 1;
-}
-
-/* Центральная капсула: ДЛЯ КОГО РАБОТА + SHOT ON IPHONE */
-.center-info-capsule {
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 20px;
-  text-align: center;
-}
-
-.client-name-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  line-height: 1.15;
-}
-
-.shot-on-iphone-sub {
+.hud-category-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.72rem;
-  opacity: 0.75;
-  letter-spacing: 0.4px;
+  font-weight: 600;
+  color: var(--accent-amber);
   text-transform: uppercase;
 }
 
-/* ==========================================================================
-   НИЖНИЙ ПАРИТЕТ: ТАЙМЛАЙН-СКРУББЕР И ЛЕНТА КАДРОВ (ТОЧНО КАК НА СКРИНШОТЕ)
-   ========================================================================== */
-.cinema-bottom-overlay {
-  position: absolute;
-  bottom: 14px;
-  left: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  z-index: 20;
-  pointer-events: none;
+.hud-item-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #fff;
+  text-transform: uppercase;
 }
 
-/* Вытянутая парящая капсула видеоплеера */
-.floating-video-scrubber-bar {
-  pointer-events: auto;
-  width: 100%;
-  max-width: 680px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 18px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid var(--glass-border);
+.hud-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 3px 8px;
   border-radius: 9999px;
-  color: var(--glass-text);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.play-pause-btn {
+/* Нижняя капсула плеера */
+.player-capsule {
+  padding: 8px 16px;
+  gap: 14px;
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.player-icon-btn {
   background: transparent;
   border: none;
-  color: #ffffff;
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.15s ease;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
-.play-pause-btn:hover {
-  transform: scale(1.15);
+.player-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.08);
 }
 
-/* Линия таймлайна */
-.timeline-track-wrap {
+.play-pause-btn {
+  background: rgba(255, 255, 255, 0.12);
+  width: 36px;
+  height: 36px;
+}
+
+.heart-btn.liked svg {
+  fill: #ff2d55;
+  stroke: #ff2d55;
+}
+
+/* Скруббер прогресса */
+.timeline-scrubber-wrap {
   flex: 1;
+  min-width: 140px;
   height: 20px;
   display: flex;
   align-items: center;
   cursor: pointer;
 }
 
-.timeline-track {
+.timeline-bar-bg {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.28);
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+  transition: height 0.2s ease;
 }
 
-.timeline-progress {
-  width: 35%;
+.timeline-scrubber-wrap:hover .timeline-bar-bg {
+  height: 6px;
+}
+
+.timeline-bar-fill {
+  width: 0%;
   height: 100%;
   background: #ffffff;
-  border-radius: 2px;
-  position: relative;
+  border-radius: 999px;
   transition: width 0.1s linear;
 }
 
-.timeline-progress::after {
-  content: "";
-  position: absolute;
-  right: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 11px;
-  height: 11px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+.timeline-time-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 34px;
+  text-align: right;
 }
 
-.mute-btn {
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
+/* --------------------------------------------------------------------------
+   ЭТАП 3: КОНТАКТЫ (ФИНАЛЬНЫЙ ТЕРМИНАЛ)
+   -------------------------------------------------------------------------- */
+.contact-layout {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  opacity: 0.85;
+  min-height: 85vh;
 }
 
-.mute-btn:hover {
-  opacity: 1;
-}
-
-/* ==========================================================================
-   ЛЕНТА КАДРОВ (FILMSTRIP THUMBNAILS КАК В ПРИЛОЖЕНИИ ФОТО НА СКРИНШОТЕ)
-   ========================================================================== */
-.ios-filmstrip-row {
+.contact-glass-card {
   pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  overflow-x: auto;
-  max-width: 100%;
-  padding: 4px;
-}
-
-.filmstrip-thumb {
-  width: 48px;
-  height: 32px;
-  border-radius: 5px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 2px solid transparent;
-  opacity: 0.5;
-  flex-shrink: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-  background: #111;
-}
-
-.filmstrip-thumb img {
+  max-width: 580px;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.filmstrip-thumb:hover {
-  opacity: 0.85;
-}
-
-.filmstrip-thumb.active {
-  opacity: 1;
-  border-color: #ffffff;
-  transform: scale(1.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-/* ==========================================================================
-   НИЖНИЙ БЛОК: ТОЛЬКО ДВЕ КНОПКИ СВЯЗИ
-   ========================================================================== */
-.bottom-contact-bar {
-  padding: 30px 0 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+  padding: 44px 48px;
+  background: rgba(14, 16, 22, 0.75);
+  border: 1px solid var(--border-subtle);
+  border-radius: 32px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--stage-shadow);
   text-align: center;
+  animation: floatIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.contact-pill-group {
+.contact-card-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  letter-spacing: 2px;
+  color: var(--accent-amber);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.contact-card-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.contact-card-role {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+
+.contact-action-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
   justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
 }
 
 .contact-btn-large {
   padding: 12px 24px;
   font-size: 0.92rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
+  color: #fff;
 }
 
-.site-footer {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.contact-btn-large:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--border-glow);
+  transform: translateY(-2px);
 }
 
-/* ==========================================================================
-   МОДАЛЬНОЕ ОКНО ВОСПРОИЗВЕДЕНИЯ ВИДЕО
-   ========================================================================== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
-}
-
-.modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.modal-cinema-box {
-  width: 100%;
-  max-width: 980px;
-  background: #000000;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
-}
-
-.modal-top-bar {
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(20, 20, 24, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-
-.modal-close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.modal-close-btn:hover {
+.apple-pill-primary {
   background: #ffffff;
-  color: #000000;
+  color: #07080a;
+  border-color: #ffffff;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
 }
 
-.modal-video-frame {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border: none;
-  display: block;
+.apple-pill-primary:hover {
+  background: #f0f0f2;
+  color: #07080a;
+}
+
+.contact-card-footer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 20px;
 }
 
 /* ==========================================================================
-   АДАПТАЦИЯ ДЛЯ СМАРТФОНОВ И ПЛАНШЕТОВ (MOBILE RESPONSIVE)
+   АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ (IPHONE & ANDROID)
    ========================================================================== */
 @media (max-width: 768px) {
-  .container {
-    padding: 0 14px;
-  }
-
   .site-header {
-    padding: 16px 0 12px;
+    padding: 12px 16px;
   }
 
-  .header-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+  .header-container {
+    justify-content: center;
+    gap: 10px;
   }
 
   .brand-block {
-    justify-content: space-between;
     width: 100%;
+    justify-content: space-between;
   }
 
   .brand-name {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
   }
 
-  .brand-badge {
-    font-size: 0.68rem;
-    padding: 3px 8px;
+  .stage-nav-bar {
+    order: 2;
+    padding: 3px;
   }
 
-  .category-switch-bar {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .cat-switch-btn {
-    flex: 1;
-    text-align: center;
-    padding: 7px 12px;
-    font-size: 0.82rem;
+  .stage-nav-bar .apple-pill-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
   }
 
   .header-actions {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
+    order: 3;
+    gap: 6px;
+  }
+
+  .header-actions .apple-pill-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .intro-glass-panel {
+    padding: 24px 20px;
+    border-radius: 20px;
+    margin: 0 auto;
+  }
+
+  .intro-headline {
+    font-size: 1.85rem;
+  }
+
+  .floating-hud-top {
+    top: 115px;
+  }
+
+  .title-capsule {
+    padding: 6px 14px;
     gap: 8px;
   }
 
-  .upload-media-pill {
-    width: 100%;
-    order: -1;
-    justify-content: center;
-    padding: 10px 14px;
-    font-size: 0.86rem;
-    display: flex;
+  .hud-item-title {
+    font-size: 0.85rem;
   }
 
-  .header-actions .action-email-btn,
-  .header-actions .action-insta-btn {
-    flex: 1;
-    padding: 8px 10px;
-    font-size: 0.8rem;
-    gap: 5px;
+  .floating-hud-bottom {
+    bottom: 20px;
   }
 
-  .header-actions .theme-pill-btn {
-    flex: 0 0 34px;
-    width: 34px;
-    height: 34px;
-  }
-
-  /* Галерея на смартфонах */
-  .gallery-section {
-    padding: 10px 0 36px;
-  }
-
-  .ios-cinema-container {
-    border-radius: 18px;
-    display: flex;
-    flex-direction: column;
-    background: #000000;
-    overflow: hidden;
-  }
-
-  /* Верхняя панель на смартфонах: над видео, без перекрытия */
-  .cinema-top-overlay {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    padding: 10px 10px 8px;
-    background: #000000;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    pointer-events: auto;
-    z-index: 10;
-  }
-
-  .glass-capsule {
-    padding: 4px 8px;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: none;
-  }
-
-  .glass-icon-btn {
-    width: 22px;
-    height: 22px;
-  }
-
-  .glass-icon-btn svg {
-    width: 13px;
-    height: 13px;
-  }
-
-  .center-info-capsule {
-    padding: 3px 10px;
-    max-width: 170px;
-  }
-
-  .client-name-title {
-    font-size: 0.76rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 145px;
-  }
-
-  .shot-on-iphone-sub {
-    font-size: 0.54rem;
-    white-space: nowrap;
-  }
-
-  /* Видеоэкран на смартфонах: 16:9 widescreen, 100% открыто, 0 перекрытий! */
-  .ios-cinema-viewport {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #000000;
-    overflow: hidden;
-  }
-
-  .ios-cinema-video,
-  .ios-cinema-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background: #000000;
-  }
-
-  /* Нижняя панель плеера: под видео, без перекрытия */
-  .cinema-bottom-overlay {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    right: auto;
-    padding: 8px 10px 12px;
-    background: #000000;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    z-index: 10;
-  }
-
-  .floating-video-scrubber-bar {
-    width: 100%;
-    padding: 5px 12px;
+  .player-capsule {
+    min-width: 280px;
+    padding: 6px 12px;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: none;
   }
 
-  .play-pause-btn {
-    width: 20px;
-    height: 20px;
+  .timeline-scrubber-wrap {
+    min-width: 80px;
   }
 
-  .play-pause-btn svg {
-    width: 12px;
-    height: 12px;
+  .contact-glass-card {
+    padding: 28px 20px;
+    border-radius: 24px;
   }
 
-  .timeline-track-wrap {
-    height: 14px;
-  }
-
-  .mute-btn {
-    width: 20px;
-    height: 20px;
-  }
-
-  .mute-btn svg {
-    width: 13px;
-    height: 13px;
-  }
-
-  /* Лента миниатюр с мягким горизонтальным скроллом на мобильных */
-  .ios-filmstrip-row {
-    justify-content: flex-start;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-    padding: 2px 2px 0;
-    gap: 6px;
-    scrollbar-width: none;
-  }
-
-  .ios-filmstrip-row::-webkit-scrollbar {
-    display: none;
-  }
-
-  .filmstrip-thumb {
-    width: 44px;
-    height: 28px;
-    flex-shrink: 0;
-    border-radius: 4px;
-  }
-
-  /* Нижние кнопки связи */
-  .bottom-contact-bar {
-    padding: 20px 0 44px;
-  }
-
-  .contact-pill-group {
-    width: 100%;
+  .contact-action-row {
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
   .contact-btn-large {
     width: 100%;
     justify-content: center;
-    padding: 12px;
-  }
-
-  /* Модальное окно */
-  .modal-overlay {
-    padding: 12px;
-  }
-
-  .modal-cinema-box {
-    border-radius: 14px;
-  }
-
-  .modal-top-bar {
-    padding: 10px 14px;
-  }
-}
-
-@media (max-width: 380px) {
-  .brand-name {
-    font-size: 1.1rem;
-  }
-
-  .center-info-capsule {
-    max-width: 125px;
-  }
-
-  .client-name-title {
-    max-width: 110px;
-    font-size: 0.74rem;
-  }
-
-  .filmstrip-thumb {
-    width: 38px;
-    height: 25px;
   }
 }

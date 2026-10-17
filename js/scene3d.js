@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { getSubwayMapTexture } from './subwayMap.js';
+import { getSubwayMapTexture, getNoLeanDecalTexture } from './subwayMap.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ
@@ -269,23 +269,27 @@ function loadSubwayModel() {
           return;
         }
 
-        // 2. Рамки экранов мониторов (темный титан/графит с безелем)
+        // 2. Тонкие премиальные рамки экранов (темный анодированный алюминий Apple-style)
         if (child.name === 'Screen_1_Housing' || child.name === 'Screen_2_Housing') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x16181e),
-            roughness: 0.25,
-            metalness: 0.88
+            color: new THREE.Color(0x111317),
+            roughness: 0.18,
+            metalness: 0.92
           });
           return;
         }
 
-        // 3. Крепежи экранов к стене вагона (темная индустриальная сталь)
-        if (child.name.startsWith('Screen_1_Mount') || child.name.startsWith('Screen_2_Mount')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x22252c),
-            roughness: 0.35,
-            metalness: 0.92
+        // 3. Предупреждающие наклейки «Не прислоняться» на стеклах дверей
+        if (child.name.includes('Decal_NoLean')) {
+          const decalTex = getNoLeanDecalTexture(THREE);
+          child.material = new THREE.MeshBasicMaterial({
+            map: decalTex,
+            transparent: true,
+            opacity: 0.95,
+            depthWrite: false,
+            side: THREE.DoubleSide
           });
+          child.renderOrder = 3;
           return;
         }
 
@@ -368,12 +372,14 @@ function loadSubwayModel() {
           child.material = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(0x7aa5c2),
             transparent: true,
-            opacity: 0.35,
-            roughness: 0.05,
+            opacity: 0.38,
+            roughness: 0.04,
             metalness: 0.1,
-            reflectivity: 0.9,
+            reflectivity: 0.95,
             clearcoat: 1.0,
-            clearcoatRoughness: 0.1
+            clearcoatRoughness: 0.08,
+            side: THREE.DoubleSide,
+            depthWrite: false
           });
         }
 

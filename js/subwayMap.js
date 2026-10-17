@@ -524,7 +524,7 @@ export function getSubwayMapTexture(THREE) {
 }
 
 /**
- * Генератор текстуры классической предупреждающей наклейки на стекло дверей «Не прислоняться»
+ * Генератор текстуры предупреждающей надписи на стекло дверей «Не прислоняться» (чистый текст)
  */
 let cachedNoLeanTexture = null;
 
@@ -532,79 +532,53 @@ export function getNoLeanDecalTexture(THREE) {
   if (cachedNoLeanTexture) return cachedNoLeanTexture;
 
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = 1024;
+  canvas.height = 256;
   const ctx = canvas.getContext('2d');
 
-  ctx.clearRect(0, 0, 512, 512);
+  ctx.clearRect(0, 0, 1024, 256);
 
-  const cx = 256;
-  const cy = 256;
-  const r = 215;
+  // Прямоугольная предупреждающая табличка метрополитена
+  const bx = 40;
+  const by = 28;
+  const bw = 1024 - 80;
+  const bh = 256 - 56;
+  const r = 24;
 
-  // 1. Белый круг с легкой тенью
+  // 1. Красный фон таблички
+  ctx.save();
+  ctx.fillStyle = '#d31f26';
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.roundRect(bx, by, bw, bh, r);
+  ctx.fill();
+
+  // 2. Белая окантовка таблички
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  // Внутренняя тонкая белая рамка
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(bx + 10, by + 10, bw - 20, bh - 20, r - 6);
+  ctx.stroke();
+
+  // 3. Основной текст: крупный жирный гротеск «НЕ ПРИСЛОНЯТЬСЯ»
+  ctx.font = '900 68px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillStyle = '#ffffff';
-  ctx.fill();
-
-  // 2. Внешнее красное кольцо
-  ctx.lineWidth = 26;
-  ctx.strokeStyle = '#e42313';
-  ctx.stroke();
-
-  // 3. Пиктограмма: створка двери и опирающийся силуэт
-  ctx.lineWidth = 9;
-  ctx.strokeStyle = '#1e293b';
-  ctx.beginPath();
-  ctx.moveTo(175, 125);
-  ctx.lineTo(175, 375);
-  ctx.stroke();
-
-  // Голова
-  ctx.fillStyle = '#1e293b';
-  ctx.beginPath();
-  ctx.arc(230, 180, 24, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Тело
-  ctx.lineWidth = 18;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(230, 210);
-  ctx.lineTo(198, 270);
-  ctx.lineTo(245, 360);
-  ctx.stroke();
-
-  // Рука
-  ctx.beginPath();
-  ctx.moveTo(215, 235);
-  ctx.lineTo(180, 250);
-  ctx.stroke();
-
-  // 4. Красная запрещающая диагональ (45 градусов)
-  ctx.save();
-  ctx.lineWidth = 26;
-  ctx.strokeStyle = '#e42313';
-  ctx.beginPath();
-  const angle = Math.PI / 4;
-  const cutR = r - 13;
-  ctx.moveTo(cx - cutR * Math.cos(angle), cy - cutR * Math.sin(angle));
-  ctx.lineTo(cx + cutR * Math.cos(angle), cy + cutR * Math.sin(angle));
-  ctx.stroke();
-  ctx.restore();
-
-  // 5. Предупреждающие надписи
-  ctx.save();
-  ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'center';
-  ctx.fillText('НЕ ПРИСЛОНЯТЬСЯ', cx, 92);
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 3;
+  ctx.fillText('НЕ ПРИСЛОНЯТЬСЯ', 512, 105);
 
-  ctx.font = 'bold 18px "JetBrains Mono", monospace';
-  ctx.fillStyle = '#e42313';
-  ctx.fillText('DO NOT LEAN', cx, 420);
+  // 4. Дополнительный текст на латинице: «DO NOT LEAN»
+  ctx.shadowColor = 'transparent';
+  ctx.font = '700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillStyle = '#ffe2e4';
+  ctx.fillText('DO NOT LEAN', 512, 168);
   ctx.restore();
 
   cachedNoLeanTexture = new THREE.CanvasTexture(canvas);

@@ -10,25 +10,25 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ
 // =============================================================================
 const CAMERA_WAYPOINTS = [
-  // 0: Вход / Общий вид станции и вагона метро
+  // 0: Вход / Открытые двери вагона на станции
   {
-    desktop: { pos: new THREE.Vector3(0.9, 1.42, -3.15), target: new THREE.Vector3(-0.35, 1.45, -0.05) },
-    mobile:  { pos: new THREE.Vector3(1.1, 1.42, -3.45), target: new THREE.Vector3(-0.35, 1.45, -0.05) }
+    desktop: { pos: new THREE.Vector3(0.95, 1.28, -2.60), target: new THREE.Vector3(0.36, 1.30, -0.012) },
+    mobile:  { pos: new THREE.Vector3(1.05, 1.28, -2.90), target: new THREE.Vector3(0.36, 1.30, -0.012) }
   },
   // 1: Фокус на первом экране («Свэг»)
   {
-    desktop: { pos: new THREE.Vector3(-0.35, 1.50, -1.05), target: new THREE.Vector3(-0.35, 1.50, -0.046) },
-    mobile:  { pos: new THREE.Vector3(-0.35, 1.50, -1.45), target: new THREE.Vector3(-0.35, 1.50, -0.046) }
+    desktop: { pos: new THREE.Vector3(0.36, 1.40, -1.05), target: new THREE.Vector3(0.36, 1.40, -0.012) },
+    mobile:  { pos: new THREE.Vector3(0.36, 1.40, -1.45), target: new THREE.Vector3(0.36, 1.40, -0.012) }
   },
   // 2: Фокус на втором экране («Мини свэг»)
   {
-    desktop: { pos: new THREE.Vector3(-2.475, 1.50, -1.05), target: new THREE.Vector3(-2.475, 1.50, -0.046) },
-    mobile:  { pos: new THREE.Vector3(-2.475, 1.50, -1.45), target: new THREE.Vector3(-2.475, 1.50, -0.046) }
+    desktop: { pos: new THREE.Vector3(-1.75, 1.40, -1.05), target: new THREE.Vector3(-1.75, 1.40, -0.012) },
+    mobile:  { pos: new THREE.Vector3(-1.75, 1.40, -1.45), target: new THREE.Vector3(-1.75, 1.40, -0.012) }
   },
   // 3: Финальный кинематографичный откат (Контакты)
   {
-    desktop: { pos: new THREE.Vector3(-1.40, 1.45, -2.55), target: new THREE.Vector3(-0.55, 1.40, 0.05) },
-    mobile:  { pos: new THREE.Vector3(-1.40, 1.45, -2.95), target: new THREE.Vector3(-0.55, 1.40, 0.05) }
+    desktop: { pos: new THREE.Vector3(-0.65, 1.30, -2.40), target: new THREE.Vector3(-0.10, 1.30, 0.0) },
+    mobile:  { pos: new THREE.Vector3(-0.65, 1.30, -2.75), target: new THREE.Vector3(-0.10, 1.30, 0.0) }
   }
 ];
 
@@ -44,10 +44,10 @@ let isGlobalMuted = true;
 
 // Двери вагона (изначально открыты, закрываются при скролле)
 let doorLeft, doorRight;
-const DOOR_LEFT_OPEN_X = 2.05;
-const DOOR_LEFT_CLOSED_X = 1.425;
-const DOOR_RIGHT_OPEN_X = 0.15;
-const DOOR_RIGHT_CLOSED_X = 0.775;
+const DOOR_LEFT_OPEN_X = 2.30;
+const DOOR_LEFT_CLOSED_X = 1.75;
+const DOOR_RIGHT_OPEN_X = 0.60;
+const DOOR_RIGHT_CLOSED_X = 1.15;
 let targetDoorCloseRatio = 0.0; // 0.0 = открыты, 1.0 = закрыты
 let currentDoorCloseRatio = 0.0;
 
@@ -124,34 +124,39 @@ export function initSubwayScene() {
 // =============================================================================
 function setupSubwayLighting() {
   // Фоновый глубокий эмбиент
-  const ambient = new THREE.AmbientLight(0x121722, 0.85);
+  const ambient = new THREE.AmbientLight(0x141824, 0.9);
   scene.add(ambient);
 
-  // Потолочные люминесцентные лампы в вагоне
+  // Люминесцентные светильники вагона (над дверьми и над сиденьями)
   const lamp1 = new THREE.PointLight(0xfff3df, 1.8, 6.0, 1.2);
-  lamp1.position.set(0.85, 2.26, -0.35);
+  lamp1.position.set(1.45, 2.15, -0.55);
   scene.add(lamp1);
 
   const lamp2 = new THREE.PointLight(0xfff3df, 1.9, 6.0, 1.2);
-  lamp2.position.set(-0.95, 2.26, -0.35);
+  lamp2.position.set(-0.45, 2.15, -0.55);
   scene.add(lamp2);
 
-  // Мягкий рассеянный свет платформы за дверями
-  const platformLight1 = new THREE.PointLight(0x8ec3f8, 1.2, 7.0, 1.4);
-  platformLight1.position.set(-0.95, 2.0, -2.2);
+  // Мягкий рассеянный свет платформы за окнами и дверью
+  const platformLight1 = new THREE.PointLight(0x8ec3f8, 1.3, 7.0, 1.3);
+  platformLight1.position.set(1.45, 1.8, 1.5);
   scene.add(platformLight1);
 
-  const platformLight2 = new THREE.PointLight(0x8ec3f8, 1.2, 7.0, 1.4);
-  platformLight2.position.set(1.10, 2.0, -2.2);
+  const platformLight2 = new THREE.PointLight(0x8ec3f8, 1.2, 7.0, 1.3);
+  platformLight2.position.set(-0.72, 1.8, 1.5);
   scene.add(platformLight2);
+
+  // Мягкий заполняющий свет прохода
+  const aisleLight = new THREE.PointLight(0xbedbff, 0.7, 7.0, 1.3);
+  aisleLight.position.set(0.0, 1.8, -1.8);
+  scene.add(aisleLight);
 
   // Динамические точечные источники света перед экранами (отсвет от видео)
   screenLight1 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
-  screenLight1.position.set(-0.35, 1.50, -0.25);
+  screenLight1.position.set(0.36, 1.40, -0.25);
   scene.add(screenLight1);
 
   screenLight2 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
-  screenLight2.position.set(-2.475, 1.50, -0.25);
+  screenLight2.position.set(-1.75, 1.40, -0.25);
   scene.add(screenLight2);
 }
 
@@ -241,13 +246,15 @@ function loadSubwayModel() {
           }
         }
 
+        const matName = child.material ? child.material.name : '';
+
         // Стекла окон и дверей
-        if (child.name.includes('Glass') || (child.material && child.material.name === 'Mat_Glass')) {
+        if (child.name.includes('Glass') || matName === 'Mat_Glass') {
           child.material = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(0x7aa5c2),
             transparent: true,
-            opacity: 0.38,
-            roughness: 0.08,
+            opacity: 0.35,
+            roughness: 0.05,
             metalness: 0.1,
             reflectivity: 0.9,
             clearcoat: 1.0,
@@ -255,54 +262,74 @@ function loadSubwayModel() {
           });
         }
 
-        // Металлические хромированные поручни
-        if (child.name.includes('Pole') || (child.material && child.material.name === 'Mat_Metal_Pole')) {
+        // Металлические хромированные поручни, ручки и кольца
+        if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xd8dde4),
-            roughness: 0.18,
+            color: new THREE.Color(0xdce0e6),
+            roughness: 0.15,
             metalness: 0.96
           });
         }
 
-        // Потолочные светильники
-        if (child.material && child.material.name === 'Mat_Fluorescent_Light') {
+        // Шлифованная сталь (панели стен, тисненые пластины)
+        if (matName === 'Mat_Brushed_Steel' || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xb2b8c2),
+            roughness: 0.30,
+            metalness: 0.82
+          });
+        }
+
+        // Алюминиевые элементы (стойки дверей, карнизы)
+        if (matName === 'Mat_Aluminum' || child.name.includes('Post') || child.name.includes('Housing')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xc2c7cf),
+            roughness: 0.38,
+            metalness: 0.70
+          });
+        }
+
+        // Потолочные светильники / рассеиватели
+        if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xfff6e5),
             emissive: new THREE.Color(0xfff1dc),
-            emissiveIntensity: 2.2,
+            emissiveIntensity: 2.3,
             roughness: 0.2
           });
         }
 
         // Темный пол вагона с приятным легким отражением
-        if (child.name.includes('Floor') || (child.material && child.material.name === 'Mat_Dark_Floor')) {
+        if (child.name.includes('Floor') || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x23252a),
-            roughness: 0.38,
-            metalness: 0.22
+            color: new THREE.Color(0x202227),
+            roughness: 0.40,
+            metalness: 0.20
           });
         }
 
-        // Желтые и оранжевые ретро-сиденья
-        if (child.material && child.material.name === 'Mat_Seat_Yellow') {
+        // Желтые ретро-сиденья
+        if (matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow' || child.name.includes('Seat_Yellow')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xf2a91d),
-            roughness: 0.45,
-            metalness: 0.05
+            roughness: 0.38,
+            metalness: 0.06
           });
         }
-        if (child.material && child.material.name === 'Mat_Seat_Orange') {
+
+        // Оранжевые ретро-сиденья
+        if (matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange' || child.name.includes('Seat_Orange')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xdd521b),
-            roughness: 0.45,
-            metalness: 0.05
+            color: new THREE.Color(0xdc5018),
+            roughness: 0.38,
+            metalness: 0.06
           });
         }
       });
 
       // Находим створки дверей вагона и устанавливаем их изначально ОТКРЫТЫМИ
-      doorLeft = subwayModel.getObjectByName('Door_ScreenLeft');
-      doorRight = subwayModel.getObjectByName('Door_ScreenRight');
+      doorLeft = subwayModel.getObjectByName('Door_Left_Photo') || subwayModel.getObjectByName('Door_ScreenLeft');
+      doorRight = subwayModel.getObjectByName('Door_Right_Photo') || subwayModel.getObjectByName('Door_ScreenRight');
       if (doorLeft && doorRight) {
         doorLeft.position.x = DOOR_LEFT_OPEN_X;
         doorRight.position.x = DOOR_RIGHT_OPEN_X;

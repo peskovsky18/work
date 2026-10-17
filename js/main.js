@@ -31,13 +31,6 @@ function initNavigation() {
       scrollToStage(stage);
     });
   });
-
-  const scrollHint = document.getElementById('scroll-down-hint');
-  if (scrollHint) {
-    scrollHint.addEventListener('click', () => {
-      scrollToStage(1);
-    });
-  }
 }
 
 // =============================================================================

@@ -42,6 +42,15 @@ let screenLight1, screenLight2;
 let activeStage = 0;
 let isGlobalMuted = true;
 
+// Двери вагона (изначально открыты, закрываются при скролле)
+let doorLeft, doorRight;
+const DOOR_LEFT_OPEN_X = 2.05;
+const DOOR_LEFT_CLOSED_X = 1.425;
+const DOOR_RIGHT_OPEN_X = 0.15;
+const DOOR_RIGHT_CLOSED_X = 0.775;
+let targetDoorCloseRatio = 0.0; // 0.0 = открыты, 1.0 = закрыты
+let currentDoorCloseRatio = 0.0;
+
 // Векторы интерполяции камеры
 const camCurrentPos = new THREE.Vector3();
 const camCurrentTarget = new THREE.Vector3();
@@ -291,6 +300,14 @@ function loadSubwayModel() {
         }
       });
 
+      // Находим створки дверей вагона и устанавливаем их изначально ОТКРЫТЫМИ
+      doorLeft = subwayModel.getObjectByName('Door_ScreenLeft');
+      doorRight = subwayModel.getObjectByName('Door_ScreenRight');
+      if (doorLeft && doorRight) {
+        doorLeft.position.x = DOOR_LEFT_OPEN_X;
+        doorRight.position.x = DOOR_RIGHT_OPEN_X;
+      }
+
       scene.add(subwayModel);
 
       // Инициализация привязки скролла GSAP ScrollTrigger
@@ -363,6 +380,9 @@ function initScrollTriggers() {
 
       camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
       camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
+
+      // Двери вагона плавно закрываются при пролистывании сайта (от 0% до 28% скролла)
+      targetDoorCloseRatio = Math.min(Math.max(p / 0.28, 0.0), 1.0);
 
       // Определение текущего активного этапа
       const currentSectionIndex = Math.min(Math.floor(p * 3.3), 3);
@@ -576,6 +596,13 @@ function animate() {
   // 2. Демпфирование мышиного параллакса
   mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * 0.06;
   mouseOffsetDamped.y += (mouseOffset.y - mouseOffsetDamped.y) * 0.06;
+
+  // 2.1 Плавное пневматическое закрытие/открытие створок дверей вагона
+  currentDoorCloseRatio += (targetDoorCloseRatio - currentDoorCloseRatio) * 0.08;
+  if (doorLeft && doorRight) {
+    doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
+    doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
+  }
 
   // Применение позиции с учетом кинематографичного покачивания
   camera.position.set(

@@ -128,12 +128,21 @@ body.dark-cinema-body {
 }
 
 .video-texture-sources {
-  position: absolute;
-  width: 0;
-  height: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 2px;
   overflow: hidden;
-  opacity: 0;
+  opacity: 0.001;
   pointer-events: none;
+  z-index: -999;
+}
+
+.video-texture-sources video {
+  width: 2px;
+  height: 2px;
+  object-fit: cover;
 }
 
 /* ==========================================================================

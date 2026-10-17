@@ -165,42 +165,58 @@ function setupSubwayLighting() {
 // ВИДЕОТЕКСТУРЫ ДЛЯ ЭКРАНОВ ВАГОНА
 // =============================================================================
 function setupVideoTextures() {
-  // Видео 1: Свэг
-  video1 = document.getElementById('video-swag');
-  if (video1) {
-    video1.defaultMuted = true;
-    video1.muted = true;
-    video1.volume = 0;
-    video1.playsInline = true;
-    video1.loop = true;
+  const initVideo = (id) => {
+    const v = document.getElementById(id);
+    if (!v) return null;
+    v.defaultMuted = true;
+    v.muted = true;
+    v.volume = 0;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.loop = true;
+    v.preload = 'auto';
 
-    videoTexture1 = new THREE.VideoTexture(video1);
-    videoTexture1.colorSpace = THREE.SRGBColorSpace;
-    videoTexture1.minFilter = THREE.LinearFilter;
-    videoTexture1.magFilter = THREE.LinearFilter;
-    videoTexture1.generateMipmaps = false;
+    // Пытаемся запустить автостарт
+    const playPromise = v.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Ограничение автоплея браузером - ждем жеста пользователя
+      });
+    }
 
-    // Автостарт воспроизведения без звука (безопасно для браузеров)
-    video1.play().catch(() => {});
+    v.addEventListener('canplay', () => {
+      if (v.paused) v.play().catch(() => {});
+    });
+
+    const tex = new THREE.VideoTexture(v);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = false;
+    return { video: v, texture: tex };
+  };
+
+  const v1 = initVideo('video-swag');
+  if (v1) {
+    video1 = v1.video;
+    videoTexture1 = v1.texture;
   }
 
-  // Видео 2: Мини свэг
-  video2 = document.getElementById('video-mini-swag');
-  if (video2) {
-    video2.defaultMuted = true;
-    video2.muted = true;
-    video2.volume = 0;
-    video2.playsInline = true;
-    video2.loop = true;
-
-    videoTexture2 = new THREE.VideoTexture(video2);
-    videoTexture2.colorSpace = THREE.SRGBColorSpace;
-    videoTexture2.minFilter = THREE.LinearFilter;
-    videoTexture2.magFilter = THREE.LinearFilter;
-    videoTexture2.generateMipmaps = false;
-
-    video2.play().catch(() => {});
+  const v2 = initVideo('video-mini-swag');
+  if (v2) {
+    video2 = v2.video;
+    videoTexture2 = v2.texture;
   }
+
+  // Разблокировка видео при первом любом касании, клике, скролле пользователя (Safari / iOS)
+  const unlockVideos = () => {
+    if (video1 && video1.paused) video1.play().catch(() => {});
+    if (video2 && video2.paused) video2.play().catch(() => {});
+  };
+  ['click', 'touchstart', 'scroll', 'pointerdown', 'wheel', 'keydown'].forEach((evt) => {
+    window.addEventListener(evt, unlockVideos, { passive: true });
+  });
 }
 
 // =============================================================================
@@ -220,7 +236,7 @@ function loadSubwayModel() {
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
 
-        // 1. Интерактивные экраны для видео
+        // 1. Интерактивные экраны для видео (DoubleSide гарантирует видимость без куллинга)
         if (child.name === 'Screen_1_Display') {
           screen1Mesh = child;
           if (videoTexture1) {
@@ -230,9 +246,11 @@ function loadSubwayModel() {
               emissiveMap: videoTexture1,
               emissiveIntensity: 0.95,
               roughness: 0.15,
-              metalness: 0.05
+              metalness: 0.05,
+              side: THREE.DoubleSide
             });
           }
+          child.renderOrder = 2;
           return;
         } else if (child.name === 'Screen_2_Display') {
           screen2Mesh = child;
@@ -243,9 +261,11 @@ function loadSubwayModel() {
               emissiveMap: videoTexture2,
               emissiveIntensity: 0.95,
               roughness: 0.15,
-              metalness: 0.05
+              metalness: 0.05,
+              side: THREE.DoubleSide
             });
           }
+          child.renderOrder = 2;
           return;
         }
 
@@ -314,11 +334,11 @@ function loadSubwayModel() {
           return;
         }
 
-        if (child.name.startsWith('Window_Reveal_')) {
+        if (child.name === 'Window_Backing_Wall' || child.name.startsWith('Window_Reveal_')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x88909c), // алюминиевые откосы окна
-            roughness: 0.35,
-            metalness: 0.65
+            color: new THREE.Color(0xb2b8c2), // шлифованная сталь за обкладкой окна (закрывает углы)
+            roughness: 0.30,
+            metalness: 0.82
           });
           return;
         }

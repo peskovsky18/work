@@ -442,17 +442,18 @@ function syncAudioForActiveStage() {
     return;
   }
 
-  // Если звук включен глобально:
+  // Если звук включен глобально (тише на 33% -> громкость 0.67):
+  const MEDIA_VOLUME = 0.67;
   if (activeStage === 1) {
     // В фокусе «Свэг»
     video1.muted = false;
-    video1.volume = 1;
+    video1.volume = MEDIA_VOLUME;
     video2.muted = true;
     video2.volume = 0;
   } else if (activeStage === 2) {
     // В фокусе «Мини свэг»
     video2.muted = false;
-    video2.volume = 1;
+    video2.volume = MEDIA_VOLUME;
     video1.muted = true;
     video1.volume = 0;
   } else {

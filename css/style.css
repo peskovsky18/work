@@ -324,23 +324,13 @@ body.dark-cinema-body {
   }
 }
 
-.intro-kicker {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.74rem;
-  letter-spacing: 2px;
-  color: var(--accent-amber);
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: block;
-}
-
 .intro-headline {
   font-size: clamp(2rem, 4vw, 2.8rem);
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1.1;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #fff;
 }
 
@@ -348,39 +338,7 @@ body.dark-cinema-body {
   font-size: 1.05rem;
   color: var(--text-muted);
   line-height: 1.5;
-  margin-bottom: 28px;
-}
-
-.intro-hint-block {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 9999px;
-  transition: all 0.25s ease;
-}
-
-.intro-hint-block:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: #fff;
-}
-
-.hint-text {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #fff;
-}
-
-.scroll-indicator-arrow {
-  animation: bounceDown 1.8s infinite ease-in-out;
-}
-
-@keyframes bounceDown {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(5px); }
+  margin-bottom: 0;
 }
 
 /* --------------------------------------------------------------------------

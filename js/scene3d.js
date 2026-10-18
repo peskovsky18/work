@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture } from './subwayMap.js';
+import { initSubwayAudio, updateSubwayAudio } from './subwayAudio.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -148,7 +149,7 @@ export function initSubwayScene() {
 let trainSpeed = 0.0;
 let tunnelGroup;
 const tunnelLights = [];
-let windowPassingLight, station1Light, station2Light;
+let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
 function setupSubwayLighting() {
   const ambient = new THREE.AmbientLight(0x141824, 0.9);
@@ -179,25 +180,45 @@ function setupSubwayLighting() {
   windowPassingLight = new THREE.PointLight(0xbedbff, 0.0, 8.0, 1.3);
   windowPassingLight.position.set(1.595, 1.45, 0.65);
   scene.add(windowPassingLight);
+
+  windowPassingLight2 = new THREE.PointLight(0xbedbff, 0.0, 8.0, 1.3);
+  windowPassingLight2.position.set(1.595, 1.45, -1.85);
+  scene.add(windowPassingLight2);
 }
 
 function setupTunnelSystem() {
   tunnelGroup = new THREE.Group();
-  const tMat = new THREE.MeshStandardMaterial({ color: 0x0c0e12, roughness: 0.90, metalness: 0.25 });
+  const tMat = new THREE.MeshStandardMaterial({ color: 0x0c0e12, roughness: 0.92, metalness: 0.25 });
   const geom = new THREE.CylinderGeometry(3.6, 3.6, 60, 32, 1, true, -Math.PI * 0.45, Math.PI * 0.90);
   
   const w1 = new THREE.Mesh(geom, tMat); w1.rotation.z = Math.PI * 0.5; w1.position.set(0, 1.2, 2.5); tunnelGroup.add(w1);
   const w2 = new THREE.Mesh(geom, tMat); w2.rotation.z = -Math.PI * 0.5; w2.position.set(0, 1.2, -4.9); tunnelGroup.add(w2);
 
-  // Speeding tunnel lights
-  const colors = [0xe8f4ff, 0x22ee66, 0xff3322, 0xffaa11, 0xe8f4ff, 0xff9922];
-  for (let i = 0; i < 12; i++) {
+  // Продольные кабели высокого напряжения по стенам тоннеля
+  const cableMat = new THREE.MeshStandardMaterial({ color: 0x111215, roughness: 0.95 });
+  const cableGeom = new THREE.CylinderGeometry(0.016, 0.016, 60, 8);
+  cableGeom.rotateZ(Math.PI * 0.5);
+  [-0.12, 0.0, 0.12].forEach(dy => {
+    const c1 = new THREE.Mesh(cableGeom, cableMat);
+    c1.position.set(0, 1.45 + dy, 1.02);
+    tunnelGroup.add(c1);
+    const c2 = new THREE.Mesh(cableGeom, cableMat);
+    c2.position.set(0, 1.45 + dy, -3.42);
+    tunnelGroup.add(c2);
+  });
+
+  // Проносящиеся сигнальные огни и световые полосы на обеих сторонах тоннеля
+  const colors = [0xe8f4ff, 0x22ee66, 0xff3322, 0xffaa11, 0xe8f4ff, 0xffaa11];
+  for (let i = 0; i < 16; i++) {
     const col = colors[i % colors.length];
-    const bMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.08, 0.08), new THREE.MeshBasicMaterial({ color: col }));
-    bMesh.position.set(-24 + i * 4.5, 1.5 + (i % 2) * 0.3, 0.95);
-    const bLight = new THREE.PointLight(col, 0.75, 4.0, 1.8);
+    const isStrip = (i % 3 === 0);
+    const sideZ = (i % 2 === 0) ? 0.98 : -3.38;
+    const lGeom = isStrip ? new THREE.BoxGeometry(2.4, 0.05, 0.04) : new THREE.BoxGeometry(0.5, 0.08, 0.08);
+    const bMesh = new THREE.Mesh(lGeom, new THREE.MeshBasicMaterial({ color: col }));
+    bMesh.position.set(-28 + i * 3.8, 1.5 + (i % 3) * 0.25, sideZ);
+    const bLight = new THREE.PointLight(col, 0.75, 4.2, 1.8);
     bLight.position.copy(bMesh.position);
-    tunnelLights.push({ mesh: bMesh, light: bLight });
+    tunnelLights.push({ mesh: bMesh, light: bLight, sideZ });
     tunnelGroup.add(bMesh); tunnelGroup.add(bLight);
   }
   scene.add(tunnelGroup);
@@ -484,12 +505,34 @@ function loadSubwayModel() {
         }
       });
 
-      // Находим створки дверей вагона и устанавливаем их изначально ОТКРЫТЫМИ
+      // Находим створки дверей вагона и устанавливаем их изначально ОТКРЫТЫМИ на Дверях 1
       doorLeft = subwayModel.getObjectByName('Door_Left_Photo') || subwayModel.getObjectByName('Door_ScreenLeft');
       doorRight = subwayModel.getObjectByName('Door_Right_Photo') || subwayModel.getObjectByName('Door_ScreenRight');
       if (doorLeft && doorRight) {
         doorLeft.position.x = DOOR_LEFT_OPEN_X;
         doorRight.position.x = DOOR_RIGHT_OPEN_X;
+      }
+
+      // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4)
+      const doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
+      const doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
+      if (doorLeftD2 && doorRightD2) {
+        doorLeftD2.position.set(4.065, 0.99, 0.015);
+        doorRightD2.position.set(3.465, 0.99, 0.015);
+      }
+
+      const doorLeftD3 = subwayModel.getObjectByName('Door_Left_Photo_D3');
+      const doorRightD3 = subwayModel.getObjectByName('Door_Right_Photo_D3');
+      if (doorLeftD3 && doorRightD3) {
+        doorLeftD3.position.set(-3.465, 0.99, -2.38);
+        doorRightD3.position.set(-4.065, 0.99, -2.38);
+      }
+
+      const doorLeftD4 = subwayModel.getObjectByName('Door_Left_Photo_D4');
+      const doorRightD4 = subwayModel.getObjectByName('Door_Right_Photo_D4');
+      if (doorLeftD4 && doorRightD4) {
+        doorLeftD4.position.set(4.065, 0.99, -2.38);
+        doorRightD4.position.set(3.465, 0.99, -2.38);
       }
 
       scene.add(subwayModel);
@@ -654,6 +697,9 @@ function syncAudioForActiveStage() {
 
 export function toggleGlobalSound() {
   isGlobalMuted = !isGlobalMuted;
+  if (!isGlobalMuted) {
+    initSubwayAudio();
+  }
   syncAudioForActiveStage();
   updateSoundButtonUI();
   return !isGlobalMuted;
@@ -811,10 +857,11 @@ function animate() {
   camera.lookAt(camCurrentTarget.x + mouseOffsetDamped.x * 0.5, camCurrentTarget.y, camCurrentTarget.z);
   camera.rotation.z += vibRoll;
 
-  // 2.3 Движение тоннельных огней и отблески в окнах
+  // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
   if (trainSpeed > 0.01) {
     const rushSpeed = trainSpeed * 34.0 * dt;
-    let windowFlash = 0.0;
+    let windowFlashSide1 = 0.0;
+    let windowFlashSide2 = 0.0;
     for (let i = 0; i < tunnelLights.length; i++) {
       const item = tunnelLights[i];
       item.mesh.position.x -= rushSpeed;
@@ -823,15 +870,24 @@ function animate() {
       }
       item.light.position.x = item.mesh.position.x;
 
-      if (Math.abs(item.mesh.position.x - 1.595) < 1.4 || Math.abs(item.mesh.position.x - (-1.595)) < 1.4) {
-        windowFlash = Math.max(windowFlash, 1.25);
+      const isNearWin = Math.abs(item.mesh.position.x - 1.595) < 1.4 || Math.abs(item.mesh.position.x - (-1.595)) < 1.4;
+      if (isNearWin) {
+        if (item.sideZ > -1.0) {
+          windowFlashSide1 = Math.max(windowFlashSide1, 1.25);
+        } else {
+          windowFlashSide2 = Math.max(windowFlashSide2, 1.25);
+        }
       }
     }
     if (windowPassingLight) {
-      windowPassingLight.intensity += (windowFlash * trainSpeed - windowPassingLight.intensity) * 0.18;
+      windowPassingLight.intensity += (windowFlashSide1 * trainSpeed - windowPassingLight.intensity) * 0.18;
     }
-  } else if (windowPassingLight) {
-    windowPassingLight.intensity += (0.0 - windowPassingLight.intensity) * 0.1;
+    if (windowPassingLight2) {
+      windowPassingLight2.intensity += (windowFlashSide2 * trainSpeed - windowPassingLight2.intensity) * 0.18;
+    }
+  } else {
+    if (windowPassingLight) windowPassingLight.intensity += (0.0 - windowPassingLight.intensity) * 0.1;
+    if (windowPassingLight2) windowPassingLight2.intensity += (0.0 - windowPassingLight2.intensity) * 0.1;
   }
 
   // 3. Raycaster для определения наведения на экраны
@@ -851,7 +907,10 @@ function animate() {
   // 4. Синхронизация полосы прогресса видео
   syncScrubberUI();
 
-  // 5. Рендер кадра
+  // 5. Синхронизация звука поезда со скоростью
+  updateSubwayAudio(trainSpeed, isGlobalMuted);
+
+  // 6. Рендер кадра
   renderer.render(scene, camera);
 }
 

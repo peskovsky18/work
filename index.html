@@ -404,6 +404,43 @@
     </div>
   </div>
 
+  <!-- Интерактивная схема маршрута метро (клик по схеме на станции) -->
+  <div id="map-modal" class="project-modal" aria-hidden="true">
+    <div class="modal-backdrop" id="map-modal-backdrop"></div>
+    <div class="modal-sheet map-modal-sheet">
+      <button class="modal-close-btn" id="map-modal-close-btn" aria-label="Закрыть">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="modal-body">
+        <span class="modal-badge">МАРШРУТ И ПРОЕКТЫ • 2026</span>
+        <h3 class="modal-title">Линия Александра Песковского</h3>
+        <p class="modal-desc">Интерактивная карта проектов. Нажмите на любую станцию, чтобы переместиться к ней в вагоне.</p>
+        <div class="metro-map-route">
+          <div class="map-station-node" data-goto-stage="0">
+            <span class="station-ring ring-start"></span>
+            <div class="station-info"><strong class="st-name">Вход на станцию</strong><span class="st-sub">Платформа 1</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="1">
+            <span class="station-ring ring-video"></span>
+            <div class="station-info"><strong class="st-name">Свэг</strong><span class="st-sub">Видео 01</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="2">
+            <span class="station-ring ring-video"></span>
+            <div class="station-info"><strong class="st-name">Мини свэг</strong><span class="st-sub">Видео 02</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="3">
+            <span class="station-ring ring-tunnel"></span>
+            <div class="station-info"><strong class="st-name">Тоннель: Проект 03</strong><span class="st-sub">Разгон состава</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="9">
+            <span class="station-ring ring-finish"></span>
+            <div class="station-info"><strong class="st-name">Контакты</strong><span class="st-sub">Станция 2 • Прибытие</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Скрипт приложения -->
   <script type="module" src="js/main.js"></script>
 </body>

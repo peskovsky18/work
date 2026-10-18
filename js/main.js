@@ -34,6 +34,31 @@ function initNavigation() {
       scrollToStage(stage);
     });
   });
+
+  // Горизонтальные свайпы на смартфонах для быстрого переключения этапов
+  let touchStartX = 0, touchStartY = 0;
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length === 1) {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        const activePill = document.querySelector('.stage-nav-pill.active');
+        const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+        if (dx < 0 && cur < 9) {
+          scrollToStage(cur + 1);
+        } else if (dx > 0 && cur > 0) {
+          scrollToStage(cur - 1);
+        }
+      }
+    }
+  }, { passive: true });
 }
 
 // =============================================================================
@@ -197,4 +222,27 @@ function initProjectModal() {
       modal.classList.add('open');
     });
   });
+
+  // Интерактивная карта метро (вызывается кликом по схеме на стене станции)
+  const mapModal = document.getElementById('map-modal');
+  const mapCloseBtn = document.getElementById('map-modal-close-btn');
+  const mapBackdrop = document.getElementById('map-modal-backdrop');
+  if (mapModal) {
+    const closeMap = () => mapModal.classList.remove('open');
+    if (mapCloseBtn) mapCloseBtn.addEventListener('click', closeMap);
+    if (mapBackdrop) mapBackdrop.addEventListener('click', closeMap);
+
+    window.addEventListener('open-map-modal', () => {
+      mapModal.classList.add('open');
+    });
+
+    const stationNodes = document.querySelectorAll('.map-station-node');
+    stationNodes.forEach((node) => {
+      node.addEventListener('click', () => {
+        const stage = parseInt(node.dataset.gotoStage, 10);
+        closeMap();
+        scrollToStage(stage);
+      });
+    });
+  }
 }

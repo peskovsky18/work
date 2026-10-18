@@ -68,7 +68,7 @@ const CAMERA_WAYPOINTS = [
 let scene, camera, renderer, clock;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh;
+let screen1Mesh, screen2Mesh, platformMapMesh;
 let video1, video2;
 let videoTexture1, videoTexture2;
 let screenLight1, screenLight2;
@@ -413,6 +413,7 @@ function loadSubwayModel() {
 
         // 4. Лайтбокс со схемой линий метро на стене станции
         if (child.name === 'Platform_Map_Display') {
+          platformMapMesh = child;
           const mapTex = getSubwayMapTexture(THREE);
           child.material = new THREE.MeshStandardMaterial({
             map: mapTex,
@@ -541,9 +542,9 @@ function loadSubwayModel() {
         // Темный пол вагона с приятным легким отражением
         if (child.name.includes('Floor') || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x202227),
-            roughness: 0.40,
-            metalness: 0.20
+            color: new THREE.Color(0x181a20),
+            roughness: 0.24,
+            metalness: 0.42
           });
         }
 
@@ -858,7 +859,9 @@ function setupEventListeners() {
     if (e.target.closest('button, a, input, .glass-capsule, .site-header')) return;
 
     if (hoveredScreen) {
-      if (hoveredScreen === screen1Mesh) {
+      if (hoveredScreen === platformMapMesh) {
+        window.dispatchEvent(new CustomEvent('open-map-modal'));
+      } else if (hoveredScreen === screen1Mesh) {
         scrollToStage(1);
         toggleVideoPlay(video1);
       } else if (hoveredScreen === screen2Mesh) {
@@ -1007,8 +1010,9 @@ function animate() {
     posAttr.needsUpdate = true;
   }
 
-  // 3. Raycaster для определения наведения на экраны
+  // 3. Raycaster для определения наведения на экраны и схему метро
   const validScreens = screenMeshes.filter(Boolean);
+  if (platformMapMesh) validScreens.push(platformMapMesh);
   if (validScreens.length > 0) {
     raycaster.setFromCamera(mouseVec, camera);
     const intersects = raycaster.intersectObjects(validScreens, false);

@@ -17,35 +17,50 @@ const CAMERA_WAYPOINTS = [
     desktop: { pos: new THREE.Vector3(-3.765, 1.35, -2.45), target: new THREE.Vector3(-3.765, 1.38, 0.0) },
     mobile:  { pos: new THREE.Vector3(-3.765, 1.35, -2.75), target: new THREE.Vector3(-3.765, 1.38, 0.0) }
   },
-  // 1: Работа «Свэг» (Screen 1)
+  // 1: Работа 1 «Свэг» (Screen 1)
   {
     desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.05), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
     mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.45), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
   },
-  // 2: «Мини свэг» (Screen 2)
+  // 2: Работа 2 «Мини свэг» (Screen 2)
   {
     desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.05), target: new THREE.Vector3(-0.565, 1.40, -0.016) },
     mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.45), target: new THREE.Vector3(-0.565, 1.40, -0.016) }
   },
-  // 3: Пустой экран 03 (на 3-й работе поезд начинает движение в тоннель)
+  // 3: Экран 03 (на 3-й работе поезд начинает разгон в тоннель)
   {
     desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.05), target: new THREE.Vector3(0.515, 1.40, -0.016) },
     mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.45), target: new THREE.Vector3(0.515, 1.40, -0.016) }
   },
-  // 4: Пустой экран 04 (крейсерский ход в тоннеле)
+  // 4: Экран 04 (крейсерский ход в тоннеле)
   {
     desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.05), target: new THREE.Vector3(2.675, 1.40, -0.016) },
     mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.45), target: new THREE.Vector3(2.675, 1.40, -0.016) }
   },
-  // 5: Перенос на другую сторону вагона (экраны 05-08)
+  // 5: Экран 08 (разворот на противоположную сторону вагона)
   {
-    desktop: { pos: new THREE.Vector3(0.0, 1.35, -0.80), target: new THREE.Vector3(0.0, 1.35, -2.40) },
-    mobile:  { pos: new THREE.Vector3(0.0, 1.35, -0.60), target: new THREE.Vector3(0.0, 1.35, -2.40) }
+    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.35), target: new THREE.Vector3(2.675, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -0.95), target: new THREE.Vector3(2.675, 1.40, -2.384) }
   },
-  // 6: Контакты и прибытие на новую освещенную станцию 2
+  // 6: Экран 07 (сторона B)
   {
-    desktop: { pos: new THREE.Vector3(-1.20, 1.30, -1.85), target: new THREE.Vector3(-1.80, 1.30, 0.0) },
-    mobile:  { pos: new THREE.Vector3(-1.20, 1.30, -2.15), target: new THREE.Vector3(-1.80, 1.30, 0.0) }
+    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.35), target: new THREE.Vector3(0.515, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -0.95), target: new THREE.Vector3(0.515, 1.40, -2.384) }
+  },
+  // 7: Экран 06 (сторона B)
+  {
+    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.35), target: new THREE.Vector3(-0.565, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -0.95), target: new THREE.Vector3(-0.565, 1.40, -2.384) }
+  },
+  // 8: Экран 05 (сторона B)
+  {
+    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.35), target: new THREE.Vector3(-2.675, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -0.95), target: new THREE.Vector3(-2.675, 1.40, -2.384) }
+  },
+  // 9: Контакты и прибытие на новую освещенную станцию
+  {
+    desktop: { pos: new THREE.Vector3(-3.765, 1.35, -1.15), target: new THREE.Vector3(-3.765, 1.38, 1.80) },
+    mobile:  { pos: new THREE.Vector3(-3.765, 1.35, -1.25), target: new THREE.Vector3(-3.765, 1.38, 1.80) }
   }
 ];
 
@@ -596,23 +611,27 @@ function initScrollTriggers() {
       camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
       camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
 
-      // Двери закрываются при скролле от станции
-      targetDoorCloseRatio = Math.min(Math.max(p / 0.12, 0.0), 1.0);
+      // Двери закрываются при отправлении со ст.1 и открываются при прибытии на ст.2
+      if (p >= 0.94) {
+        targetDoorCloseRatio = Math.max(0.0, 1.0 - (p - 0.94) / 0.06);
+      } else {
+        targetDoorCloseRatio = Math.min(Math.max(p / 0.08, 0.0), 1.0);
+      }
 
-      // Профиль скорости поезда (ускорение к 3 работе, торможение к контактам)
-      if (p < 0.25) {
+      // Профиль скорости поезда (разгон на 3-й работе, торможение к контактам)
+      if (p < 0.22) {
         trainSpeed = 0.0;
-      } else if (p < 0.45) {
-        trainSpeed = (p - 0.25) / 0.20;
-      } else if (p < 0.85) {
+      } else if (p < 0.35) {
+        trainSpeed = (p - 0.22) / 0.13;
+      } else if (p < 0.88) {
         trainSpeed = 1.0;
       } else {
-        trainSpeed = Math.max(0.0, 1.0 - (p - 0.85) / 0.15);
+        trainSpeed = Math.max(0.0, 1.0 - (p - 0.88) / 0.08);
       }
 
       // Свет станции 1 затухает при отправлении, свет станции 2 разгорается при прибытии
-      if (station1Light) station1Light.intensity = Math.max(0.0, 1.4 * (1.0 - p / 0.20));
-      if (station2Light) station2Light.intensity = Math.max(0.0, 1.6 * ((p - 0.82) / 0.18));
+      if (station1Light) station1Light.intensity = Math.max(0.0, 1.4 * (1.0 - p / 0.18));
+      if (station2Light) station2Light.intensity = Math.max(0.0, 1.6 * ((p - 0.86) / 0.14));
 
       const currentSectionIndex = Math.min(Math.round(scaledP), NUM_SEGMENTS);
       if (currentSectionIndex !== activeStage) {
@@ -772,9 +791,10 @@ function setupEventListeners() {
         toggleVideoPlay(video2);
       } else {
         const sIdx = screenMeshes.indexOf(hoveredScreen);
-        if (sIdx === 3) scrollToStage(3);
-        else if (sIdx === 4) scrollToStage(4);
-        else if (sIdx >= 5) scrollToStage(5);
+        const stageMap = { 3: 3, 4: 4, 8: 5, 7: 6, 6: 7, 5: 8 };
+        if (stageMap[sIdx] !== undefined) {
+          scrollToStage(stageMap[sIdx]);
+        }
       }
     }
   });

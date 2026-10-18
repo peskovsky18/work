@@ -547,20 +547,12 @@ function setupVideoTextures() {
   if (v3) {
     video3 = v3.video;
     videoTexture3 = v3.texture;
-    video3.addEventListener('loadedmetadata', () => {
-      // Смещение по времени для создания уникального зацикленного фрагмента
-      video3.currentTime = Math.min(12.0, (video3.duration || 20) * 0.4);
-    });
   }
 
   const v4 = initVideo('video-industry');
   if (v4) {
     video4 = v4.video;
     videoTexture4 = v4.texture;
-    video4.addEventListener('loadedmetadata', () => {
-      // Смещение по времени для создания уникального зацикленного фрагмента
-      video4.currentTime = Math.min(7.0, (video4.duration || 15) * 0.3);
-    });
   }
 
   // Разблокировка видео при первом любом касании, клике, скролле пользователя (Safari / iOS)
@@ -1197,14 +1189,20 @@ function setActiveStage(stageIndex) {
   // Управление звуком в зависимости от экрана
   syncAudioForActiveStage();
 
-  // Автоматический запуск активного видео без звука при доезде камеры
+  // Интеллектуальная ленивая предзагрузка и воспроизведение видео экранов
   const allVideos = [video1, video2, video3, video4];
   allVideos.forEach((v, vIdx) => {
     if (!v) return;
-    if (stageIndex === vIdx + 1) {
+    const targetStage = vIdx + 1;
+    if (stageIndex === targetStage) {
+      if (v.preload !== 'auto') v.preload = 'auto';
       if (v.paused) v.play().catch(() => {});
     } else {
       if (!v.paused) v.pause();
+      // Упреждающая предзагрузка метаданных для соседнего этапа (±1)
+      if (Math.abs(stageIndex - targetStage) === 1 && v.preload === 'none') {
+        v.preload = 'metadata';
+      }
     }
   });
   updatePlayButtonsUI();
@@ -1349,15 +1347,42 @@ export function scrollToStage(stageIndex) {
 // =============================================================================
 function setupEventListeners() {
   // Отслеживание курсора исключительно для Raycaster (интерактивность экранов и кнопок)
+  // Отслеживание курсора для Raycaster и деликатного параллакса взгляда на ПК
   window.addEventListener('mousemove', (e) => {
     mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    mouseOffset.x = mouseVec.x * 0.08;
+    mouseOffset.y = mouseVec.y * 0.04;
   }, { passive: true });
 
-  // Запрос разрешения на гироскоп для iOS 13+
+  // Гироскоп на смартфонах для эффекта присутствия (DeviceOrientation)
+  let initialBeta = null;
+  let initialGamma = null;
+
+  const handleOrientation = (e) => {
+    if (e.beta === null || e.gamma === null) return;
+    if (initialBeta === null) {
+      initialBeta = e.beta;
+      initialGamma = e.gamma;
+    }
+    // Отклонение относительно естественного угла удержания смартфона
+    const deltaGamma = THREE.MathUtils.clamp((e.gamma - initialGamma) / 28.0, -1.0, 1.0);
+    const deltaBeta = THREE.MathUtils.clamp((e.beta - initialBeta) / 22.0, -1.0, 1.0);
+
+    mouseOffset.x = deltaGamma * 0.16;
+    mouseOffset.y = -deltaBeta * 0.09;
+  };
+
+  // Запрос разрешения на гироскоп для iOS 13+ и регистрация слушателя
   const requestGyro = () => {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().catch(() => {});
+      DeviceOrientationEvent.requestPermission().then((res) => {
+        if (res === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+        }
+      }).catch(() => {});
+    } else if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', handleOrientation, { passive: true });
     }
   };
   window.addEventListener('click', requestGyro, { once: true });
@@ -1583,9 +1608,13 @@ function animate() {
   // 2.2 Процедурное покачивание вагона и микровибрация при движении в тоннеле
   const vibY = (Math.sin(time * 16.0) * 0.002 + Math.sin(time * 4.0) * 0.006) * trainSpeed;
   const vibX = (Math.cos(time * 12.0) * 0.0015 + Math.sin(time * 2.5) * 0.004) * trainSpeed;
-  // Строго заскриптованное кинематографичное движение камеры по скроллу (без фри-камеры и тряски)
+  // Строго заскриптованное кинематографичное движение камеры по скроллу + тонкий параллакс взгляда
   camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
-  camera.lookAt(camCurrentTarget.x, camCurrentTarget.y, camCurrentTarget.z);
+  camera.lookAt(
+    camCurrentTarget.x + mouseOffsetDamped.x,
+    camCurrentTarget.y + mouseOffsetDamped.y,
+    camCurrentTarget.z
+  );
 
   // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
   if (trainSpeed > 0.01) {

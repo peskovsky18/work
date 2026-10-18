@@ -73,7 +73,7 @@ function initNavigation() {
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
         const cur = getActiveStage();
-        if (dx < 0 && cur < 9) {
+        if (dx < 0 && cur < 5) {
           playNavTick();
           scrollToStage(cur + 1);
         } else if (dx > 0 && cur > 0) {
@@ -195,7 +195,7 @@ function initKeyboardShortcuts() {
       }
     } else if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
       const cur = getActiveStage();
-      if (cur < 9) {
+      if (cur < 5) {
         e.preventDefault();
         playNavTick();
         scrollToStage(cur + 1);
@@ -209,12 +209,9 @@ function initKeyboardShortcuts() {
       }
     } else if (e.code.startsWith('Digit')) {
       const num = parseInt(e.code.replace('Digit', ''), 10);
-      if (num >= 1 && num <= 9) {
+      if (num >= 0 && num <= 5) {
         playNavTick();
-        scrollToStage(num - 1);
-      } else if (num === 0) {
-        playNavTick();
-        scrollToStage(9);
+        scrollToStage(num);
       }
     }
   });
@@ -564,15 +561,11 @@ function initServiceWorker() {
 // =============================================================================
 const STAGE_NAMES = [
   '00 // Вход на станцию',
-  '01 // Свэг',
-  '02 // Мини свэг',
-  '03 // Проект 03 • Тоннель',
-  '04 // Проект 04 • Крейсерский ход',
-  '05 // Проект 08 • Сторона B',
-  '06 // Проект 07 • Сторона B',
-  '07 // Проект 06 • Сторона B',
-  '08 // Проект 05 • Торможение',
-  '09 // Станция 2 • Контакты'
+  '01 // Проект 01 • Свэг',
+  '02 // Проект 02 • Мини свэг',
+  '03 // Проект 03 • Ночной тоннель',
+  '04 // Проект 04 • Индустрия',
+  '05 // Конечная станция • Контакты'
 ];
 
 function initRouteTrackSeek() {
@@ -583,7 +576,7 @@ function initRouteTrackSeek() {
   const handleTrackMove = (e) => {
     const rect = track.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const stageIdx = Math.min(Math.round(ratio * 9), 9);
+    const stageIdx = Math.min(Math.round(ratio * 5), 5);
 
     tooltip.textContent = STAGE_NAMES[stageIdx] || '';
     tooltip.style.left = `${ratio * 100}%`;
@@ -599,7 +592,7 @@ function initRouteTrackSeek() {
   track.addEventListener('click', (e) => {
     const rect = track.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const stageIdx = Math.min(Math.round(ratio * 9), 9);
+    const stageIdx = Math.min(Math.round(ratio * 5), 5);
     playNavTick();
     scrollToStage(stageIdx);
   });
@@ -630,15 +623,11 @@ export function showAppToast(msg) {
 // =============================================================================
 const HASH_MAP = {
   '#intro': 0, '#stage-0': 0,
-  '#swag': 1, '#stage-1': 1,
-  '#mini-swag': 2, '#stage-2': 2,
-  '#03': 3, '#stage-3': 3,
-  '#04': 4, '#stage-4': 4,
-  '#08': 5, '#stage-5': 5,
-  '#07': 6, '#stage-6': 6,
-  '#06': 7, '#stage-7': 7,
-  '#05': 8, '#stage-8': 8,
-  '#contacts': 9, '#stage-9': 9
+  '#swag': 1, '#stage-1': 1, '#project-01': 1,
+  '#mini-swag': 2, '#stage-2': 2, '#project-02': 2,
+  '#03': 3, '#stage-3': 3, '#project-03': 3, '#tunnel': 3,
+  '#04': 4, '#stage-4': 4, '#project-04': 4, '#industry': 4,
+  '#contacts': 5, '#stage-5': 5, '#stage-9': 5
 };
 
 function initHashRouting() {

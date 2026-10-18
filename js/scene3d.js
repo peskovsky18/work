@@ -23,52 +23,32 @@ import {
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
 // =============================================================================
 const CAMERA_WAYPOINTS = [
-  // 0: Старт из глубокого торца вагона у межвагонной двери (X = -5.50, увеличенный путь по вагону)
+  // 0: Старт из глубокого торца вагона у межвагонной двери (X = -5.50), двери открыты на станции
   {
-    desktop: { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
+    desktop: { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
+    mobile:  { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
   },
-  // 1: Экран 1 («Свэг», видео 1, Стена A)
+  // 1: Проект 1 («Свэг», видео 1, Screen 1 на X = -2.675) — точный центр экрана
   {
-    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.350), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
+    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
+    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.350), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
   },
-  // 2: Экран 2 («Мини свэг», видео 2, Стена A)
+  // 2: Проект 2 («Мини свэг», видео 2, Screen 2 на X = -0.565) — точный центр экрана
   {
-    desktop: { pos: new THREE.Vector3(-1.620, 1.40, -1.192), target: new THREE.Vector3(-1.620, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(-1.620, 1.40, -1.350), target: new THREE.Vector3(-1.620, 1.40, 0.016) }
+    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, -0.016) },
+    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.350), target: new THREE.Vector3(-0.565, 1.40, -0.016) }
   },
-  // 3: Экран 3 (Проект 03, Стена A)
+  // 3: Проект 3 («Ночной тоннель», Screen 3 на X = 0.515) — точный центр экрана
   {
-    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.350), target: new THREE.Vector3(-0.565, 1.40, 0.016) }
+    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, -0.016) },
+    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.350), target: new THREE.Vector3(0.515, 1.40, -0.016) }
   },
-  // 4: Экран 4 (Проект 04, Стена A)
+  // 4: Проект 4 («Индустрия», Screen 4 на X = 2.675) — точный центр экрана
   {
-    desktop: { pos: new THREE.Vector3(0.000, 1.40, -1.192), target: new THREE.Vector3(0.000, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(0.000, 1.40, -1.350), target: new THREE.Vector3(0.000, 1.40, 0.016) }
+    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, -0.016) },
+    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.350), target: new THREE.Vector3(2.675, 1.40, -0.016) }
   },
-  // 5: Экран 5 (Проект 05, Стена A)
-  {
-    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.350), target: new THREE.Vector3(0.515, 1.40, 0.016) }
-  },
-  // 6: Экран 6 (Проект 06, Стена A)
-  {
-    desktop: { pos: new THREE.Vector3(1.620, 1.40, -1.192), target: new THREE.Vector3(1.620, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(1.620, 1.40, -1.350), target: new THREE.Vector3(1.620, 1.40, 0.016) }
-  },
-  // 7: Экран 7 (Проект 07, Стена A)
-  {
-    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.350), target: new THREE.Vector3(2.675, 1.40, 0.016) }
-  },
-  // 8: Экран 8 (Проект 08, Стена A)
-  {
-    desktop: { pos: new THREE.Vector3(3.200, 1.40, -1.192), target: new THREE.Vector3(3.200, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(3.200, 1.40, -1.350), target: new THREE.Vector3(3.200, 1.40, 0.016) }
-  },
-  // 9: Прибытие на станцию и выход (Контакты)
+  // 5: Прибытие на конечную станцию и выход к контактам (X = 3.765, выходная дверь)
   {
     desktop: { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) },
     mobile:  { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) }
@@ -190,74 +170,58 @@ let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 let stationEnvGroup;
 
 function setupSubwayLighting() {
-  // 1. Сбалансированный нейтральный дневной свет вагона и станции (5600K) — яркое заливающее освещение
-  const ambient = new THREE.AmbientLight(0xf4f8fc, 1.65);
+  // 1. Теплый атмосферный свет вагона и станции (2700K Amber Cinematic) — кинематографичный уютный тон
+  const ambient = new THREE.AmbientLight(0xffdfb8, 1.45);
   scene.add(ambient);
 
-  // 2. Двойной ряд потолочных люминесцентных светильников вагона (яркий чистый свет с подсветкой сидений и стен)
-  // Ряд A (вдоль стены A и экранов) и Ряд B (вдоль окон B)
-  [-4.8, -3.2, -1.6, 0.0, 1.6, 3.2, 4.8].forEach(px => {
-    // Центральный проход и стена A
-    const lampA = new THREE.PointLight(0xfff8f0, 2.6, 7.2, 1.1);
-    lampA.position.set(px, 2.20, -0.75);
-    scene.add(lampA);
-    ceilingLamps.push(lampA);
-
-    // Стена B
-    const lampB = new THREE.PointLight(0xf2f7ff, 2.4, 7.2, 1.1);
-    lampB.position.set(px, 2.20, -1.65);
-    scene.add(lampB);
-    ceilingLamps.push(lampB);
-  });
-
-  // 2.1 Сплошная центральная LED-световая линия вагона (современный поезд метро «Москва-2024» / «Иволга»)
+  // 2. Сплошная центральная LED-световая линия вагона (теплый свет 2700K по осевой линии потолка)
   [-5.0, -3.75, -2.5, -1.25, 0.0, 1.25, 2.5, 3.75, 5.0].forEach(px => {
-    const centralLed = new THREE.PointLight(0xfffcf5, 2.6, 7.0, 1.1);
+    const centralLed = new THREE.PointLight(0xffb86c, 2.8, 7.5, 1.1);
     centralLed.position.set(px, 2.22, -1.192);
     scene.add(centralLed);
     ceilingLamps.push(centralLed);
   });
 
-  // 3. Направленный скользящий свет с потолка (Raking Key Lights) — подчеркивает микрорельеф и фактуру шлифованной стали стен и пола
-  const rakingLightA = new THREE.DirectionalLight(0xffffff, 1.25);
+  // 3. Направленный скользящий теплый свет (Raking Key Lights) — подчеркивает фактуру стали стен и пола
+  const rakingLightA = new THREE.DirectionalLight(0xffdfba, 1.25);
   rakingLightA.position.set(0, 3.2, -1.2);
   rakingLightA.target.position.set(0, 1.2, 0.0);
   scene.add(rakingLightA);
   scene.add(rakingLightA.target);
 
-  const rakingLightB = new THREE.DirectionalLight(0xf0f6ff, 1.10);
+  const rakingLightB = new THREE.DirectionalLight(0xffd5a5, 1.10);
   rakingLightB.position.set(0, 3.2, -1.2);
   rakingLightB.target.position.set(0, 1.2, -2.4);
   scene.add(rakingLightB);
   scene.add(rakingLightB.target);
 
-  // 4. Освещение платформы станции снаружи открытых дверей (Вход: X = -3.765, Выход: X = +3.765)
-  station1Light = new THREE.PointLight(0xffffff, 2.8, 18.0, 1.1);
+  // 4. Освещение платформы станции снаружи открытых дверей (Вход: X = -3.765, Выход: X = +3.765) — теплый свет станции
+  station1Light = new THREE.PointLight(0xffdfba, 2.8, 18.0, 1.1);
   station1Light.position.set(-3.765, 2.4, 2.2);
   scene.add(station1Light);
 
-  const stationExitLight = new THREE.PointLight(0xffffff, 2.8, 18.0, 1.1);
+  const stationExitLight = new THREE.PointLight(0xffdfba, 2.8, 18.0, 1.1);
   stationExitLight.position.set(3.765, 2.4, 2.2);
   scene.add(stationExitLight);
 
   // 5. Освещение белой плиточной путевой стены станции снаружи окон (Сторона B)
-  station2Light = new THREE.PointLight(0xf8faff, 2.6, 16.0, 1.0);
+  station2Light = new THREE.PointLight(0xffe8cf, 2.6, 16.0, 1.0);
   station2Light.position.set(0.0, 2.4, -3.0);
   scene.add(station2Light);
 
-  screenLight1 = new THREE.PointLight(0xffffff, 0.75, 3.5, 1.5);
+  screenLight1 = new THREE.PointLight(0xffeed9, 0.75, 3.5, 1.5);
   screenLight1.position.set(-2.675, 1.40, -0.28);
   scene.add(screenLight1);
 
-  screenLight2 = new THREE.PointLight(0xffffff, 0.75, 3.5, 1.5);
+  screenLight2 = new THREE.PointLight(0xffeed9, 0.75, 3.5, 1.5);
   screenLight2.position.set(-2.675, 1.40, -2.10);
   scene.add(screenLight2);
 
-  windowPassingLight = new THREE.PointLight(0xf0f6ff, 0.6, 9.0, 1.2);
+  windowPassingLight = new THREE.PointLight(0xffe4cc, 0.6, 9.0, 1.2);
   windowPassingLight.position.set(1.595, 1.45, 0.65);
   scene.add(windowPassingLight);
 
-  windowPassingLight2 = new THREE.PointLight(0xf0f6ff, 0.6, 9.0, 1.2);
+  windowPassingLight2 = new THREE.PointLight(0xffe4cc, 0.6, 9.0, 1.2);
   windowPassingLight2.position.set(1.595, 1.45, -1.85);
   scene.add(windowPassingLight2);
 }
@@ -394,21 +358,6 @@ function setupStationEnvironment() {
     stationEnvGroup.add(col);
   });
 
-  // 2.4 Линейные яркие нейтрально-белые неоновые полосы на потолке платформы
-  const neonMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const neonHousingMat = new THREE.MeshStandardMaterial({ color: 0x1c1f26, roughness: 0.4, metalness: 0.8 });
-
-  [-5.0, 0.0, 5.0].forEach(nx => {
-    const stripGeom = new THREE.BoxGeometry(3.6, 0.05, 0.10);
-    const strip = new THREE.Mesh(stripGeom, neonMat);
-    strip.position.set(nx, 2.45, 1.95);
-    stationEnvGroup.add(strip);
-
-    const housingGeom = new THREE.BoxGeometry(3.64, 0.04, 0.14);
-    const housing = new THREE.Mesh(housingGeom, neonHousingMat);
-    housing.position.set(nx, 2.48, 1.95);
-    stationEnvGroup.add(housing);
-  });
 
   // 2.5 Задняя стена вестибюля платформы (сплошная темно-серая архитектурная отделка)
   const backWallGeom = new THREE.PlaneGeometry(platformW, 3.4, 1, 1);
@@ -614,7 +563,16 @@ function loadSubwayModel() {
             }
           } else {
             const numStr = sIdx < 10 ? `0${sIdx}` : `${sIdx}`;
-            const pTex = getPlaceholderScreenTexture(THREE, numStr, `ПРОЕКТ ${numStr}`);
+            const projectTitles = {
+              3: 'НОЧНОЙ ТОННЕЛЬ',
+              4: 'ИНДУСТРИЯ',
+              5: 'РИТМ',
+              6: 'СВЕТОТЕНЬ',
+              7: 'ЛИЦА',
+              8: 'МОУШН'
+            };
+            const titleStr = projectTitles[sIdx] || `ПРОЕКТ ${numStr}`;
+            const pTex = getPlaceholderScreenTexture(THREE, numStr, titleStr);
             child.material = new THREE.MeshStandardMaterial({
               map: pTex, emissive: new THREE.Color(0xffffff), emissiveMap: pTex,
               emissiveIntensity: 0.85, roughness: 0.20, metalness: 0.05, side: THREE.DoubleSide
@@ -865,9 +823,9 @@ function loadSubwayModel() {
         if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser') || child.name.includes('Sign_Indicator') || child.name.includes('Next_Car_Ceiling_Light')) {
           child.material = new THREE.MeshStandardMaterial({
             map: ceilingLightTex,
-            emissive: new THREE.Color(0xfff8ee),
+            emissive: new THREE.Color(0xffaa50),
             emissiveMap: ceilingLightTex,
-            emissiveIntensity: 3.2,
+            emissiveIntensity: 2.8,
             roughness: 0.18
           });
           return;
@@ -941,6 +899,41 @@ function loadSubwayModel() {
         doorLeftD4.position.set(4.065, 0.99, -2.454);
         doorRightD4.position.set(3.465, 0.99, -2.454);
       }
+
+      // Предупреждающая надпись трафаретом «НЕ ПРИСЛОНЯТЬСЯ» (чистый белый текст) на стеклах всех дверей
+      const doorDecalTex = getNoLeanDecalTexture(THREE);
+      const doorDecalMat = new THREE.MeshBasicMaterial({
+        map: doorDecalTex,
+        transparent: true,
+        opacity: 0.95,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+      const doorDecalGeom = new THREE.PlaneGeometry(0.34, 0.085);
+
+      const attachDoorDecal = (doorObj, zOffset = -0.062) => {
+        if (!doorObj) return;
+        const decalMesh = new THREE.Mesh(doorDecalGeom, doorDecalMat);
+        decalMesh.position.set(0, 0.16, zOffset);
+        decalMesh.renderOrder = 4;
+        doorObj.add(decalMesh);
+      };
+
+      // Двери 1 (Вход, Wall A)
+      attachDoorDecal(doorLeft, -0.062);
+      attachDoorDecal(doorRight, -0.062);
+
+      // Двери 2 (Выход, Wall A)
+      attachDoorDecal(doorLeftD2, -0.062);
+      attachDoorDecal(doorRightD2, -0.062);
+
+      // Двери 3 (Сторона B)
+      attachDoorDecal(doorLeftD3, 0.062);
+      attachDoorDecal(doorRightD3, 0.062);
+
+      // Двери 4 (Сторона B)
+      attachDoorDecal(doorLeftD4, 0.062);
+      attachDoorDecal(doorRightD4, 0.062);
 
       scene.add(subwayModel);
 
@@ -1115,7 +1108,7 @@ function setActiveStage(stageIndex) {
   updatePlayButtonsUI();
 
   // Синхронизация хэша в адресной строке
-  const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 9: 'contacts' };
+  const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 3: 'project-03', 4: 'project-04', 5: 'contacts' };
   const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;
   if (history.replaceState && window.location.hash !== `#${hashStr}`) {
     history.replaceState(null, '', `#${hashStr}`);
@@ -1249,7 +1242,7 @@ export function scrollToStage(stageIndex) {
   const stageEls = document.querySelectorAll('.story-stage');
   if (stageEls[stageIndex]) {
     stageEls[stageIndex].scrollIntoView({ behavior: 'smooth' });
-    const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 9: 'contacts' };
+    const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 3: 'project-03', 4: 'project-04', 5: 'contacts' };
     const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;
     if (history.replaceState) {
       history.replaceState(null, '', `#${hashStr}`);
@@ -1286,7 +1279,7 @@ function setupEventListeners() {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else {
         const sIdx = screenMeshes.indexOf(hoveredScreen);
-        const stageMap = { 1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8 };
+        const stageMap = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 1, 6: 2, 7: 3, 8: 4 };
         const targetStage = stageMap[sIdx] || (hoveredScreen === screen1Mesh ? 1 : (hoveredScreen === screen2Mesh ? 2 : Math.max(1, activeStage)));
 
         // Плавный кинематографический зум камеры прямо к выбранному экрану

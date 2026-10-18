@@ -154,7 +154,7 @@ export function getPhotoDoorTextures() {
 export function getPhotoFloorTextures() {
   if (textureCache.has('floor_transit_pbr')) return textureCache.get('floor_transit_pbr');
 
-  const width = 2048;
+  const width = 1024;
   const height = 1024;
 
   const colorCanvas = document.createElement('canvas');
@@ -162,31 +162,42 @@ export function getPhotoFloorTextures() {
   colorCanvas.height = height;
   const cctx = colorCanvas.getContext('2d');
 
-  // Базовый цвет пола — глубокий графитово-сланцевый оттенок в тон стенам
-  cctx.fillStyle = '#20232a';
+  // Благородный глубокий темно-графитовый оттенок пола вагона метро
+  cctx.fillStyle = '#1c1f26';
   cctx.fillRect(0, 0, width, height);
 
-  // Высокодетализированная кварцевая крошка терраццо
-  const imgData = cctx.getImageData(0, 0, width, height);
-  const data = imgData.data;
-  let seed = 334455;
+  // Мягкие, сглаженные вкрапления кварцевого терраццо (без микропиксельного шума)
+  let seed = 445566;
   const rnd = () => {
     seed = (seed * 16807) % 2147483647;
     return (seed - 1) / 2147483646;
   };
 
-  for (let i = 0; i < data.length; i += 4) {
-    const r = rnd();
-    let delta = (rnd() - 0.5) * 16;
-    if (r > 0.93) delta += 32; // светлая кварцевая песчинка
-    else if (r < 0.08) delta -= 18; // темный базальтовый элемент
-    data[i]     = Math.max(0, Math.min(255, data[i] + delta));
-    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + delta + 1));
-    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + delta + 2));
-  }
-  cctx.putImageData(imgData, 0, 0);
+  // Рисуем сглаженные естественные песчинки терраццо
+  const grainCount = 3800;
+  for (let i = 0; i < grainCount; i++) {
+    const gx = rnd() * width;
+    const gy = rnd() * height;
+    const rad = 1.0 + rnd() * 2.2;
+    const rType = rnd();
 
-  // Рельеф нескользящей поверхности пола
+    if (rType > 0.85) {
+      // Светло-серый кварц
+      cctx.fillStyle = `rgba(180, 185, 195, ${0.15 + rnd() * 0.25})`;
+    } else if (rType > 0.40) {
+      // Приглушенный серо-бежевый агрегат
+      cctx.fillStyle = `rgba(110, 115, 128, ${0.12 + rnd() * 0.18})`;
+    } else {
+      // Темный базальтовый элемент
+      cctx.fillStyle = `rgba(14, 16, 20, ${0.20 + rnd() * 0.30})`;
+    }
+
+    cctx.beginPath();
+    cctx.arc(gx, gy, rad, 0, Math.PI * 2);
+    cctx.fill();
+  }
+
+  // Мягкий, равномерный рельеф (без шума и резких перепадов нормалей)
   const normalCanvas = document.createElement('canvas');
   normalCanvas.width = width;
   normalCanvas.height = height;
@@ -194,30 +205,18 @@ export function getPhotoFloorTextures() {
   nctx.fillStyle = 'rgb(128, 128, 255)';
   nctx.fillRect(0, 0, width, height);
 
-  const nImgData = nctx.getImageData(0, 0, width, height);
-  const ndata = nImgData.data;
-  seed = 998877;
-  for (let i = 0; i < ndata.length; i += 4) {
-    const nx = (rnd() - 0.5) * 24;
-    const ny = (rnd() - 0.5) * 24;
-    ndata[i]     = Math.max(0, Math.min(255, 128 + nx));
-    ndata[i + 1] = Math.max(0, Math.min(255, 128 + ny));
-    ndata[i + 2] = 248;
-  }
-  nctx.putImageData(nImgData, 0, 0);
-
-  // Мягкий полуматовый отклик пола (0.34 roughness) с легкими бликами плафонов
+  // Полуматовый отклик (шероховатость 0.40)
   const roughCanvas = document.createElement('canvas');
   roughCanvas.width = width;
   roughCanvas.height = height;
   const rctx = roughCanvas.getContext('2d');
-  rctx.fillStyle = 'rgb(88, 88, 88)';
+  rctx.fillStyle = 'rgb(102, 102, 102)';
   rctx.fillRect(0, 0, width, height);
 
   const result = {
-    colorMap: createHighResTexture(colorCanvas, 3, 2),
-    normalMap: createNormalTexture(normalCanvas, 3, 2),
-    roughnessMap: createNormalTexture(roughCanvas, 3, 2)
+    colorMap: createHighResTexture(colorCanvas, 8, 2),
+    normalMap: createNormalTexture(normalCanvas, 8, 2),
+    roughnessMap: createNormalTexture(roughCanvas, 8, 2)
   };
   textureCache.set('floor_transit_pbr', result);
   return result;

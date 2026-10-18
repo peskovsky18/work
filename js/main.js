@@ -25,10 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 6. Оповещение стоп-крана
   initEmergencyBanner();
 
-  // 7. Подсказка включения звука
-  initSoundHint();
-
-  // 8. Автозатемнение интерфейса при просмотре видео
+  // 7. Автозатемнение интерфейса при просмотре видео
   initCinemaIdleDim();
 
   // 9. Аудиовизуализатор волн в плеере
@@ -442,47 +439,7 @@ function initEmergencyBanner() {
   });
 }
 
-// =============================================================================
-// ПОДСКАЗКА ВКЛЮЧЕНИЯ ЗВУКА
-// =============================================================================
-function initSoundHint() {
-  const toast = document.getElementById('sound-hint-toast');
-  const closeBtn = document.getElementById('sound-hint-close');
-  if (!toast) return;
 
-  let dismissed = false;
-  const dismiss = () => {
-    dismissed = true;
-    toast.classList.remove('show');
-    toast.setAttribute('aria-hidden', 'true');
-  };
-
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dismiss();
-    });
-  }
-
-  toast.addEventListener('click', () => {
-    toggleGlobalSound();
-    dismiss();
-  });
-
-  // Показать подсказку через 3.5 секунды, если звук всё еще выключен
-  setTimeout(() => {
-    const soundBtn = document.getElementById('header-sound-btn');
-    if (!dismissed && soundBtn && !soundBtn.classList.contains('sound-on')) {
-      toast.classList.add('show');
-      toast.setAttribute('aria-hidden', 'false');
-      setTimeout(dismiss, 7000);
-    }
-  }, 3500);
-
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyM') dismiss();
-  });
-}
 
 // =============================================================================
 // АВТОЗАТЕМНЕНИЕ ИНТЕРФЕЙСА ПРИ ПРОСМОТРЕ ВИДЕО

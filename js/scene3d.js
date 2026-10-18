@@ -414,6 +414,8 @@ function setupStation2Sign() {
   });
   stationSignMesh = new THREE.Mesh(signGeom, signMat);
   stationSignMesh.position.set(-3.765, 2.18, 2.15);
+  stationSignMesh.rotation.y = Math.PI;
+  stationSignMesh.visible = false; // Скрыт на станции 1, появляется только по прибытии на Станцию 2
 
   // Подвесные металлические тросы указателя
   const cableGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.8, 6);
@@ -589,66 +591,86 @@ function loadSubwayModel() {
           return;
         }
 
-        if (child.name === 'Platform_Tile_Wall') {
+        if (child.name.includes('Platform_Tile_Wall')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xf0f3f8), // глазурованная белая плитка станции
             roughness: 0.18,
-            metalness: 0.15
+            metalness: 0.15,
+            side: THREE.DoubleSide
           });
           return;
         }
 
-        if (child.name === 'Platform_Mosaic_Band') {
+        if (child.name.includes('Platform_Mosaic_Band')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xc02026), // рубиновая керамическая полоса московского метро
             roughness: 0.30,
-            metalness: 0.20
+            metalness: 0.20,
+            side: THREE.DoubleSide
           });
           return;
         }
 
-        if (child.name === 'Platform_Floor') {
+        if (child.name.includes('Platform_Floor')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0x282c34), // темно-серый шлифованный гранит платформы
             roughness: 0.38,
-            metalness: 0.18
+            metalness: 0.18,
+            side: THREE.DoubleSide
           });
           return;
         }
 
-        // 5. Архитектурная отделка окна и стен вагона
-        if (child.name === 'Window_Sill_Ledge') {
+        // Архитектурная отделка окна, карнизов и стен вагона
+        if (child.name.includes('Window_Sill_Ledge')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xa4acb8), // сатинированный подоконник
             roughness: 0.28,
-            metalness: 0.76
+            metalness: 0.76,
+            side: THREE.DoubleSide
           });
           return;
         }
 
-        if (child.name === 'Window_Backing_Wall' || child.name.startsWith('Window_Reveal_')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xb2b8c2), // шлифованная сталь за обкладкой окна (закрывает углы)
-            roughness: 0.30,
-            metalness: 0.82
-          });
-          return;
-        }
-
-        if (child.name === 'Subway_Wall_Crown_Frieze') {
+        if (child.name.includes('Frieze')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xb2b8c2), // карнизный фриз под потолком
             roughness: 0.28,
-            metalness: 0.82
+            metalness: 0.82,
+            side: THREE.DoubleSide
           });
           return;
         }
 
-        if (child.name === 'Wall_Window_Right_Pier') {
+        // Панели стен, переборки, притолоки (глухие, непрозрачные с обеих сторон)
+        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xb2b8c2),
-            roughness: 0.30,
-            metalness: 0.82
+            color: new THREE.Color(0xb6bcc6),
+            roughness: 0.32,
+            metalness: 0.72,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // Основания скамеек (цоколи)
+        if (child.name.includes('Plinth') || child.name.includes('Bench')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x22262e),
+            roughness: 0.42,
+            metalness: 0.35,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // Потолок вагона
+        if (child.name.includes('Ceiling')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xdde1e8),
+            roughness: 0.40,
+            metalness: 0.15,
+            side: THREE.DoubleSide
           });
           return;
         }
@@ -669,33 +691,28 @@ function loadSubwayModel() {
             side: THREE.DoubleSide,
             depthWrite: false
           });
+          return;
         }
 
-        // Металлические хромированные поручни, ручки и кольца
+        // Металлические хромированные поручни, ручки и стойки
         if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xdce0e6),
             roughness: 0.15,
             metalness: 0.96
           });
+          return;
         }
 
-        // Шлифованная сталь (панели стен, тисненые пластины)
-        if (matName === 'Mat_Brushed_Steel' || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xb2b8c2),
-            roughness: 0.30,
-            metalness: 0.82
-          });
-        }
-
-        // Алюминиевые элементы (стойки дверей, карнизы)
+        // Алюминиевые элементы (стойки дверей, корпуса)
         if (matName === 'Mat_Aluminum' || child.name.includes('Post') || child.name.includes('Housing')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xc2c7cf),
             roughness: 0.38,
-            metalness: 0.70
+            metalness: 0.70,
+            side: THREE.DoubleSide
           });
+          return;
         }
 
         // Потолочные светильники / рассеиватели
@@ -706,33 +723,40 @@ function loadSubwayModel() {
             emissiveIntensity: 2.3,
             roughness: 0.2
           });
+          return;
         }
 
-        // Темный пол вагона с приятным легким отражением
+        // Темный пол вагона
         if (child.name.includes('Floor') || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0x181a20),
             roughness: 0.24,
-            metalness: 0.42
+            metalness: 0.42,
+            side: THREE.DoubleSide
           });
+          return;
         }
 
         // Желтые ретро-сиденья
-        if (matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow' || child.name.includes('Seat_Yellow')) {
+        if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xf2a91d),
-            roughness: 0.38,
-            metalness: 0.06
+            roughness: 0.36,
+            metalness: 0.06,
+            side: THREE.DoubleSide
           });
+          return;
         }
 
         // Оранжевые ретро-сиденья
-        if (matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange' || child.name.includes('Seat_Orange')) {
+        if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xdc5018),
-            roughness: 0.38,
-            metalness: 0.06
+            roughness: 0.36,
+            metalness: 0.06,
+            side: THREE.DoubleSide
           });
+          return;
         }
       });
 
@@ -893,7 +917,10 @@ function initScrollTriggers() {
       // Свет станции 1 затухает при отправлении, свет станции 2 разгорается при прибытии
       if (station1Light) station1Light.intensity = Math.max(0.0, 1.4 * (1.0 - p / 0.18));
       if (station2Light) station2Light.intensity = Math.max(0.0, 1.6 * ((p - 0.86) / 0.14));
-      if (stationSignMesh) stationSignMesh.material.emissiveIntensity = Math.max(0.0, 1.4 * ((p - 0.86) / 0.14));
+      if (stationSignMesh) {
+        stationSignMesh.visible = (p >= 0.84);
+        stationSignMesh.material.emissiveIntensity = Math.max(0.0, 1.4 * ((p - 0.86) / 0.14));
+      }
 
       // Обновление светодиодного индикатора маршрута в шапке
       const trackFill = document.getElementById('route-track-fill');

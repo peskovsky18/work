@@ -23,50 +23,50 @@ import {
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
 // =============================================================================
 const CAMERA_WAYPOINTS = [
-  // 0: Старт у дверей вагона (вход на станции, взгляд вперед по центральному проходу)
+  // 0: Старт у дверей вагона (вход на станции, взгляд вперед по вагону)
   {
     desktop: { pos: new THREE.Vector3(-3.765, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
     mobile:  { pos: new THREE.Vector3(-3.765, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
   },
-  // 1: Экран 1 («Свэг», видео 1, Стена A / слева)
+  // 1: Экран 1 («Свэг», видео 1, Стена A)
   {
     desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
     mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.350), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
   },
-  // 2: Экран 2 («Мини свэг», видео 2, Стена B / справа)
+  // 2: Экран 2 («Мини свэг», видео 2, Стена A)
   {
-    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.034), target: new THREE.Vector3(-2.675, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(-1.620, 1.40, -1.192), target: new THREE.Vector3(-1.620, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(-1.620, 1.40, -1.350), target: new THREE.Vector3(-1.620, 1.40, 0.016) }
   },
-  // 3: Экран 3 (Проект 03, Стена A / слева)
+  // 3: Экран 3 (Проект 03, Стена A)
   {
     desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, 0.016) },
     mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.350), target: new THREE.Vector3(-0.565, 1.40, 0.016) }
   },
-  // 4: Экран 4 (Проект 04, Стена B / справа)
+  // 4: Экран 4 (Проект 04, Стена A)
   {
-    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.034), target: new THREE.Vector3(-0.565, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(0.000, 1.40, -1.192), target: new THREE.Vector3(0.000, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(0.000, 1.40, -1.350), target: new THREE.Vector3(0.000, 1.40, 0.016) }
   },
-  // 5: Экран 5 (Проект 05, Стена A / слева)
+  // 5: Экран 5 (Проект 05, Стена A)
   {
     desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, 0.016) },
     mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.350), target: new THREE.Vector3(0.515, 1.40, 0.016) }
   },
-  // 6: Экран 6 (Проект 06, Стена B / справа)
+  // 6: Экран 6 (Проект 06, Стена A)
   {
-    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.034), target: new THREE.Vector3(0.515, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(1.620, 1.40, -1.192), target: new THREE.Vector3(1.620, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(1.620, 1.40, -1.350), target: new THREE.Vector3(1.620, 1.40, 0.016) }
   },
-  // 7: Экран 7 (Проект 07, Стена A / слева)
+  // 7: Экран 7 (Проект 07, Стена A)
   {
     desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, 0.016) },
     mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.350), target: new THREE.Vector3(2.675, 1.40, 0.016) }
   },
-  // 8: Экран 8 (Проект 08, Стена B / справа)
+  // 8: Экран 8 (Проект 08, Стена A)
   {
-    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.034), target: new THREE.Vector3(2.675, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(3.200, 1.40, -1.192), target: new THREE.Vector3(3.200, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(3.200, 1.40, -1.350), target: new THREE.Vector3(3.200, 1.40, 0.016) }
   },
   // 9: Прибытие на станцию и выход (Контакты)
   {
@@ -173,8 +173,8 @@ export function initSubwayScene() {
   // 4.3 Интерактивный стоп-кран в вагоне
   setupEmergencyBrake();
 
-  // 4.4 Подвесные ручки-петли с инерционной физикой
-  setupGrabStraps();
+  // 4.4 Подвесные ручки-петли (отключены для соответствия реальному вагону по фото и исключения визуального шума)
+  // setupGrabStraps();
 
   // 4.5 Подвесной светящийся указатель на станции прибытия
   setupStation2Sign();
@@ -256,15 +256,15 @@ function setupStationEnvironment() {
   const trackWallW = 24.0;
   const trackWallH = 3.20;
 
-  // 1.1 Керамическая ретро-плитка с глянцевой глазурью и выразительными фасками
-  const wallGeom = new THREE.PlaneGeometry(trackWallW, trackWallH, 48, 8);
+  // 1.1 Керамическая ретро-плитка с глянцевой глазурью
+  const wallGeom = new THREE.PlaneGeometry(trackWallW, trackWallH, 1, 1);
   const wallMat = new THREE.MeshStandardMaterial({
     map: tilePBR.colorMap,
     normalMap: tilePBR.normalMap,
-    normalScale: new THREE.Vector2(0.9, 0.9),
+    normalScale: new THREE.Vector2(0.8, 0.8),
     roughnessMap: tilePBR.roughnessMap,
-    roughness: 0.15,
-    metalness: 0.08,
+    roughness: 0.25,
+    metalness: 0.05,
     side: THREE.FrontSide
   });
   const trackWallMesh = new THREE.Mesh(wallGeom, wallMat);
@@ -301,8 +301,11 @@ function setupStationEnvironment() {
   signGeom.scale(-1, 1, 1); // Прямое незеркальное чтение букв при взгляде из вагона в сторону -Z
   const signMat = new THREE.MeshStandardMaterial({
     map: signTex,
-    roughness: 0.18,
-    metalness: 0.35,
+    emissive: new THREE.Color(0xffffff),
+    emissiveMap: signTex,
+    emissiveIntensity: 0.92,
+    roughness: 0.25,
+    metalness: 0.10,
     side: THREE.DoubleSide
   });
 
@@ -311,11 +314,6 @@ function setupStationEnvironment() {
     const signMesh = new THREE.Mesh(signGeom, signMat);
     signMesh.position.set(px, 1.45, trackWallZ + 0.02);
     stationEnvGroup.add(signMesh);
-
-    // Локальный направленный спотлайт на табличку
-    const signSpot = new THREE.PointLight(0xffffff, 0.9, 4.5, 1.4);
-    signSpot.position.set(px, 2.45, trackWallZ + 0.55);
-    stationEnvGroup.add(signSpot);
   });
 
   // 1.5 Щебеночный балласт и рельсы под вагоном
@@ -342,7 +340,7 @@ function setupStationEnvironment() {
   // =========================================================================
   const platformW = 24.0;
 
-  // 2.1 Широкий гранить платформы
+  // 2.1 Широкий гранит платформы
   const platFloorGeom = new THREE.BoxGeometry(platformW, 0.15, 4.80);
   const platFloorMat = new THREE.MeshStandardMaterial({
     map: granitePBR.colorMap,
@@ -393,14 +391,10 @@ function setupStationEnvironment() {
     const housing = new THREE.Mesh(housingGeom, neonHousingMat);
     housing.position.set(nx, 2.48, 1.95);
     stationEnvGroup.add(housing);
-
-    const neonLight = new THREE.PointLight(0xffffff, 1.2, 7.0, 1.3);
-    neonLight.position.set(nx, 2.40, 1.95);
-    stationEnvGroup.add(neonLight);
   });
 
   // 2.5 Задняя стена вестибюля платформы
-  const backWallGeom = new THREE.PlaneGeometry(platformW, 3.4, 16, 4);
+  const backWallGeom = new THREE.PlaneGeometry(platformW, 3.4, 1, 1);
   const backWallMat = new THREE.MeshStandardMaterial({
     color: 0x242832,
     roughness: 0.45,
@@ -682,7 +676,7 @@ function loadSubwayModel() {
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
 
-        // 1. Интерактивные экраны (1-2 видео, 3-8 плейсхолдеры)
+        // 1. Интерактивные экраны (1-2 видео на стене A, 3-8 плейсхолдеры)
         if (child.name.startsWith('Screen_') && child.name.endsWith('_Display')) {
           const sIdx = parseInt(child.name.split('_')[1], 10);
           screenMeshes[sIdx] = child;
@@ -694,7 +688,7 @@ function loadSubwayModel() {
                 emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
               });
             }
-          } else if (sIdx === 5) {
+          } else if (sIdx === 2) {
             screen2Mesh = child;
             if (videoTexture2) {
               child.material = new THREE.MeshStandardMaterial({
@@ -703,11 +697,7 @@ function loadSubwayModel() {
               });
             }
           } else {
-            const stageNumberMap = {
-              1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8
-            };
-            const projNum = stageNumberMap[sIdx] || sIdx;
-            const numStr = projNum < 10 ? `0${projNum}` : `${projNum}`;
+            const numStr = sIdx < 10 ? `0${sIdx}` : `${sIdx}`;
             const pTex = getPlaceholderScreenTexture(THREE, numStr, `ПРОЕКТ ${numStr}`);
             child.material = new THREE.MeshStandardMaterial({
               map: pTex, emissive: new THREE.Color(0xffffff), emissiveMap: pTex,
@@ -902,7 +892,7 @@ function loadSubwayModel() {
           return;
         }
 
-        if (child.name.includes('Plinth') || child.name.includes('Bench')) {
+        if (child.name.includes('Plinth') || (child.name.includes('Bench') && !child.name.startsWith('Seat_'))) {
           child.material = new THREE.MeshStandardMaterial({
             map: ventGrilleTex,
             roughness: 0.50,
@@ -1136,12 +1126,9 @@ function initScrollTriggers() {
       // Поезд стоит на станции (0.0): нулевая нагрузка на GPU/CPU, стабильные 60 FPS
       trainSpeed = 0.0;
 
-      // Яркое освещение современной платформы и путевой стены
-      if (station1Light) station1Light.intensity = Math.max(1.4, 2.0 * (1.0 - p * 0.3));
-      if (station2Light) station2Light.intensity = Math.max(1.4, 1.8 * (0.7 + p * 0.3));
-      if (stationSignMesh) {
+      // Статичное освещение станции гарантирует стабильные 60 FPS без лагов шейдеров
+      if (stationSignMesh && !stationSignMesh.visible) {
         stationSignMesh.visible = true;
-        stationSignMesh.material.emissiveIntensity = Math.max(0.8, 1.4 * p);
       }
 
       // Обновление светодиодного индикатора маршрута в шапке
@@ -1546,7 +1533,6 @@ function animate() {
   // Строго заскриптованное кинематографичное движение камеры по скроллу (без фри-камеры и тряски)
   camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
   camera.lookAt(camCurrentTarget.x, camCurrentTarget.y, camCurrentTarget.z);
-  camera.rotation.z = 0.0;
 
   // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
   if (trainSpeed > 0.01) {
@@ -1615,8 +1601,8 @@ function animate() {
     }
   }
 
-  // 2.5 Дрейф атмосферных микрочастиц в воздухе вагона
-  if (dustParticles && dustPositions) {
+  // 2.5 Дрейф атмосферных микрочастиц в воздухе вагона (обновление буфера только при движении)
+  if (dustParticles && dustPositions && trainSpeed > 0.02) {
     const posAttr = dustParticles.geometry.attributes.position;
     const pArr = posAttr.array;
     const airDraft = trainSpeed * 1.5 * dt;

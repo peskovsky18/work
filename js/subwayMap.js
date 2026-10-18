@@ -514,7 +514,7 @@ export function getSubwayMapTexture(THREE) {
   const canvas = createSubwayMapCanvas();
   cachedMapTexture = new THREE.CanvasTexture(canvas);
   cachedMapTexture.colorSpace = THREE.SRGBColorSpace;
-  cachedMapTexture.flipY = false;
+  cachedMapTexture.flipY = true;
   cachedMapTexture.generateMipmaps = true;
   cachedMapTexture.minFilter = THREE.LinearMipmapLinearFilter;
   cachedMapTexture.magFilter = THREE.LinearFilter;
@@ -650,7 +650,7 @@ export function getStationSignTexture(THREE) {
 
   cachedStationSignTex = new THREE.CanvasTexture(cvs);
   cachedStationSignTex.colorSpace = THREE.SRGBColorSpace;
-  cachedStationSignTex.flipY = false;
+  cachedStationSignTex.flipY = true;
   cachedStationSignTex.generateMipmaps = true;
   return cachedStationSignTex;
 }

@@ -122,8 +122,10 @@ function initKeyboardShortcuts() {
       toggleGlobalSound();
     } else if (e.code.startsWith('Digit')) {
       const num = parseInt(e.code.replace('Digit', ''), 10);
-      if (num >= 1 && num <= 7) {
+      if (num >= 1 && num <= 9) {
         scrollToStage(num - 1);
+      } else if (num === 0) {
+        scrollToStage(9);
       }
     }
   });

@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Модальное окно деталей проектов
   initProjectModal();
+
+  // 6. Оповещение стоп-крана
+  initEmergencyBanner();
 });
 
 // =============================================================================
@@ -245,4 +248,22 @@ function initProjectModal() {
       });
     });
   }
+}
+
+// =============================================================================
+// ЭКСТРЕННОЕ ОПОВЕЩЕНИЕ: СТОП-КРАН
+// =============================================================================
+function initEmergencyBanner() {
+  const banner = document.getElementById('emergency-alert-banner');
+  if (!banner) return;
+
+  window.addEventListener('emergency-brake-triggered', () => {
+    banner.classList.add('active');
+    banner.setAttribute('aria-hidden', 'false');
+  });
+
+  window.addEventListener('emergency-brake-reset', () => {
+    banner.classList.remove('active');
+    banner.setAttribute('aria-hidden', 'true');
+  });
 }

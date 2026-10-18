@@ -950,6 +950,15 @@ function setupEventListeners() {
     }
   }, { passive: true });
 
+  // Запрос разрешения на гироскоп для iOS 13+
+  const requestGyro = () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().catch(() => {});
+    }
+  };
+  window.addEventListener('click', requestGyro, { once: true });
+  window.addEventListener('touchstart', requestGyro, { once: true });
+
   // Клик по экрану в 3D пространстве
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по интерфейсу (кнопкам)

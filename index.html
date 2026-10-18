@@ -114,6 +114,12 @@
         <button class="apple-pill-btn stage-nav-pill" data-stage="9">Контакты</button>
       </nav>
 
+      <!-- Светодиодная линия пути вагона (LED Route Tracker) -->
+      <div class="header-route-track" aria-hidden="true">
+        <div id="route-track-fill" class="route-track-fill"></div>
+        <div id="route-track-car-dot" class="route-track-car-dot"></div>
+      </div>
+
       <!-- Действия: Звук, Email, Instagram -->
       <div class="header-actions">
         <button class="apple-pill-btn sound-toggle-btn" id="header-sound-btn" aria-label="Включить / выключить звук" title="Включить / выключить звук">
@@ -303,6 +309,9 @@
           <div class="glass-capsule info-capsule">
             <span class="status-indicator-dot dot-active"></span>
             <span>Поезд начинает разгон. Место зарезервировано под следующую работу.</span>
+            <button class="player-icon-btn info-btn" data-project="3" aria-label="Концепт проекта" title="Концепт проекта">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -324,6 +333,9 @@
           <div class="glass-capsule info-capsule">
             <span class="status-indicator-dot dot-active"></span>
             <span>Крейсерский ход в тоннеле. Огни и световые полосы за окном.</span>
+            <button class="player-icon-btn info-btn" data-project="4" aria-label="Концепт проекта" title="Концепт проекта">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -345,6 +357,9 @@
           <div class="glass-capsule info-capsule">
             <span class="status-indicator-dot dot-active"></span>
             <span>Слот под проект 08. Огни тоннеля за окном противоположной стороны.</span>
+            <button class="player-icon-btn info-btn" data-project="8" aria-label="Концепт проекта" title="Концепт проекта">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -366,6 +381,9 @@
           <div class="glass-capsule info-capsule">
             <span class="status-indicator-dot dot-active"></span>
             <span>Слот под проект 07.</span>
+            <button class="player-icon-btn info-btn" data-project="7" aria-label="Концепт проекта" title="Концепт проекта">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -387,6 +405,9 @@
           <div class="glass-capsule info-capsule">
             <span class="status-indicator-dot dot-active"></span>
             <span>Слот под проект 06.</span>
+            <button class="player-icon-btn info-btn" data-project="6" aria-label="Концепт проекта" title="Концепт проекта">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -408,6 +429,9 @@
           <div class="glass-capsule info-capsule">
             <span class="status-indicator-dot dot-active"></span>
             <span>Слот под проект 05. Поезд начинает торможение перед станцией.</span>
+            <button class="player-icon-btn info-btn" data-project="5" aria-label="Концепт проекта" title="Концепт проекта">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -464,6 +488,15 @@
           <video id="modal-video-player" class="modal-video-elem" playsinline webkit-playsinline loop controls></video>
         </div>
 
+        <div id="modal-placeholder-box" class="modal-placeholder-box" style="display: none;">
+          <div class="ph-status-pill">● В ПРОИЗВОДСТВЕ • 2026/2027</div>
+          <p class="ph-pitch-text">Слот зарезервирован под готовящийся релиз. Для обсуждения ко-продакшна, режиссуры клипа или коммерческого проекта:</p>
+          <div class="ph-action-row">
+            <a href="https://t.me/peskovsky" target="_blank" rel="noopener" class="apple-pill-btn apple-pill-primary">Написать в Telegram ↗</a>
+            <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn">Email ✉️</a>
+          </div>
+        </div>
+
         <p class="modal-desc" id="modal-desc">Режиссура, съемка и цветокоррекция. Экспериментальный визуальный стиль с аутентичным ритмом монтажа.</p>
         <div class="modal-meta-grid" id="modal-meta">
           <div class="meta-item"><span class="meta-label">Камера</span><span class="meta-val">iPhone 4K 60fps</span></div>
@@ -500,7 +533,27 @@
           </div>
           <div class="map-station-node" data-goto-stage="3">
             <span class="station-ring ring-tunnel"></span>
-            <div class="station-info"><strong class="st-name">Тоннель: Проект 03</strong><span class="st-sub">Разгон состава</span></div>
+            <div class="station-info"><strong class="st-name">Проект 03 • Ночной тоннель</strong><span class="st-sub">Разгон состава</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="4">
+            <span class="station-ring ring-tunnel"></span>
+            <div class="station-info"><strong class="st-name">Проект 04 • Индустрия</strong><span class="st-sub">Крейсерский ход</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="5">
+            <span class="station-ring ring-tunnel"></span>
+            <div class="station-info"><strong class="st-name">Проект 08 • Моушн</strong><span class="st-sub">Сторона B</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="6">
+            <span class="station-ring ring-tunnel"></span>
+            <div class="station-info"><strong class="st-name">Проект 07 • Лица</strong><span class="st-sub">Сторона B</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="7">
+            <span class="station-ring ring-tunnel"></span>
+            <div class="station-info"><strong class="st-name">Проект 06 • Светотень</strong><span class="st-sub">Сторона B</span></div>
+          </div>
+          <div class="map-station-node" data-goto-stage="8">
+            <span class="station-ring ring-tunnel"></span>
+            <div class="station-info"><strong class="st-name">Проект 05 • Ритм</strong><span class="st-sub">Торможение перед станцией</span></div>
           </div>
           <div class="map-station-node" data-goto-stage="9">
             <span class="station-ring ring-finish"></span>

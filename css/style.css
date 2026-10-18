@@ -1276,3 +1276,163 @@ body.screen-zoomed .floating-hud-top {
   justify-content: center;
   gap: 12px;
 }
+
+/* ==========================================================================
+   КИНЕМАТОГРАФИЧЕСКИЙ ВИДОИСКАТЕЛЬ РЕЖИССЕРА (VIEWFINDER HUD)
+   ========================================================================== */
+.viewfinder-hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.screen-zoomed .viewfinder-hud {
+  opacity: 1;
+}
+
+.vf-frame {
+  position: absolute;
+  inset: 32px;
+}
+
+.vf-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: rgba(255, 255, 255, 0.65);
+  border-style: solid;
+}
+
+.vf-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.vf-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.vf-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.vf-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+.vf-center-cross {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.vf-center-cross::before, .vf-center-cross::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.vf-center-cross::before {
+  top: 6px;
+  left: 0;
+  width: 14px;
+  height: 2px;
+}
+
+.vf-center-cross::after {
+  top: 0;
+  left: 6px;
+  width: 2px;
+  height: 14px;
+}
+
+.vf-badge {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  background: rgba(14, 16, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease;
+}
+
+.vf-badge:hover {
+  background: rgba(26, 30, 42, 0.95);
+  border-color: rgba(255, 255, 255, 0.38);
+  transform: translateX(-50%) scale(1.04);
+}
+
+.vf-badge:active {
+  transform: translateX(-50%) scale(0.97);
+}
+
+.vf-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3b30;
+  box-shadow: 0 0 8px #ff3b30;
+  animation: pulse-dot 1.2s infinite;
+}
+
+/* ==========================================================================
+   ВСПЛЫВАЮЩИЙ ТОАСТ УВЕДОМЛЕНИЙ (APPLE FROSTED GLASS TOAST)
+   ========================================================================== */
+.app-toast {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 2000;
+  background: rgba(20, 24, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+  padding: 10px 22px;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-share-action {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.82rem;
+  gap: 8px;
+}
+
+.modal-share-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+

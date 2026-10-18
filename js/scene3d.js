@@ -1050,6 +1050,18 @@ function animate() {
     }
   }
 
+  // 2.3c Динамическое свечение экранов при воспроизведении видео
+  if (screenLight1 && video1) {
+    const base1 = video1.paused ? 0.45 : 0.68;
+    const flicker1 = video1.paused ? 0 : Math.sin(time * 7.5) * 0.09 + Math.sin(time * 18.0) * 0.04;
+    screenLight1.intensity += ((base1 + flicker1) - screenLight1.intensity) * 0.15;
+  }
+  if (screenLight2 && video2) {
+    const base2 = video2.paused ? 0.45 : 0.68;
+    const flicker2 = video2.paused ? 0 : Math.sin(time * 8.2) * 0.09 + Math.cos(time * 16.5) * 0.04;
+    screenLight2.intensity += ((base2 + flicker2) - screenLight2.intensity) * 0.15;
+  }
+
   // 2.4 Движение встречного поезда в тоннеле за окнами
   if (oppTrainGroup && trainSpeed > 0.25) {
     oppTrainGroup.position.x += (trainSpeed * 22.0 + 36.0) * dt;

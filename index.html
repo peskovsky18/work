@@ -51,6 +51,13 @@
        ========================================================================= -->
   <canvas id="webgl-canvas" class="webgl-fixed-canvas"></canvas>
   <div id="cinematic-vignette" class="cinematic-vignette" aria-hidden="true"></div>
+  <svg class="cinema-film-grain" aria-hidden="true">
+    <filter id="film-grain-filter">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
+      <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.055 0" />
+    </filter>
+    <rect width="100%" height="100%" filter="url(#film-grain-filter)" />
+  </svg>
 
   <!-- =========================================================================
        СКРЫТЫЕ ИСТОЧНИКИ ВИДЕО ДЛЯ THREE.VIDEOTEXTURE

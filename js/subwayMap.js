@@ -593,3 +593,66 @@ export function getPlaceholderScreenTexture(THREE, numStr, titleStr) {
   return tex;
 }
 
+/**
+ * Генератор текстуры подвесного светящегося указателя станции 2 (Контакты)
+ */
+let cachedStationSignTex = null;
+export function getStationSignTexture(THREE) {
+  if (cachedStationSignTex) return cachedStationSignTex;
+
+  const cvs = document.createElement('canvas');
+  cvs.width = 1200;
+  cvs.height = 300;
+  const ctx = cvs.getContext('2d');
+
+  // Глубокий темный фон лайтбокса
+  ctx.fillStyle = '#0a0d13';
+  ctx.fillRect(0, 0, 1200, 300);
+
+  // Верхняя полоса акцентной линии метро
+  ctx.fillStyle = '#f5a623';
+  ctx.fillRect(0, 0, 1200, 10);
+
+  // Логотип «М»
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(80, 150, 42, 0, Math.PI * 2);
+  ctx.fillStyle = '#e42313';
+  ctx.fill();
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(56, 168);
+  ctx.lineTo(68, 132);
+  ctx.lineTo(80, 154);
+  ctx.lineTo(92, 132);
+  ctx.lineTo(104, 168);
+  ctx.stroke();
+  ctx.restore();
+
+  // Основной заголовок станции
+  ctx.font = '800 52px "Space Grotesk", sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('СТАНЦИЯ ПЕСКОВСКАЯ', 156, 138);
+
+  // Подзаголовок: выход в город и пересадки
+  ctx.font = '600 24px "JetBrains Mono", monospace';
+  ctx.fillStyle = '#8e95a5';
+  ctx.fillText('ВЫХОД В ГОРОД // ПОРТФОЛИО 2026 // WAY OUT ↗', 158, 185);
+
+  // Правая стрелка и пиктограмма
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(10, 10, 1180, 280);
+
+  cachedStationSignTex = new THREE.CanvasTexture(cvs);
+  cachedStationSignTex.colorSpace = THREE.SRGBColorSpace;
+  cachedStationSignTex.flipY = false;
+  cachedStationSignTex.generateMipmaps = true;
+  return cachedStationSignTex;
+}
+
+

@@ -170,58 +170,58 @@ let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 let stationEnvGroup;
 
 function setupSubwayLighting() {
-  // 1. Теплый атмосферный свет вагона и станции (2700K Amber Cinematic) — кинематографичный уютный тон
-  const ambient = new THREE.AmbientLight(0xffdfb8, 1.45);
+  // 1. Теплый архитектурный свет вагона и станции (3000K Warm White)
+  const ambient = new THREE.AmbientLight(0xffe4cc, 1.45);
   scene.add(ambient);
 
-  // 2. Сплошная центральная LED-световая линия вагона (теплый свет 2700K по осевой линии потолка)
+  // 2. Сплошная центральная LED-световая линия вагона (3000K по осевой линии потолка)
   [-5.0, -3.75, -2.5, -1.25, 0.0, 1.25, 2.5, 3.75, 5.0].forEach(px => {
-    const centralLed = new THREE.PointLight(0xffb86c, 2.8, 7.5, 1.1);
+    const centralLed = new THREE.PointLight(0xffc882, 2.8, 7.5, 1.1);
     centralLed.position.set(px, 2.22, -1.192);
     scene.add(centralLed);
     ceilingLamps.push(centralLed);
   });
 
-  // 3. Направленный скользящий теплый свет (Raking Key Lights) — подчеркивает фактуру стали стен и пола
-  const rakingLightA = new THREE.DirectionalLight(0xffdfba, 1.25);
+  // 3. Направленный скользящий свет 3000K — подчеркивает текстуру сатинированной стали и жаккарда
+  const rakingLightA = new THREE.DirectionalLight(0xffdfc2, 1.25);
   rakingLightA.position.set(0, 3.2, -1.2);
   rakingLightA.target.position.set(0, 1.2, 0.0);
   scene.add(rakingLightA);
   scene.add(rakingLightA.target);
 
-  const rakingLightB = new THREE.DirectionalLight(0xffd5a5, 1.10);
+  const rakingLightB = new THREE.DirectionalLight(0xffd9b8, 1.10);
   rakingLightB.position.set(0, 3.2, -1.2);
   rakingLightB.target.position.set(0, 1.2, -2.4);
   scene.add(rakingLightB);
   scene.add(rakingLightB.target);
 
-  // 4. Освещение платформы станции снаружи открытых дверей (Вход: X = -3.765, Выход: X = +3.765) — теплый свет станции
-  station1Light = new THREE.PointLight(0xffdfba, 2.8, 18.0, 1.1);
+  // 4. Освещение платформы станции снаружи дверей (3000K)
+  station1Light = new THREE.PointLight(0xffe8d2, 2.8, 18.0, 1.1);
   station1Light.position.set(-3.765, 2.4, 2.2);
   scene.add(station1Light);
 
-  const stationExitLight = new THREE.PointLight(0xffdfba, 2.8, 18.0, 1.1);
+  const stationExitLight = new THREE.PointLight(0xffe8d2, 2.8, 18.0, 1.1);
   stationExitLight.position.set(3.765, 2.4, 2.2);
   scene.add(stationExitLight);
 
   // 5. Освещение белой плиточной путевой стены станции снаружи окон (Сторона B)
-  station2Light = new THREE.PointLight(0xffe8cf, 2.6, 16.0, 1.0);
+  station2Light = new THREE.PointLight(0xffedd8, 2.6, 16.0, 1.0);
   station2Light.position.set(0.0, 2.4, -3.0);
   scene.add(station2Light);
 
-  screenLight1 = new THREE.PointLight(0xffeed9, 0.75, 3.5, 1.5);
+  screenLight1 = new THREE.PointLight(0xfff0df, 0.75, 3.5, 1.5);
   screenLight1.position.set(-2.675, 1.40, -0.28);
   scene.add(screenLight1);
 
-  screenLight2 = new THREE.PointLight(0xffeed9, 0.75, 3.5, 1.5);
+  screenLight2 = new THREE.PointLight(0xfff0df, 0.75, 3.5, 1.5);
   screenLight2.position.set(-2.675, 1.40, -2.10);
   scene.add(screenLight2);
 
-  windowPassingLight = new THREE.PointLight(0xffe4cc, 0.6, 9.0, 1.2);
+  windowPassingLight = new THREE.PointLight(0xffe9d5, 0.6, 9.0, 1.2);
   windowPassingLight.position.set(1.595, 1.45, 0.65);
   scene.add(windowPassingLight);
 
-  windowPassingLight2 = new THREE.PointLight(0xffe4cc, 0.6, 9.0, 1.2);
+  windowPassingLight2 = new THREE.PointLight(0xffe9d5, 0.6, 9.0, 1.2);
   windowPassingLight2.position.set(1.595, 1.45, -1.85);
   scene.add(windowPassingLight2);
 }
@@ -854,11 +854,11 @@ function loadSubwayModel() {
           return;
         }
 
-        // 16. Потолочные светильники, призматические рассеиватели и световые табло переходов
+        // 16. Потолочные светильники, призматические рассеиватели и световые табло переходов (3000K)
         if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser') || child.name.includes('Sign_Indicator') || child.name.includes('Next_Car_Ceiling_Light')) {
           child.material = new THREE.MeshStandardMaterial({
             map: ceilingLightTex,
-            emissive: new THREE.Color(0xffaa50),
+            emissive: new THREE.Color(0xffc882),
             emissiveMap: ceilingLightTex,
             emissiveIntensity: 2.8,
             roughness: 0.18

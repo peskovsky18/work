@@ -391,8 +391,9 @@ body.dark-cinema-body {
   transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Текстовые плашки описаний скрыты; плеер отображается только на видео-экранах */
 .floating-hud-bottom {
-  display: none !important;
+  display: none;
   position: fixed;
   bottom: 32px;
   left: 0;
@@ -405,14 +406,23 @@ body.dark-cinema-body {
   transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.info-capsule,
+.stage-placeholder .floating-hud-bottom {
+  display: none !important;
+}
+
+/* На видео-этапах (1 и 2) нижний плеер доступен и появляется плавно */
+.stage-video .floating-hud-bottom {
+  display: flex;
+}
+
 /* При активации этапа HUD капсулы плавно появляются */
 .story-stage.active .floating-hud-top {
   opacity: 1;
   transform: translateY(0);
 }
 
-.story-stage.active .floating-hud-bottom {
-  display: none !important;
+.stage-video.active .floating-hud-bottom {
   opacity: 1;
   transform: translateY(0);
 }

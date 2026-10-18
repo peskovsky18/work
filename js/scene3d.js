@@ -1214,6 +1214,18 @@ function setActiveStage(stageIndex) {
   // Управление звуком в зависимости от экрана
   syncAudioForActiveStage();
 
+  // Автоматический плавный запуск видео в фокусе при подходе камеры
+  if (stageIndex === 1) {
+    if (video1 && video1.paused) {
+      video1.play().catch(() => {});
+    }
+  } else if (stageIndex === 2) {
+    if (video2 && video2.paused) {
+      video2.play().catch(() => {});
+    }
+  }
+  updatePlayButtonsUI();
+
   // Синхронизация хэша в адресной строке
   const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 9: 'contacts' };
   const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;

@@ -222,13 +222,194 @@ export function getPhotoFloorTextures() {
   return result;
 }
 
-// Заглушки для сидений (сиденья используют чистый procedural MeshPhysicalMaterial)
+// =============================================================================
+// ДЕТАЛИЗИРОВАННАЯ ТРАНЗИТНАЯ ЖАККАРДОВАЯ ОБИВКА СИДЕНИЙ ВАГОНА МЕТРО (1024x1024)
+// (Аутентичный микро-жаккард со сложным переплетением нитей, декоративной строчкой,
+//  эргономичными швами, нормалями рельефа ткани и мягким велюровым откликом)
+// =============================================================================
+function createSeatFabricPBR(type, palette) {
+  const cacheKey = `seat_fabric_${type}_pbr`;
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
+
+  const size = 1024;
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = size;
+  colorCanvas.height = size;
+  const cctx = colorCanvas.getContext('2d');
+
+  // Базовый цвет ткани
+  cctx.fillStyle = palette.base;
+  cctx.fillRect(0, 0, size, size);
+
+  const imgData = cctx.getImageData(0, 0, size, size);
+  const data = imgData.data;
+
+  // Псевдослучайный генератор
+  let seed = palette.seed;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  // Нормали
+  const normalCanvas = document.createElement('canvas');
+  normalCanvas.width = size;
+  normalCanvas.height = size;
+  const nctx = normalCanvas.getContext('2d');
+  const nImgData = nctx.createImageData(size, size);
+  const ndata = nImgData.data;
+
+  // Шероховатость
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = size;
+  roughCanvas.height = size;
+  const rctx = roughCanvas.getContext('2d');
+  const rImgData = rctx.createImageData(size, size);
+  const rdata = rImgData.data;
+
+  // Парсинг базовых цветов палитры (rgb)
+  const warpRGB = palette.warpRGB; // Нити основы (продольные)
+  const weftRGB = palette.weftRGB; // Нити утка (поперечные)
+  const accentRGB = palette.accentRGB; // Геометрический жаккардовый акцент
+
+  // Генерация жаккардовой структуры ткани
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const idx = (y * size + x) * 4;
+
+      // 1. Микро-структура переплетения нитей (двойная саржа 4x4)
+      const cellX = x % 8;
+      const cellY = y % 8;
+      const isWarp = ((cellX + cellY) % 4) < 2; // Чередование основы и утка
+
+      // 2. Геометрический жаккардовый микро-узор метро (ромбовидная сетка 64x64 пикселей)
+      const diamondX = (x % 64) - 32;
+      const diamondY = (y % 64) - 32;
+      const distDiamond = Math.abs(diamondX) + Math.abs(diamondY);
+      const isJacquardMotif = distDiamond < 16;
+      const isJacquardBorder = distDiamond >= 16 && distDiamond <= 19;
+
+      // Выбор цвета нити
+      let r, g, b;
+      let heightVal = 128; // для вычисления нормалей
+
+      if (isJacquardBorder) {
+        // Контур микро-узора
+        r = accentRGB[0];
+        g = accentRGB[1];
+        b = accentRGB[2];
+        heightVal = 145;
+      } else if (isJacquardMotif) {
+        // Внутреннее заполнение мотива со сдвинутым блеском
+        const factor = isWarp ? 1.08 : 0.94;
+        r = warpRGB[0] * factor;
+        g = warpRGB[1] * factor;
+        b = warpRGB[2] * factor;
+        heightVal = isWarp ? 140 : 120;
+      } else {
+        // Фоновое полотно
+        if (isWarp) {
+          r = warpRGB[0];
+          g = warpRGB[1];
+          b = warpRGB[2];
+          heightVal = 135;
+        } else {
+          r = weftRGB[0];
+          g = weftRGB[1];
+          b = weftRGB[2];
+          heightVal = 122;
+        }
+      }
+
+      // Естественная вариация ворса ткани и микроволокон
+      const fiberNoise = (rnd() - 0.5) * 14;
+      r = Math.max(0, Math.min(255, r + fiberNoise));
+      g = Math.max(0, Math.min(255, g + fiberNoise));
+      b = Math.max(0, Math.min(255, b + fiberNoise));
+
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255;
+
+      // Нормаль: рельеф нитей ткани
+      const nx = isWarp ? (cellX - 3.5) * 4 : 0;
+      const ny = !isWarp ? (cellY - 3.5) * 4 : 0;
+      ndata[idx] = Math.max(0, Math.min(255, 128 + nx));
+      ndata[idx + 1] = Math.max(0, Math.min(255, 128 + ny));
+      ndata[idx + 2] = Math.max(0, Math.min(255, heightVal + 90));
+      ndata[idx + 3] = 255;
+
+      // Шероховатость: благородная матовая ткань обивки (0.72 - 0.82)
+      const roughBase = isJacquardMotif ? 175 : 192;
+      const rVal = Math.max(0, Math.min(255, roughBase + (rnd() - 0.5) * 12));
+      rdata[idx] = rVal;
+      rdata[idx + 1] = rVal;
+      rdata[idx + 2] = rVal;
+      rdata[idx + 3] = 255;
+    }
+  }
+
+  cctx.putImageData(imgData, 0, 0);
+  nctx.putImageData(nImgData, 0, 0);
+  rctx.putImageData(rImgData, 0, 0);
+
+  // Добавляем поверх элегантную декоративную строчку (двойной шов мебельной обивки)
+  cctx.save();
+  cctx.strokeStyle = palette.stitch;
+  cctx.lineWidth = 2.5;
+  cctx.setLineDash([8, 8]);
+  // Вертикальные швы кроя обивки (каждые 256 пикселей)
+  [128, 384, 640, 896].forEach(sx => {
+    cctx.beginPath();
+    cctx.moveTo(sx, 0);
+    cctx.lineTo(sx, size);
+    cctx.stroke();
+  });
+  cctx.restore();
+
+  // Добавляем рельеф швов на карту нормалей
+  nctx.save();
+  nctx.strokeStyle = 'rgb(100, 100, 240)';
+  nctx.lineWidth = 3;
+  nctx.setLineDash([8, 8]);
+  [128, 384, 640, 896].forEach(sx => {
+    nctx.beginPath();
+    nctx.moveTo(sx, 0);
+    nctx.lineTo(sx, size);
+    nctx.stroke();
+  });
+  nctx.restore();
+
+  const result = {
+    colorMap: createHighResTexture(colorCanvas, 3, 3),
+    normalMap: createNormalTexture(normalCanvas, 3, 3),
+    roughnessMap: createNormalTexture(roughCanvas, 3, 3)
+  };
+  textureCache.set(cacheKey, result);
+  return result;
+}
+
 export function getPhotoSeatYellowTextures() {
-  return {};
+  return createSeatFabricPBR('yellow', {
+    seed: 556677,
+    base: '#dca018',
+    warpRGB: [238, 178, 38], // Светло-золотистая нить основы
+    weftRGB: [195, 136, 12], // Глубокая теплая охра утка
+    accentRGB: [255, 198, 65], // Золотистый жаккардовый акцент
+    stitch: 'rgba(110, 70, 6, 0.45)' // Тонкая контрастная строчка
+  });
 }
 
 export function getPhotoSeatOrangeTextures() {
-  return {};
+  return createSeatFabricPBR('orange', {
+    seed: 889900,
+    base: '#c94d1a',
+    warpRGB: [225, 95, 38], // Сочная терракотовая нить основы
+    weftRGB: [168, 55, 15], // Глубокий кирпичный тон утка
+    accentRGB: [248, 125, 60], // Яркий микро-жаккардовый акцент
+    stitch: 'rgba(90, 25, 8, 0.45)' // Тонкая контрастная строчка
+  });
 }
 
 // =============================================================================

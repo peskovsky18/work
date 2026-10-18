@@ -299,7 +299,7 @@ function setupStationEnvironment() {
     stationEnvGroup.add(signMesh);
   });
 
-  // 1.5 Щебеночный балласт и рельсы под вагоном
+  // 1.5 Щебеночный балласт под вагоном (расположен глубоко под тележками, Y = -0.50)
   const ballastGeom = new THREE.BoxGeometry(trackWallW, 0.15, 2.40);
   const ballastMat = new THREE.MeshStandardMaterial({
     color: 0x181a1f,
@@ -307,16 +307,8 @@ function setupStationEnvironment() {
     metalness: 0.10
   });
   const ballast = new THREE.Mesh(ballastGeom, ballastMat);
-  ballast.position.set(0, -0.12, -1.80);
+  ballast.position.set(0, -0.50, -1.80);
   stationEnvGroup.add(ballast);
-
-  const railGeom = new THREE.BoxGeometry(trackWallW, 0.08, 0.05);
-  const railMat = new THREE.MeshStandardMaterial({ color: 0x78808d, metalness: 0.9, roughness: 0.25 });
-  [-2.15, -0.75].forEach(rz => {
-    const rail = new THREE.Mesh(railGeom, railMat);
-    rail.position.set(0, -0.04, rz);
-    stationEnvGroup.add(rail);
-  });
 
   // =========================================================================
   // 2. СТОРОНА A: СОВРЕМЕННАЯ ПЛАТФОРМА С НЕОНОВЫМИ ПОЛОСАМИ
@@ -826,29 +818,37 @@ function loadSubwayModel() {
           return;
         }
 
-        // 14. Желтые ковшеобразные стеклопластиковые сиденья (чистый сплошной цвет без мыльных текстур и блоков)
+        // 14. Желтые сиденья вагона: аутентичная жаккардовая транзитная ткань обивки высокой детализации
         if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
           child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xf5a300), // Насыщенный теплый желтый цвет сидений метро
-            roughness: 0.16,
+            map: seatYellowPBR.colorMap,
+            normalMap: seatYellowPBR.normalMap,
+            normalScale: new THREE.Vector2(0.85, 0.85),
+            roughnessMap: seatYellowPBR.roughnessMap,
+            roughness: 0.74,
             metalness: 0.02,
-            clearcoat: 0.95,
-            clearcoatRoughness: 0.08,
-            reflectivity: 0.85,
+            sheen: 0.90,
+            sheenRoughness: 0.40,
+            sheenColor: new THREE.Color(0xffc566),
+            clearcoat: 0.02,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // 15. Оранжевые ковшеобразные стеклопластиковые сиденья (чистый сплошной цвет без мыльных текстур и блоков)
+        // 15. Оранжевые сиденья вагона: аутентичная терракотовая транзитная ткань обивки высокой детализации
         if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
           child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xe64a19), // Сочный чистый оранжевый цвет сидений метро
-            roughness: 0.16,
+            map: seatOrangePBR.colorMap,
+            normalMap: seatOrangePBR.normalMap,
+            normalScale: new THREE.Vector2(0.85, 0.85),
+            roughnessMap: seatOrangePBR.roughnessMap,
+            roughness: 0.74,
             metalness: 0.02,
-            clearcoat: 0.95,
-            clearcoatRoughness: 0.08,
-            reflectivity: 0.85,
+            sheen: 0.90,
+            sheenRoughness: 0.40,
+            sheenColor: new THREE.Color(0xff8c4a),
+            clearcoat: 0.02,
             side: THREE.DoubleSide
           });
           return;
@@ -946,42 +946,39 @@ function loadSubwayModel() {
       });
       const doorDecalGeom = new THREE.PlaneGeometry(0.34, 0.085);
 
-      const attachDoorDecal = (doorObj, zOffset = -0.062) => {
+      const attachDoorDecal = (doorObj) => {
         if (!doorObj) return;
         const decalMesh = new THREE.Mesh(doorDecalGeom, doorDecalMat);
-        decalMesh.position.set(0, 0.16, zOffset);
+        const sx = Math.abs(doorObj.scale.x) || 1;
+        const sy = Math.abs(doorObj.scale.y) || 1;
+        const sz = Math.abs(doorObj.scale.z) || 1;
+        // Отрицательный scale.x разворачивает текст так, чтобы он читался слева направо изнутри вагона
+        // Полностью компенсируем неравномерный масштаб створки двери [0.60, 1.98, 0.038]
+        decalMesh.scale.set(-1 / sx, 1 / sy, -1 / sz);
+        // Центр створки на Y = 0.99, смещение +0.38м поднимает надпись на уровень глаз (Y ~ 1.37м)
+        // Смещение Z = -0.024м позиционирует надпись строго на внутренней поверхности стекла внутри салона
+        decalMesh.position.set(0, 0.38 / sy, -0.024 / sz);
         decalMesh.renderOrder = 4;
         doorObj.add(decalMesh);
       };
 
       // Двери 1 (Вход, Wall A)
-      attachDoorDecal(doorLeft, -0.062);
-      attachDoorDecal(doorRight, -0.062);
+      attachDoorDecal(doorLeft);
+      attachDoorDecal(doorRight);
 
       // Двери 2 (Выход, Wall A)
-      attachDoorDecal(doorLeftD2, -0.062);
-      attachDoorDecal(doorRightD2, -0.062);
+      attachDoorDecal(doorLeftD2);
+      attachDoorDecal(doorRightD2);
 
       // Двери 3 (Сторона B)
-      attachDoorDecal(doorLeftD3, 0.062);
-      attachDoorDecal(doorRightD3, 0.062);
+      attachDoorDecal(doorLeftD3);
+      attachDoorDecal(doorRightD3);
 
       // Двери 4 (Сторона B)
-      attachDoorDecal(doorLeftD4, 0.062);
-      attachDoorDecal(doorRightD4, 0.062);
+      attachDoorDecal(doorLeftD4);
+      attachDoorDecal(doorRightD4);
 
       scene.add(subwayModel);
-
-      // Желтая рельефная тактильная полоса безопасности вдоль края платформы
-      const safetyLineGeom = new THREE.BoxGeometry(12, 0.008, 0.16);
-      const safetyLineMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(0xf5a623),
-        roughness: 0.40,
-        metalness: 0.05
-      });
-      const safetyLine = new THREE.Mesh(safetyLineGeom, safetyLineMat);
-      safetyLine.position.set(0, 0.004, 0.32);
-      scene.add(safetyLine);
 
       // Инициализация привязки скролла GSAP ScrollTrigger
       initScrollTriggers();

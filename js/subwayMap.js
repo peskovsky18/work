@@ -655,4 +655,109 @@ export function getStationSignTexture(THREE) {
   return cachedStationSignTex;
 }
 
+/**
+ * Генератор аутентичной эмалированной таблички с названием станции на путевой стене («СТАНЦИЯ ПЕСКОВСКАЯ»)
+ */
+let cachedTrackWallSignTex = null;
+export function getTrackWallSignTexture(THREE) {
+  if (cachedTrackWallSignTex) return cachedTrackWallSignTex;
+
+  const cvs = document.createElement('canvas');
+  cvs.width = 1600;
+  cvs.height = 360;
+  const ctx = cvs.getContext('2d');
+
+  // Литая латунная основа таблички с фаской
+  const plateGrad = ctx.createLinearGradient(0, 0, 0, 360);
+  plateGrad.addColorStop(0, '#1c1f26');
+  plateGrad.addColorStop(0.5, '#121419');
+  plateGrad.addColorStop(1, '#0b0c10');
+  ctx.fillStyle = plateGrad;
+  ctx.fillRect(0, 0, 1600, 360);
+
+  // Латунная рамка по периметру
+  ctx.strokeStyle = '#c9933b';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(16, 16, 1568, 328);
+
+  ctx.strokeStyle = '#845d1e';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(26, 26, 1548, 308);
+
+  // Латунные заклепки / болты по углам и краям
+  const bolts = [
+    [40, 40], [1560, 40], [40, 320], [1560, 320],
+    [800, 24], [800, 336]
+  ];
+  bolts.forEach(([bx, by]) => {
+    ctx.beginPath();
+    ctx.arc(bx, by, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#dfab48';
+    ctx.fill();
+    ctx.strokeStyle = '#5a3d0b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // Эмблема метро «М» в латунном круге по центру сверху
+  ctx.save();
+  ctx.translate(800, 75);
+  ctx.fillStyle = '#e42313';
+  ctx.beginPath();
+  ctx.arc(0, 0, 24, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#f5c862';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-12, 11);
+  ctx.lineTo(-6, -11);
+  ctx.lineTo(0, 3);
+  ctx.lineTo(6, -11);
+  ctx.lineTo(12, 11);
+  ctx.stroke();
+  ctx.restore();
+
+  // Основное название станции: «ПЕСКОВСКАЯ»
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Рельефная тень букв
+  ctx.font = '900 86px "Cinzel", "Georgia", "Times New Roman", serif';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.fillText('П Е С К О В С К А Я', 803, 198);
+
+  // Золотые буквы с легким градиентом
+  const textGrad = ctx.createLinearGradient(0, 140, 0, 240);
+  textGrad.addColorStop(0, '#fff4d6');
+  textGrad.addColorStop(0.4, '#f5c862');
+  textGrad.addColorStop(0.8, '#d49b2f');
+  textGrad.addColorStop(1, '#9e6d15');
+  ctx.fillStyle = textGrad;
+  ctx.fillText('П Е С К О В С К А Я', 800, 195);
+
+  // Тонкий контур вокруг букв
+  ctx.strokeStyle = '#422c06';
+  ctx.lineWidth = 1.5;
+  ctx.strokeText('П Е С К О В С К А Я', 800, 195);
+
+  // Подзаголовок латиницей и дата
+  ctx.font = '600 24px "Space Grotesk", sans-serif';
+  ctx.letterSpacing = '6px';
+  ctx.fillStyle = '#a6b0c2';
+  ctx.fillText('СТАНЦИЯ ОТКРЫТА В 2026 ГОДУ • PESKOVSKAYA STATION', 800, 275);
+
+  cachedTrackWallSignTex = new THREE.CanvasTexture(cvs);
+  cachedTrackWallSignTex.colorSpace = THREE.SRGBColorSpace;
+  cachedTrackWallSignTex.flipY = true;
+  cachedTrackWallSignTex.generateMipmaps = true;
+  return cachedTrackWallSignTex;
+}
+
+
 

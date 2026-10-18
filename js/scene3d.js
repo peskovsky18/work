@@ -23,10 +23,10 @@ import {
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
 // =============================================================================
 const CAMERA_WAYPOINTS = [
-  // 0: Старт у открытых дверей на станции 1
+  // 0: Старт у дверей вагона под углом 30° вдоль салона поезда в сторону экранов
   {
-    desktop: { pos: new THREE.Vector3(-3.765, 1.35, -2.45), target: new THREE.Vector3(-3.765, 1.38, 0.0) },
-    mobile:  { pos: new THREE.Vector3(-3.765, 1.35, -2.75), target: new THREE.Vector3(-3.765, 1.38, 0.0) }
+    desktop: { pos: new THREE.Vector3(-3.765, 1.35, -1.25), target: new THREE.Vector3(-3.073, 1.38, 0.0) },
+    mobile:  { pos: new THREE.Vector3(-3.765, 1.35, -1.40), target: new THREE.Vector3(-3.073, 1.38, 0.0) }
   },
   // 1: Работа 1 «Свэг» (Screen 1)
   {
@@ -415,19 +415,60 @@ function setupGrabStraps() {
 // Подвесной светящийся указатель на станции назначения (Станция Песковская / Станция 2)
 function setupStation2Sign() {
   const signTex = getStationSignTexture(THREE);
-  const signGeom = new THREE.BoxGeometry(2.4, 0.60, 0.08);
+
+  // Создаем плоский световой указатель станции с гарантированно правильной ориентацией UV
+  // Лицевая сторона строго направлена на пассажира в вагоне (нормаль 0, 0, -1)
+  const signGeom = new THREE.BufferGeometry();
+  const positions = new Float32Array([
+    // Первый треугольник (обход против часовой стрелки при взгляде с -Z)
+    -1.20, -0.30, 0.0,
+     1.20, -0.30, 0.0,
+     1.20,  0.30, 0.0,
+    // Второй треугольник
+    -1.20, -0.30, 0.0,
+     1.20,  0.30, 0.0,
+    -1.20,  0.30, 0.0
+  ]);
+  const uvs = new Float32Array([
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0
+  ]);
+  const normals = new Float32Array([
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1
+  ]);
+  signGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  signGeom.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  signGeom.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+
   const signMat = new THREE.MeshStandardMaterial({
     map: signTex,
     emissive: new THREE.Color(0xffffff),
     emissiveMap: signTex,
     emissiveIntensity: 0.0,
-    roughness: 0.3,
-    metalness: 0.1
+    roughness: 0.25,
+    metalness: 0.05,
+    side: THREE.DoubleSide
   });
+
   stationSignMesh = new THREE.Mesh(signGeom, signMat);
   stationSignMesh.position.set(-3.765, 2.18, 2.15);
-  stationSignMesh.rotation.y = Math.PI;
   stationSignMesh.visible = false; // Скрыт на станции 1, появляется только по прибытии на Станцию 2
+
+  // Корпус лайтбокса сзади
+  const housingGeom = new THREE.BoxGeometry(2.44, 0.64, 0.06);
+  const housingMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.35, metalness: 0.8 });
+  const housingMesh = new THREE.Mesh(housingGeom, housingMat);
+  housingMesh.position.set(0, 0, 0.035);
+  stationSignMesh.add(housingMesh);
 
   // Подвесные металлические тросы указателя
   const cableGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.8, 6);
@@ -716,7 +757,17 @@ function loadSubwayModel() {
         }
 
         // 10. Архитектурная отделка окон, карнизов и молдингов
-        if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar') || child.name.includes('Window_Inner_Frame')) {
+        if (child.name.includes('Window_Inner_Frame')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x1a1a1c), // плотный черный резиновый уплотнитель окна
+            roughness: 0.88,
+            metalness: 0.05,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar')) {
           child.material = new THREE.MeshStandardMaterial({
             map: wallPBR.colorMap,
             normalMap: wallPBR.normalMap,
@@ -877,29 +928,31 @@ function loadSubwayModel() {
       doorRight = subwayModel.getObjectByName('Door_Right_Photo') || subwayModel.getObjectByName('Door_ScreenRight');
       if (doorLeft && doorRight) {
         doorLeft.position.x = DOOR_LEFT_OPEN_X;
+        doorLeft.position.z = 0.054;
         doorRight.position.x = DOOR_RIGHT_OPEN_X;
+        doorRight.position.z = 0.054;
       }
 
-      // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4)
+      // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4) строго снаружи стен
       const doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
       const doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
       if (doorLeftD2 && doorRightD2) {
-        doorLeftD2.position.set(4.065, 0.99, 0.015);
-        doorRightD2.position.set(3.465, 0.99, 0.015);
+        doorLeftD2.position.set(4.065, 0.99, 0.054);
+        doorRightD2.position.set(3.465, 0.99, 0.054);
       }
 
       const doorLeftD3 = subwayModel.getObjectByName('Door_Left_Photo_D3');
       const doorRightD3 = subwayModel.getObjectByName('Door_Right_Photo_D3');
       if (doorLeftD3 && doorRightD3) {
-        doorLeftD3.position.set(-3.465, 0.99, -2.38);
-        doorRightD3.position.set(-4.065, 0.99, -2.38);
+        doorLeftD3.position.set(-3.465, 0.99, -2.454);
+        doorRightD3.position.set(-4.065, 0.99, -2.454);
       }
 
       const doorLeftD4 = subwayModel.getObjectByName('Door_Left_Photo_D4');
       const doorRightD4 = subwayModel.getObjectByName('Door_Right_Photo_D4');
       if (doorLeftD4 && doorRightD4) {
-        doorLeftD4.position.set(4.065, 0.99, -2.38);
-        doorRightD4.position.set(3.465, 0.99, -2.38);
+        doorLeftD4.position.set(4.065, 0.99, -2.454);
+        doorRightD4.position.set(3.465, 0.99, -2.454);
       }
 
       scene.add(subwayModel);
@@ -1239,8 +1292,8 @@ function setupEventListeners() {
 
       freeLook.x += dx * 0.003;
       freeLook.y -= dy * 0.003;
-      freeLook.x = Math.max(-0.85, Math.min(0.85, freeLook.x));
-      freeLook.y = Math.max(-0.45, Math.min(0.45, freeLook.y));
+      freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x)); // Мягкий деликатный диапазон до 30 градусов
+      freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
     }
   }, { passive: true });
 

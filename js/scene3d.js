@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech } from './subwayAudio.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -68,7 +68,8 @@ const CAMERA_WAYPOINTS = [
 let scene, camera, renderer, clock;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh, platformMapMesh;
+let screen1Mesh, screen2Mesh, platformMapMesh, emergencyBrakeMesh;
+let isEmergencyBraking = false;
 let video1, video2;
 let videoTexture1, videoTexture2;
 let screenLight1, screenLight2;
@@ -147,6 +148,9 @@ export function initSubwayScene() {
 
   // 4.2 Атмосферные микрочастицы в лучах света вагона
   setupDustParticles();
+
+  // 4.3 Интерактивный стоп-кран в вагоне
+  setupEmergencyBrake();
 
   // 5. Видеоэлементы и текстуры
   setupVideoTextures();
@@ -283,6 +287,50 @@ function setupDustParticles() {
   });
   dustParticles = new THREE.Points(geom, mat);
   scene.add(dustParticles);
+}
+
+// Интерактивный стоп-кран в вагоне (пасхалка)
+function setupEmergencyBrake() {
+  const brakeGroup = new THREE.Group();
+  const redBox = new THREE.Mesh(
+    new THREE.BoxGeometry(0.10, 0.16, 0.05),
+    new THREE.MeshStandardMaterial({ color: 0xd61818, roughness: 0.30, metalness: 0.35 })
+  );
+  brakeGroup.add(redBox);
+
+  const lever = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.009, 0.009, 0.12, 8),
+    new THREE.MeshStandardMaterial({ color: 0xf0f3f6, roughness: 0.12, metalness: 0.98 })
+  );
+  lever.position.set(0, -0.012, 0.035);
+  lever.rotation.z = Math.PI * 0.25;
+  brakeGroup.add(lever);
+
+  brakeGroup.position.set(-3.25, 1.62, -0.06);
+  emergencyBrakeMesh = redBox;
+  redBox.userData = { isBrake: true, group: brakeGroup, lever };
+  scene.add(brakeGroup);
+}
+
+function triggerEmergencyBrake() {
+  if (isEmergencyBraking) return;
+  isEmergencyBraking = true;
+  playBrakeScreech();
+
+  if (emergencyBrakeMesh && emergencyBrakeMesh.userData.lever) {
+    emergencyBrakeMesh.userData.lever.rotation.z = -Math.PI * 0.25;
+  }
+
+  window.dispatchEvent(new CustomEvent('emergency-brake-triggered'));
+  trainSpeed = 0.0;
+
+  setTimeout(() => {
+    if (emergencyBrakeMesh && emergencyBrakeMesh.userData.lever) {
+      emergencyBrakeMesh.userData.lever.rotation.z = Math.PI * 0.25;
+    }
+    isEmergencyBraking = false;
+    window.dispatchEvent(new CustomEvent('emergency-brake-reset'));
+  }, 4500);
 }
 
 
@@ -856,10 +904,12 @@ function setupEventListeners() {
   // Клик по экрану в 3D пространстве
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по интерфейсу (кнопкам)
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner')) return;
 
     if (hoveredScreen) {
-      if (hoveredScreen === platformMapMesh) {
+      if (hoveredScreen === emergencyBrakeMesh || (hoveredScreen.userData && hoveredScreen.userData.isBrake)) {
+        triggerEmergencyBrake();
+      } else if (hoveredScreen === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else if (hoveredScreen === screen1Mesh) {
         scrollToStage(1);
@@ -946,10 +996,11 @@ function animate() {
   const vibY = (Math.sin(time * 16.0) * 0.002 + Math.sin(time * 4.0) * 0.006) * trainSpeed;
   const vibX = (Math.cos(time * 12.0) * 0.0015 + Math.sin(time * 2.5) * 0.004) * trainSpeed;
   const vibRoll = Math.sin(time * 3.0) * 0.003 * trainSpeed;
+  const emShake = isEmergencyBraking ? (Math.random() - 0.5) * 0.025 : 0;
 
   camera.position.set(
-    camCurrentPos.x + mouseOffsetDamped.x + vibX,
-    camCurrentPos.y + mouseOffsetDamped.y + vibY,
+    camCurrentPos.x + mouseOffsetDamped.x + vibX + emShake,
+    camCurrentPos.y + mouseOffsetDamped.y + vibY + emShake,
     camCurrentPos.z
   );
   camera.lookAt(camCurrentTarget.x + mouseOffsetDamped.x * 0.5, camCurrentTarget.y, camCurrentTarget.z);
@@ -1013,6 +1064,7 @@ function animate() {
   // 3. Raycaster для определения наведения на экраны и схему метро
   const validScreens = screenMeshes.filter(Boolean);
   if (platformMapMesh) validScreens.push(platformMapMesh);
+  if (emergencyBrakeMesh) validScreens.push(emergencyBrakeMesh);
   if (validScreens.length > 0) {
     raycaster.setFromCamera(mouseVec, camera);
     const intersects = raycaster.intersectObjects(validScreens, false);

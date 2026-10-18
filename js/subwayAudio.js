@@ -130,3 +130,39 @@ export function playArrivalChime() {
     osc.stop(now + idx * 0.15 + 0.55);
   });
 }
+
+// Звук скрежета колодок и экстренного торможения стоп-крана
+export function playBrakeScreech() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+
+  osc1.type = 'sawtooth';
+  osc2.type = 'triangle';
+  osc1.frequency.setValueAtTime(2400, now);
+  osc1.frequency.exponentialRampToValueAtTime(800, now + 1.2);
+  osc2.frequency.setValueAtTime(2450, now);
+  osc2.frequency.exponentialRampToValueAtTime(780, now + 1.2);
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 2200;
+  filter.Q.value = 3.5;
+
+  g.gain.setValueAtTime(0.0, now);
+  g.gain.linearRampToValueAtTime(0.12, now + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(g);
+  g.connect(audioCtx.destination);
+
+  osc1.start(now);
+  osc2.start(now);
+  osc1.stop(now + 1.35);
+  osc2.stop(now + 1.35);
+}

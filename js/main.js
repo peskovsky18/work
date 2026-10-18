@@ -332,6 +332,7 @@ function initProjectModal() {
       modalVideo.pause();
       modalVideo.src = '';
     }
+    resetScreenZoom();
   };
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
   if (backdrop) backdrop.addEventListener('click', closeModal);

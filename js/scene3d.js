@@ -190,21 +190,21 @@ let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 let stationEnvGroup;
 
 function setupSubwayLighting() {
-  // 1. Сбалансированный нейтральный дневной свет вагона и станции (5600K)
-  const ambient = new THREE.AmbientLight(0xf0f5fc, 1.30);
+  // 1. Сбалансированный нейтральный дневной свет вагона и станции (5600K) — яркое заливающее освещение
+  const ambient = new THREE.AmbientLight(0xf4f8fc, 1.65);
   scene.add(ambient);
 
   // 2. Двойной ряд потолочных люминесцентных светильников вагона (яркий чистый свет с подсветкой сидений и стен)
   // Ряд A (вдоль стены A и экранов) и Ряд B (вдоль окон B)
   [-4.8, -3.2, -1.6, 0.0, 1.6, 3.2, 4.8].forEach(px => {
     // Центральный проход и стена A
-    const lampA = new THREE.PointLight(0xfff8f0, 2.4, 6.8, 1.2);
+    const lampA = new THREE.PointLight(0xfff8f0, 2.6, 7.2, 1.1);
     lampA.position.set(px, 2.20, -0.75);
     scene.add(lampA);
     ceilingLamps.push(lampA);
 
     // Стена B
-    const lampB = new THREE.PointLight(0xf2f7ff, 2.2, 6.8, 1.2);
+    const lampB = new THREE.PointLight(0xf2f7ff, 2.4, 7.2, 1.1);
     lampB.position.set(px, 2.20, -1.65);
     scene.add(lampB);
     ceilingLamps.push(lampB);
@@ -1233,39 +1233,39 @@ function setupEventListeners() {
   window.addEventListener('click', requestGyro, { once: true });
   window.addEventListener('touchstart', requestGyro, { once: true });
 
-  // Клик по экрану в 3D пространстве
+  // Включение тихого фонового эмбиента и стука колес при первом скролле
+  const enableSoundOnFirstInteraction = () => {
+    if (isGlobalMuted) {
+      isGlobalMuted = false;
+      initSubwayAudio();
+      syncAudioForActiveStage();
+      updateSoundButtonUI();
+    }
+  };
+  window.addEventListener('wheel', enableSoundOnFirstInteraction, { passive: true, once: true });
+  window.addEventListener('touchmove', enableSoundOnFirstInteraction, { passive: true, once: true });
+  window.addEventListener('scroll', enableSoundOnFirstInteraction, { passive: true, once: true });
+
+  // Клик по экрану в 3D пространстве — плавный зум и разворачивание модального окна проекта
   window.addEventListener('click', (e) => {
-    // Не срабатывать, если клик был по интерфейсу (кнопкам)
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner')) return;
+    // Не срабатывать, если клик был по интерфейсу (кнопкам, модалкам)
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
 
     if (hoveredScreen) {
       if (hoveredScreen === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
-      } else if (hoveredScreen === screen1Mesh) {
-        if (activeStage === 1) {
-          toggleScreenZoom();
-        } else {
-          scrollToStage(1);
-        }
-        toggleVideoPlay(video1);
-      } else if (hoveredScreen === screen2Mesh) {
-        if (activeStage === 2) {
-          toggleScreenZoom();
-        } else {
-          scrollToStage(2);
-        }
-        toggleVideoPlay(video2);
       } else {
         const sIdx = screenMeshes.indexOf(hoveredScreen);
         const stageMap = { 1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8 };
-        if (stageMap[sIdx] !== undefined) {
-          const targetStage = stageMap[sIdx];
-          if (activeStage === targetStage) {
-            toggleScreenZoom();
-          } else {
-            scrollToStage(targetStage);
-          }
-        }
+        const targetStage = stageMap[sIdx] || (hoveredScreen === screen1Mesh ? 1 : (hoveredScreen === screen2Mesh ? 2 : Math.max(1, activeStage)));
+
+        // 1. Плавный кинематографический зум камеры прямо к выбранному экрану
+        zoomToScreen(targetStage);
+
+        // 2. Открытие информационного модального окна проекта
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('open-project-modal', { detail: { project: targetStage } }));
+        }, 220);
       }
     }
   });
@@ -1303,21 +1303,26 @@ function setupEventListeners() {
 }
 
 let isZoomedToScreen = false;
-export function toggleScreenZoom() {
-  if (activeStage < 1 || activeStage > 8) return;
-  isZoomedToScreen = !isZoomedToScreen;
+
+export function zoomToScreen(stage) {
+  const targetStage = Math.max(1, Math.min(stage || activeStage, 8));
+  isZoomedToScreen = true;
   playHapticChime();
 
   const isMobile = window.innerWidth < 768;
-  const currentWp = CAMERA_WAYPOINTS[activeStage][isMobile ? 'mobile' : 'desktop'];
+  const currentWp = CAMERA_WAYPOINTS[targetStage][isMobile ? 'mobile' : 'desktop'];
+  const targetZ = isMobile ? -0.80 : -0.52;
+  camTargetPos.set(currentWp.pos.x, currentWp.pos.y, targetZ);
+  camTargetLookAt.set(currentWp.target.x, currentWp.target.y, currentWp.target.z);
+  document.body.classList.add('screen-zoomed');
+  window.dispatchEvent(new CustomEvent('screen-zoom-toggled', { detail: { isZoomed: true, stage: targetStage } }));
+}
 
+export function resetScreenZoom() {
   if (isZoomedToScreen) {
-    const targetZ = isMobile ? -0.80 : -0.52;
-    camTargetPos.set(currentWp.pos.x, currentWp.pos.y, targetZ);
-    camTargetLookAt.set(currentWp.target.x, currentWp.target.y, currentWp.target.z);
-    document.body.classList.add('screen-zoomed');
-    window.dispatchEvent(new CustomEvent('screen-zoom-toggled', { detail: { isZoomed: true } }));
-  } else {
+    isZoomedToScreen = false;
+    const isMobile = window.innerWidth < 768;
+    const currentWp = CAMERA_WAYPOINTS[activeStage][isMobile ? 'mobile' : 'desktop'];
     camTargetPos.copy(currentWp.pos);
     camTargetLookAt.copy(currentWp.target);
     document.body.classList.remove('screen-zoomed');
@@ -1325,9 +1330,11 @@ export function toggleScreenZoom() {
   }
 }
 
-export function resetScreenZoom() {
+export function toggleScreenZoom() {
   if (isZoomedToScreen) {
-    toggleScreenZoom();
+    resetScreenZoom();
+  } else {
+    zoomToScreen(activeStage);
   }
 }
 
@@ -1477,16 +1484,14 @@ function animate() {
     }
   }
 
-  // 2.3c Динамическое свечение экранов при воспроизведении видео
+  // 2.3c Мягкое акцентное свечение экранов при воспроизведении видео
   if (screenLight1 && video1) {
-    const base1 = video1.paused ? 0.45 : 0.68;
-    const flicker1 = video1.paused ? 0 : Math.sin(time * 7.5) * 0.09 + Math.sin(time * 18.0) * 0.04;
-    screenLight1.intensity += ((base1 + flicker1) - screenLight1.intensity) * 0.15;
+    const base1 = video1.paused ? 0.60 : 0.85;
+    screenLight1.intensity += (base1 - screenLight1.intensity) * 0.15;
   }
   if (screenLight2 && video2) {
-    const base2 = video2.paused ? 0.45 : 0.68;
-    const flicker2 = video2.paused ? 0 : Math.sin(time * 8.2) * 0.09 + Math.cos(time * 16.5) * 0.04;
-    screenLight2.intensity += ((base2 + flicker2) - screenLight2.intensity) * 0.15;
+    const base2 = video2.paused ? 0.60 : 0.85;
+    screenLight2.intensity += (base2 - screenLight2.intensity) * 0.15;
   }
 
   // 2.4 Движение встречного поезда в тоннеле за окнами
@@ -1497,20 +1502,6 @@ function animate() {
     }
     if (oppTrainGroup.position.x > 50.0) {
       oppTrainGroup.position.x = -130.0 - Math.random() * 80.0;
-    }
-  }
-
-  // 2.7 Кинематографическая просадка напряжения в тоннеле (Third-Rail Power Gap)
-  if (ceilingLamps.length > 0) {
-    let powerFlicker = 1.0;
-    if (trainSpeed > 0.5) {
-      const cycle = (time * 0.065) % 1.0;
-      if (cycle > 0.88 && cycle < 0.91) {
-        powerFlicker = 0.35 + Math.random() * 0.15;
-      }
-    }
-    for (let i = 0; i < ceilingLamps.length; i++) {
-      ceilingLamps[i].intensity = 1.5 * powerFlicker;
     }
   }
 

@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime } from './subwayAudio.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -162,7 +162,7 @@ export function initSubwayScene() {
 // ОСВЕЩЕНИЕ ВАГОНА МЕТРО (APPLE DARK CINEMATIC)
 // =============================================================================
 let trainSpeed = 0.0;
-let tunnelGroup;
+let tunnelGroup, oppTrainGroup;
 const tunnelLights = [];
 let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
@@ -236,6 +236,24 @@ function setupTunnelSystem() {
     tunnelLights.push({ mesh: bMesh, light: bLight, sideZ });
     tunnelGroup.add(bMesh); tunnelGroup.add(bLight);
   }
+
+  // Встречный поезд на соседнем пути в тоннеле (проносится в окнах)
+  oppTrainGroup = new THREE.Group();
+  const oppBodyMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.85, metalness: 0.6 });
+  const oppCar = new THREE.Mesh(new THREE.BoxGeometry(24, 2.7, 2.2), oppBodyMat);
+  oppCar.position.set(0, 1.45, 0);
+  oppTrainGroup.add(oppCar);
+
+  const oppWinMat = new THREE.MeshBasicMaterial({ color: 0xffdf88 });
+  const oppWinGeom = new THREE.BoxGeometry(1.2, 0.65, 0.04);
+  for (let wx = -9.0; wx <= 9.0; wx += 2.2) {
+    const wMesh = new THREE.Mesh(oppWinGeom, oppWinMat);
+    wMesh.position.set(wx, 1.5, -1.12);
+    oppTrainGroup.add(wMesh);
+  }
+  oppTrainGroup.position.set(-80, 0, 2.3);
+  tunnelGroup.add(oppTrainGroup);
+
   scene.add(tunnelGroup);
 }
 
@@ -590,6 +608,8 @@ function initScrollTriggers() {
   const isMobile = () => window.innerWidth < 768;
   const getWaypoint = (idx) => CAMERA_WAYPOINTS[idx][isMobile() ? 'mobile' : 'desktop'];
   const NUM_SEGMENTS = CAMERA_WAYPOINTS.length - 1;
+  let hasPlayedDoorChime = false;
+  let hasPlayedArrivalChime = false;
 
   ScrollTrigger.create({
     trigger: '#scroll-story',
@@ -610,6 +630,21 @@ function initScrollTriggers() {
 
       camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
       camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
+
+      // Звуковые сигналы закрытия дверей и прибытия на станцию
+      if (p < 0.01) {
+        hasPlayedDoorChime = false;
+      } else if (p > 0.02 && !hasPlayedDoorChime && !isGlobalMuted) {
+        playDoorChime();
+        hasPlayedDoorChime = true;
+      }
+
+      if (p < 0.88) {
+        hasPlayedArrivalChime = false;
+      } else if (p > 0.94 && !hasPlayedArrivalChime && !isGlobalMuted) {
+        playArrivalChime();
+        hasPlayedArrivalChime = true;
+      }
 
       // Двери закрываются при отправлении со ст.1 и открываются при прибытии на ст.2
       if (p >= 0.94) {
@@ -777,6 +812,16 @@ function setupEventListeners() {
     }
   }, { passive: true });
 
+  // Гироскоп на смартфонах (наклон телефона для кинематографичного обзора)
+  window.addEventListener('deviceorientation', (e) => {
+    if (e.gamma !== null && e.beta !== null) {
+      const gx = Math.min(Math.max(e.gamma, -25), 25) / 25;
+      const gy = Math.min(Math.max(e.beta - 45, -25), 25) / 25;
+      mouseOffset.x = gx * 0.06;
+      mouseOffset.y = -gy * 0.04;
+    }
+  }, { passive: true });
+
   // Клик по экрану в 3D пространстве
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по интерфейсу (кнопкам)
@@ -908,6 +953,14 @@ function animate() {
   } else {
     if (windowPassingLight) windowPassingLight.intensity += (0.0 - windowPassingLight.intensity) * 0.1;
     if (windowPassingLight2) windowPassingLight2.intensity += (0.0 - windowPassingLight2.intensity) * 0.1;
+  }
+
+  // 2.4 Движение встречного поезда в тоннеле за окнами
+  if (oppTrainGroup && trainSpeed > 0.25) {
+    oppTrainGroup.position.x += (trainSpeed * 22.0 + 36.0) * dt;
+    if (oppTrainGroup.position.x > 50.0) {
+      oppTrainGroup.position.x = -130.0 - Math.random() * 80.0;
+    }
   }
 
   // 3. Raycaster для определения наведения на экраны

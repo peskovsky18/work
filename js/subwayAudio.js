@@ -69,3 +69,64 @@ export function updateSubwayAudio(speed, isMuted) {
     rumbleFilter.frequency.setTargetAtTime(targetFreq, now, 0.2);
   }
 }
+
+// Двухтональный звуковой сигнал закрытия дверей (E5 -> C5) и пневматический выпуск воздуха
+export function playDoorChime() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+
+  [ { freq: 659.25, time: 0.0, dur: 0.24 }, { freq: 523.25, time: 0.25, dur: 0.35 } ].forEach(({ freq, time, dur }) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + time);
+    g.gain.setValueAtTime(0.0, now + time);
+    g.gain.linearRampToValueAtTime(0.09, now + time + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(now + time);
+    osc.stop(now + time + dur);
+  });
+
+  // Пневматический звук "пш-ш" выпуска давления дверей
+  setTimeout(() => {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const pNow = audioCtx.currentTime;
+    const bSize = Math.floor(audioCtx.sampleRate * 0.45);
+    const nBuf = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
+    const data = nBuf.getChannelData(0);
+    for (let i = 0; i < bSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bSize * 0.25));
+    const src = audioCtx.createBufferSource();
+    src.buffer = nBuf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1600;
+    filter.Q.value = 1.2;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.035, pNow);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    src.start(pNow);
+  }, 550);
+}
+
+// Прибывающий мажорный аккорд на станции назначения (C5 -> E5 -> G5)
+export function playArrivalChime() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+  [523.25, 659.25, 783.99].forEach((freq, idx) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+    g.gain.setValueAtTime(0.0, now + idx * 0.15);
+    g.gain.linearRampToValueAtTime(0.07, now + idx * 0.15 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.15 + 0.55);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(now + idx * 0.15);
+    osc.stop(now + idx * 0.15 + 0.55);
+  });
+}

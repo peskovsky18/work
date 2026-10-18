@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Горячие клавиши
   initKeyboardShortcuts();
+
+  // 5. Модальное окно деталей проектов
+  initProjectModal();
 });
 
 // =============================================================================
@@ -128,5 +131,70 @@ function initKeyboardShortcuts() {
         scrollToStage(9);
       }
     }
+  });
+}
+
+// =============================================================================
+// МОДАЛЬНОЕ ОКНО ДЕТАЛЕЙ ПРОЕКТА
+// =============================================================================
+const PROJECT_DATA = {
+  1: {
+    badge: 'SHOT ON IPHONE • 2026',
+    title: 'Свэг',
+    desc: 'Режиссура, съемка и цветокоррекция. Экспериментальный визуальный стиль с аутентичным ритмом монтажа и динамичной операторской работой.',
+    meta: [
+      { label: 'Камера', val: 'iPhone 4K 60fps' },
+      { label: 'Режиссер', val: 'Александр Песковский' },
+      { label: 'Формат', val: '16:9 • Apple Log' }
+    ]
+  },
+  2: {
+    badge: 'SHOT ON IPHONE • 2026',
+    title: 'Мини свэг',
+    desc: 'Короткометражная визуальная зарисовка. Точная ритмика кадров, глубокие тени и акцент на деталях городской эстетики.',
+    meta: [
+      { label: 'Камера', val: 'iPhone 4K 60fps' },
+      { label: 'Режиссер', val: 'Александр Песковский' },
+      { label: 'Формат', val: '16:9 • Cinematic' }
+    ]
+  }
+};
+
+function initProjectModal() {
+  const modal = document.getElementById('project-modal');
+  const closeBtn = document.getElementById('modal-close-btn');
+  const backdrop = document.getElementById('modal-backdrop');
+  if (!modal) return;
+
+  const closeModal = () => modal.classList.remove('open');
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (backdrop) backdrop.addEventListener('click', closeModal);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
+  const infoBtns = document.querySelectorAll('.info-btn');
+  infoBtns.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pId = btn.dataset.project;
+      const data = PROJECT_DATA[pId];
+      if (!data) return;
+
+      document.getElementById('modal-badge').textContent = data.badge;
+      document.getElementById('modal-title').textContent = data.title;
+      document.getElementById('modal-desc').textContent = data.desc;
+      const metaContainer = document.getElementById('modal-meta');
+      if (metaContainer) {
+        metaContainer.innerHTML = data.meta.map(m => `
+          <div class="meta-item">
+            <span class="meta-label">${m.label}</span>
+            <span class="meta-val">${m.val}</span>
+          </div>
+        `).join('');
+      }
+      modal.classList.add('open');
+    });
   });
 }

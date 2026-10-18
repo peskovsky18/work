@@ -571,6 +571,26 @@ body.dark-cinema-body {
   text-align: right;
 }
 
+.player-waveform-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  width: 46px;
+  opacity: 0.85;
+  transition: opacity 0.25s ease;
+}
+
+.player-waveform-box:hover {
+  opacity: 1;
+}
+
+.player-waveform-canvas {
+  width: 42px;
+  height: 16px;
+  display: block;
+}
+
 /* --------------------------------------------------------------------------
    ЭТАП 3: КОНТАКТЫ (ФИНАЛЬНЫЙ ТЕРМИНАЛ)
    -------------------------------------------------------------------------- */

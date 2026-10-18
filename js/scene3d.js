@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime } from './subwayAudio.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -740,7 +740,9 @@ function initScrollTriggers() {
   const isMobile = () => window.innerWidth < 768;
   const getWaypoint = (idx) => CAMERA_WAYPOINTS[idx][isMobile() ? 'mobile' : 'desktop'];
   const NUM_SEGMENTS = CAMERA_WAYPOINTS.length - 1;
+  let hasPlayedDepartureGong = false;
   let hasPlayedDoorChime = false;
+  let hasPlayedPAChime = false;
   let hasPlayedArrivalChime = false;
 
   ScrollTrigger.create({
@@ -763,17 +765,25 @@ function initScrollTriggers() {
       camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
       camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
 
-      // Звуковые сигналы закрытия дверей и прибытия на станцию
-      if (p < 0.01) {
+      // Звуковые сигналы отправления, закрытия дверей и прибытия на станцию
+      if (p < 0.005) {
+        hasPlayedDepartureGong = false;
         hasPlayedDoorChime = false;
-      } else if (p > 0.02 && !hasPlayedDoorChime && !isGlobalMuted) {
+      } else if (p > 0.008 && !hasPlayedDepartureGong && !isGlobalMuted) {
+        playStationDepartureGong();
+        hasPlayedDepartureGong = true;
+      } else if (p > 0.025 && !hasPlayedDoorChime && !isGlobalMuted) {
         playDoorChime();
         hasPlayedDoorChime = true;
       }
 
-      if (p < 0.88) {
+      if (p < 0.85) {
+        hasPlayedPAChime = false;
         hasPlayedArrivalChime = false;
-      } else if (p > 0.94 && !hasPlayedArrivalChime && !isGlobalMuted) {
+      } else if (p > 0.89 && !hasPlayedPAChime && !isGlobalMuted) {
+        playStationPAChime();
+        hasPlayedPAChime = true;
+      } else if (p > 0.95 && !hasPlayedArrivalChime && !isGlobalMuted) {
         playArrivalChime();
         hasPlayedArrivalChime = true;
       }
@@ -1065,6 +1075,11 @@ function onWindowResize() {
   }
 }
 
+// Адаптивная динамическая производительность (Adaptive DPR & Performance)
+const frameTimes = [];
+let lastPixelRatioAdjustTime = 0;
+let currentDPR = Math.min(window.devicePixelRatio || 1, 2);
+
 // =============================================================================
 // ЦИКЛ РЕНДЕРИНГА (ANIMATE LOOP)
 // =============================================================================
@@ -1073,6 +1088,30 @@ function animate() {
 
   const dt = clock ? Math.min(clock.getDelta(), 0.1) : 0.016;
   const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
+
+  // Динамический замер FPS для адаптации DPR (поддержание стабильных 60 FPS)
+  frameTimes.push(dt);
+  if (frameTimes.length > 40) {
+    frameTimes.shift();
+    const nowMs = performance.now();
+    if (nowMs - lastPixelRatioAdjustTime > 2500) {
+      let sum = 0;
+      for (let i = 0; i < frameTimes.length; i++) sum += frameTimes[i];
+      const avgDt = sum / frameTimes.length;
+      const avgFps = 1 / Math.max(avgDt, 0.001);
+      const maxAllowedDPR = Math.min(window.devicePixelRatio || 1, 2);
+
+      if (avgFps < 40 && currentDPR > 1.0) {
+        currentDPR = Math.max(1.0, currentDPR - 0.25);
+        renderer.setPixelRatio(currentDPR);
+        lastPixelRatioAdjustTime = nowMs;
+      } else if (avgFps > 57 && currentDPR < maxAllowedDPR) {
+        currentDPR = Math.min(maxAllowedDPR, currentDPR + 0.25);
+        renderer.setPixelRatio(currentDPR);
+        lastPixelRatioAdjustTime = nowMs;
+      }
+    }
+  }
 
   // 1. Плавная интерполяция позиции камеры (lerp)
   camCurrentPos.lerp(camTargetPos, 0.08);

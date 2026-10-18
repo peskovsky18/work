@@ -468,6 +468,98 @@ function setupStationEnvironment() {
     stationEnvGroup.add(posterGroup);
   });
 
+  // 2.8 Атмосферные силуэты ожидающих пассажиров на перроне
+  function createPassengerSilhouette(options = {}) {
+    const { isSitting = false, hasPhone = false, phoneColor = 0x88ccff } = options;
+    const person = new THREE.Group();
+    const silMat = new THREE.MeshStandardMaterial({
+      color: 0x141822,
+      roughness: 0.82,
+      metalness: 0.12
+    });
+
+    if (isSitting) {
+      // Сидящий пассажир на скамейке платформы
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 10), silMat);
+      head.position.set(0, 1.15, -0.05);
+      person.add(head);
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.50, 12), silMat);
+      torso.position.set(0, 0.82, -0.06);
+      person.add(torso);
+
+      const thighs = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.11, 0.36), silMat);
+      thighs.position.set(0, 0.50, 0.12);
+      person.add(thighs);
+
+      const shins = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.44, 0.11), silMat);
+      shins.position.set(0, 0.23, 0.26);
+      person.add(shins);
+    } else {
+      // Стоящий пассажир на платформе
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.10, 12, 10), silMat);
+      head.position.set(0, 1.66, 0);
+      person.add(head);
+
+      const coat = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.74, 12), silMat);
+      coat.position.set(0, 1.18, 0);
+      person.add(coat);
+
+      [-0.08, 0.08].forEach(lx => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.80, 10), silMat);
+        leg.position.set(lx, 0.40, 0);
+        person.add(leg);
+      });
+
+      if (hasPhone) {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.36, 8), silMat);
+        arm.position.set(0.16, 1.25, 0.12);
+        arm.rotation.x = Math.PI * 0.35;
+        person.add(arm);
+
+        const phoneMat = new THREE.MeshStandardMaterial({
+          color: phoneColor,
+          emissive: new THREE.Color(phoneColor),
+          emissiveIntensity: 1.6
+        });
+        const phone = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.08, 0.01), phoneMat);
+        phone.position.set(0.16, 1.34, 0.24);
+        phone.rotation.x = -Math.PI * 0.20;
+        person.add(phone);
+      } else {
+        [-0.19, 0.19].forEach(ax => {
+          const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.58, 8), silMat);
+          arm.position.set(ax, 1.15, 0);
+          person.add(arm);
+        });
+      }
+    }
+    return person;
+  }
+
+  // 1. Сидящий пассажир на центральной скамейке
+  const pSitting = createPassengerSilhouette({ isSitting: true });
+  pSitting.position.set(0.35, 0.0, 2.35);
+  stationEnvGroup.add(pSitting);
+
+  // 2. Стоящий пассажир у колонны со смартфоном
+  const pPhone = createPassengerSilhouette({ isSitting: false, hasPhone: true, phoneColor: 0x88d5ff });
+  pPhone.position.set(-2.40, 0.0, 2.75);
+  pPhone.rotation.y = -Math.PI * 0.35;
+  stationEnvGroup.add(pPhone);
+
+  // 3. Стоящий пассажир напротив второй двери
+  const pWaiting = createPassengerSilhouette({ isSitting: false, hasPhone: false });
+  pWaiting.position.set(1.90, 0.0, 2.65);
+  pWaiting.rotation.y = Math.PI * 0.20;
+  stationEnvGroup.add(pWaiting);
+
+  // 4. Пассажир, рассматривающий культурный постер на стене платформы
+  const pArtViewer = createPassengerSilhouette({ isSitting: false, hasPhone: true, phoneColor: 0xffaa44 });
+  pArtViewer.position.set(4.20, 0.0, 4.05);
+  pArtViewer.rotation.y = Math.PI;
+  stationEnvGroup.add(pArtViewer);
+
   scene.add(stationEnvGroup);
 }
 
@@ -1350,16 +1442,29 @@ function setupEventListeners() {
       } else if (hoveredScreen === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else if (hoveredScreen === screen1Mesh) {
-        scrollToStage(1);
+        if (activeStage === 1) {
+          toggleScreenZoom();
+        } else {
+          scrollToStage(1);
+        }
         toggleVideoPlay(video1);
       } else if (hoveredScreen === screen2Mesh) {
-        scrollToStage(2);
+        if (activeStage === 2) {
+          toggleScreenZoom();
+        } else {
+          scrollToStage(2);
+        }
         toggleVideoPlay(video2);
       } else {
         const sIdx = screenMeshes.indexOf(hoveredScreen);
         const stageMap = { 1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8 };
         if (stageMap[sIdx] !== undefined) {
-          scrollToStage(stageMap[sIdx]);
+          const targetStage = stageMap[sIdx];
+          if (activeStage === targetStage) {
+            toggleScreenZoom();
+          } else {
+            scrollToStage(targetStage);
+          }
         }
       }
     }
@@ -1399,7 +1504,7 @@ function setupEventListeners() {
 
 let isZoomedToScreen = false;
 export function toggleScreenZoom() {
-  if (activeStage !== 1 && activeStage !== 2) return;
+  if (activeStage < 1 || activeStage > 8) return;
   isZoomedToScreen = !isZoomedToScreen;
   playHapticChime();
 

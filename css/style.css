@@ -675,6 +675,11 @@ body.dark-cinema-body {
   transform: translateY(-2px);
 }
 
+.contact-btn-large:active {
+  transform: scale(0.96) translateY(0);
+  transition: transform 0.08s ease;
+}
+
 .apple-pill-primary {
   background: #ffffff;
   color: #07080a;

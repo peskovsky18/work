@@ -757,6 +757,18 @@ body.dark-cinema-body {
     width: 100%;
     justify-content: center;
   }
+
+  .emergency-banner {
+    top: 115px;
+    width: 94%;
+  }
+
+  .emergency-banner-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+    padding: 12px 14px;
+  }
 }
 
 /* ==========================================================================

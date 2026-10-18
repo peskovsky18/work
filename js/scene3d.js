@@ -187,8 +187,8 @@ function setupSubwayLighting() {
   station1Light.position.set(-3.765, 1.8, 1.5);
   scene.add(station1Light);
 
-  station2Light = new THREE.PointLight(0xffdfb0, 0.0, 9.0, 1.3);
-  station2Light.position.set(0.0, 1.9, 1.6);
+  station2Light = new THREE.PointLight(0xffdfb0, 0.0, 12.0, 1.2);
+  station2Light.position.set(-3.765, 1.9, 1.6);
   scene.add(station2Light);
 
   screenLight1 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);

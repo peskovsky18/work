@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture } from './subwayMap.js';
+import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime } from './subwayAudio.js';
 
 // =============================================================================
@@ -68,7 +68,8 @@ const CAMERA_WAYPOINTS = [
 let scene, camera, renderer, clock;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh, platformMapMesh, emergencyBrakeMesh;
+let screen1Mesh, screen2Mesh, platformMapMesh, emergencyBrakeMesh, stationSignMesh;
+const grabStrapMeshes = [];
 let isEmergencyBraking = false;
 let video1, video2;
 let videoTexture1, videoTexture2;
@@ -160,6 +161,9 @@ export function initSubwayScene() {
 
   // 4.4 Подвесные ручки-петли с инерционной физикой
   setupGrabStraps();
+
+  // 4.5 Подвесной светящийся указатель на станции прибытия
+  setupStation2Sign();
 
   // 5. Видеоэлементы и текстуры
   setupVideoTextures();
@@ -373,7 +377,8 @@ function setupGrabStraps() {
 
       const ring = new THREE.Mesh(ringGeom, handleMat);
       ring.position.set(0, -0.21, 0);
-      pivot.add(ring);
+      ring.userData = { isGrabStrap: true, strapIndex: grabStraps.length };
+      grabStrapMeshes.push(ring);
 
       scene.add(pivot);
       grabStraps.push({
@@ -384,6 +389,33 @@ function setupGrabStraps() {
       });
     });
   });
+}
+
+// Подвесной светящийся указатель на станции назначения (Станция Песковская / Станция 2)
+function setupStation2Sign() {
+  const signTex = getStationSignTexture(THREE);
+  const signGeom = new THREE.BoxGeometry(2.4, 0.60, 0.08);
+  const signMat = new THREE.MeshStandardMaterial({
+    map: signTex,
+    emissive: new THREE.Color(0xffffff),
+    emissiveMap: signTex,
+    emissiveIntensity: 0.0,
+    roughness: 0.3,
+    metalness: 0.1
+  });
+  stationSignMesh = new THREE.Mesh(signGeom, signMat);
+  stationSignMesh.position.set(-3.765, 2.18, 2.15);
+
+  // Подвесные металлические тросы указателя
+  const cableGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.8, 6);
+  const cableMat = new THREE.MeshStandardMaterial({ color: 0x9098a5, metalness: 0.9, roughness: 0.2 });
+  [-0.95, 0.95].forEach((dx) => {
+    const c = new THREE.Mesh(cableGeom, cableMat);
+    c.position.set(dx, 0.45, 0);
+    stationSignMesh.add(c);
+  });
+
+  scene.add(stationSignMesh);
 }
 
 
@@ -809,6 +841,7 @@ function initScrollTriggers() {
       // Свет станции 1 затухает при отправлении, свет станции 2 разгорается при прибытии
       if (station1Light) station1Light.intensity = Math.max(0.0, 1.4 * (1.0 - p / 0.18));
       if (station2Light) station2Light.intensity = Math.max(0.0, 1.6 * ((p - 0.86) / 0.14));
+      if (stationSignMesh) stationSignMesh.material.emissiveIntensity = Math.max(0.0, 1.4 * ((p - 0.86) / 0.14));
 
       // Обновление светодиодного индикатора маршрута в шапке
       const trackFill = document.getElementById('route-track-fill');
@@ -1016,6 +1049,13 @@ function setupEventListeners() {
     if (hoveredScreen) {
       if (hoveredScreen === emergencyBrakeMesh || (hoveredScreen.userData && hoveredScreen.userData.isBrake)) {
         triggerEmergencyBrake();
+      } else if (hoveredScreen.userData && hoveredScreen.userData.isGrabStrap) {
+        const sIdx = hoveredScreen.userData.strapIndex;
+        if (grabStraps[sIdx]) {
+          grabStraps[sIdx].currentAngleZ += (Math.random() > 0.5 ? 0.42 : -0.42);
+          grabStraps[sIdx].currentAngleX += 0.32;
+          playHapticChime();
+        }
       } else if (hoveredScreen === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else if (hoveredScreen === screen1Mesh) {
@@ -1260,10 +1300,11 @@ function animate() {
     }
   }
 
-  // 3. Raycaster для определения наведения на экраны и схему метро
+  // 3. Raycaster для определения наведения на экраны, схему метро и ручки-петли
   const validScreens = screenMeshes.filter(Boolean);
   if (platformMapMesh) validScreens.push(platformMapMesh);
   if (emergencyBrakeMesh) validScreens.push(emergencyBrakeMesh);
+  if (grabStrapMeshes.length > 0) validScreens.push(...grabStrapMeshes);
   if (validScreens.length > 0) {
     raycaster.setFromCamera(mouseVec, camera);
     const intersects = raycaster.intersectObjects(validScreens, false);

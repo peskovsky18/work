@@ -129,7 +129,7 @@ export function initSubwayScene() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.26;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   canvas.addEventListener('webglcontextlost', (e) => {
@@ -195,33 +195,54 @@ let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 let stationEnvGroup;
 
 function setupSubwayLighting() {
-  // 1. Яркий нейтрально-белый свет современной станции метро (5500K daylight-white)
-  const ambient = new THREE.AmbientLight(0xecf2f8, 1.45);
+  // 1. Сбалансированный нейтральный дневной свет вагона и станции (5600K)
+  const ambient = new THREE.AmbientLight(0xf0f5fc, 1.30);
   scene.add(ambient);
 
-  // 2. Потолочные люминесцентные светильники вагона с нейтрально-белым спектром
-  [-4.5, -2.5, -0.5, 1.5, 3.5, 5.0].forEach(px => {
-    const lamp = new THREE.PointLight(0xf5f8fc, 1.65, 7.5, 1.1);
-    lamp.position.set(px, 2.15, -1.20);
-    scene.add(lamp);
-    ceilingLamps.push(lamp);
+  // 2. Двойной ряд потолочных люминесцентных светильников вагона (яркий чистый свет с подсветкой сидений и стен)
+  // Ряд A (вдоль стены A и экранов) и Ряд B (вдоль окон B)
+  [-4.8, -3.2, -1.6, 0.0, 1.6, 3.2, 4.8].forEach(px => {
+    // Центральный проход и стена A
+    const lampA = new THREE.PointLight(0xfff8f0, 2.4, 6.8, 1.2);
+    lampA.position.set(px, 2.20, -0.75);
+    scene.add(lampA);
+    ceilingLamps.push(lampA);
+
+    // Стена B
+    const lampB = new THREE.PointLight(0xf2f7ff, 2.2, 6.8, 1.2);
+    lampB.position.set(px, 2.20, -1.65);
+    scene.add(lampB);
+    ceilingLamps.push(lampB);
   });
 
-  // 3. Освещение платформы станции снаружи открытых дверей и окон (Сторона A)
-  station1Light = new THREE.PointLight(0xffffff, 2.0, 16.0, 1.1);
+  // 3. Направленный скользящий свет с потолка (Raking Key Lights) — подчеркивает микрорельеф и фактуру шлифованной стали стен и пола
+  const rakingLightA = new THREE.DirectionalLight(0xffffff, 1.25);
+  rakingLightA.position.set(0, 3.2, -1.2);
+  rakingLightA.target.position.set(0, 1.2, 0.0);
+  scene.add(rakingLightA);
+  scene.add(rakingLightA.target);
+
+  const rakingLightB = new THREE.DirectionalLight(0xf0f6ff, 1.10);
+  rakingLightB.position.set(0, 3.2, -1.2);
+  rakingLightB.target.position.set(0, 1.2, -2.4);
+  scene.add(rakingLightB);
+  scene.add(rakingLightB.target);
+
+  // 4. Освещение платформы станции снаружи открытых дверей и окон (Сторона A)
+  station1Light = new THREE.PointLight(0xffffff, 2.8, 18.0, 1.1);
   station1Light.position.set(-3.765, 2.4, 2.2);
   scene.add(station1Light);
 
-  // 4. Освещение путевой стены с ретро-плиткой снаружи окон (Сторона B)
-  station2Light = new THREE.PointLight(0xf0f5ff, 1.7, 12.0, 1.1);
+  // 5. Освещение белой плиточной путевой стены станции снаружи окон (Сторона B)
+  station2Light = new THREE.PointLight(0xf8faff, 2.6, 16.0, 1.0);
   station2Light.position.set(0.0, 2.4, -3.0);
   scene.add(station2Light);
 
-  screenLight1 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
+  screenLight1 = new THREE.PointLight(0xffffff, 0.75, 3.5, 1.5);
   screenLight1.position.set(-2.675, 1.40, -0.28);
   scene.add(screenLight1);
 
-  screenLight2 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
+  screenLight2 = new THREE.PointLight(0xffffff, 0.75, 3.5, 1.5);
   screenLight2.position.set(-2.675, 1.40, -2.10);
   scene.add(screenLight2);
 
@@ -240,18 +261,24 @@ function setupStationEnvironment() {
   const granitePBR = getPlatformGraniteTextures();
 
   // =========================================================================
-  // 1. СТОРОНА B: ПУТЕВАЯ СТЕНА С РЕТРО-ПЛИТКОЙ И НАЗВАНИЕМ СТАНЦИИ
+  // 1. СТОРОНА B: ПУТЕВАЯ СТЕНА ИЗ БЕЛОЙ ГЛАЗУРОВАННОЙ КЕРАМИЧЕСКОЙ ПЛИТКИ («КАБАНЧИК»)
   // =========================================================================
   const trackWallZ = -3.25; // 85 см от стены вагона (окна на Z = -2.40)
   const trackWallW = 24.0;
   const trackWallH = 3.20;
 
-  // 1.1 Архитектурная путевая стена (сплошной глубокий графитово-серый сатин)
+  // 1.1 Белоснежная глазурованная плитка с объемной 3D-фаской и зеркальным глянцем
   const wallGeom = new THREE.PlaneGeometry(trackWallW, trackWallH, 1, 1);
-  const wallMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x232730),
-    roughness: 0.38,
-    metalness: 0.25,
+  const wallMat = new THREE.MeshPhysicalMaterial({
+    map: tilePBR.colorMap,
+    normalMap: tilePBR.normalMap,
+    normalScale: new THREE.Vector2(0.85, 0.85),
+    roughnessMap: tilePBR.roughnessMap,
+    roughness: 0.10,
+    metalness: 0.04,
+    clearcoat: 0.95,
+    clearcoatRoughness: 0.06,
+    reflectivity: 0.90,
     side: THREE.FrontSide
   });
   const trackWallMesh = new THREE.Mesh(wallGeom, wallMat);
@@ -912,15 +939,15 @@ function loadSubwayModel() {
           return;
         }
 
-        // 9. Створки дверей вагона (сатинированная шлифованная сталь створок из фото)
+        // 9. Створки дверей вагона (единый стиль сатинированной стали со стенами)
         if (child.name.startsWith('Door_Left_Photo') || child.name.startsWith('Door_Right_Photo') || child.name.startsWith('Door_Screen')) {
           child.material = new THREE.MeshStandardMaterial({
-            map: doorPBR.colorMap,
-            normalMap: doorPBR.normalMap,
+            map: wallPBR.colorMap,
+            normalMap: wallPBR.normalMap,
             normalScale: new THREE.Vector2(0.55, 0.55),
-            roughnessMap: doorPBR.roughnessMap,
-            roughness: 0.35,
-            metalness: 0.88,
+            roughnessMap: wallPBR.roughnessMap,
+            roughness: 0.28,
+            metalness: 0.85,
             side: THREE.DoubleSide
           });
           return;
@@ -937,74 +964,67 @@ function loadSubwayModel() {
           return;
         }
 
-        if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar')) {
+        if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar') || child.name.includes('Window_Surround_Bezel')) {
           child.material = new THREE.MeshStandardMaterial({
             map: wallPBR.colorMap,
             normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.35, 0.35),
+            normalScale: new THREE.Vector2(0.45, 0.45),
             roughnessMap: wallPBR.roughnessMap,
-            roughness: 0.32,
-            metalness: 0.82,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // Обрамления оконных проемов (светлый безель)
-        if (child.name.includes('Window_Surround_Bezel')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xd7dcd9),
-            roughness: 0.36,
-            metalness: 0.18,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // 11. Стены вагона, торцевые переборки, притолоки дверей и торцевые двери (сатинированная сталь с круговыми рисками из фото)
-        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: wallPBR.colorMap,
-            normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.50, 0.50),
-            roughnessMap: wallPBR.roughnessMap,
-            roughness: 0.38,
+            roughness: 0.28,
             metalness: 0.85,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // 12. Вентиляционные решетки и цоколи сидений (аутентичная перфорированная решетка под сиденьями из фото)
+        // 11. Стены вагона, торцевые переборки, притолоки дверей и торцевые двери (сатинированная сталь высокого разрешения)
+        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: wallPBR.colorMap,
+            normalMap: wallPBR.normalMap,
+            normalScale: new THREE.Vector2(0.55, 0.55),
+            roughnessMap: wallPBR.roughnessMap,
+            roughness: 0.28,
+            metalness: 0.85,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 12. Вентиляционные решетки и цоколи сидений
         if (child.name.includes('Grille') || child.name.includes('Vent')) {
           child.material = new THREE.MeshStandardMaterial({
             map: ventGrilleTex,
-            roughness: 0.45,
-            metalness: 0.75,
+            roughness: 0.42,
+            metalness: 0.80,
             side: THREE.DoubleSide
           });
           return;
         }
 
+        // Цоколи сидений гармонично согласованы с полом и стенами в единый ансамбль
         if (child.name.includes('Plinth') || (child.name.includes('Bench') && !child.name.startsWith('Seat_'))) {
           child.material = new THREE.MeshStandardMaterial({
-            map: ventGrilleTex,
-            roughness: 0.50,
-            metalness: 0.70,
+            map: floorPBR.colorMap,
+            normalMap: floorPBR.normalMap,
+            normalScale: new THREE.Vector2(0.40, 0.40),
+            roughnessMap: floorPBR.roughnessMap,
+            roughness: 0.35,
+            metalness: 0.22,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // 13. Фактурный темный линолеум пола вагона (точный рисунок из фото)
+        // 13. Высококачественный согласованный пол вагона (транзитный графитовый кварц-терраццо)
         if (child.name === 'Car_Floor' || (child.name.includes('Floor') && !child.name.includes('Platform')) || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
           child.material = new THREE.MeshStandardMaterial({
             map: floorPBR.colorMap,
             normalMap: floorPBR.normalMap,
-            normalScale: new THREE.Vector2(0.70, 0.70),
+            normalScale: new THREE.Vector2(0.65, 0.65),
             roughnessMap: floorPBR.roughnessMap,
-            roughness: 0.45,
-            metalness: 0.15,
+            roughness: 0.35,
+            metalness: 0.18,
             side: THREE.DoubleSide
           });
           return;
@@ -1042,10 +1062,10 @@ function loadSubwayModel() {
         if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser')) {
           child.material = new THREE.MeshStandardMaterial({
             map: ceilingLightTex,
-            emissive: new THREE.Color(0xffeed6),
+            emissive: new THREE.Color(0xfff8ee),
             emissiveMap: ceilingLightTex,
-            emissiveIntensity: 2.2,
-            roughness: 0.25
+            emissiveIntensity: 3.2,
+            roughness: 0.18
           });
           return;
         }

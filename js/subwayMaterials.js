@@ -1,141 +1,355 @@
 /**
  * Александр Песковский — 2026
- * Фотореалистичные PBR-материалы вагона метро на основе реальной фотографии:
- * - Стены: аутентичная сатинированная сталь с круговыми рисками протирки и текстурой проката
- * - Двери: шлифованная сталь створок с отражениями
- * - Сиденья: точные винтажные стеклопластиковые ковши (горчично-желтый и тыквенно-оранжевый)
- * - Пол: фактурный матовый линолеум вагона
- * - Решетка: оригинальная перфорированная вентиляционная решетка под сиденьями
- * - Плитка станции: глянцевый белый «кабанчик» с фасками и рельефной цементной затиркой
- * - Гранит платформы: термообработанные плиты с микрозернистостью
+ * Фотореалистичные процедурные PBR-материалы вагона и станции метро высокого разрешения:
+ * - Стены и пол вагона: единый гармоничный архитектурный ансамбль современного поезда метро
+ *   (сатинированная шлифованная сталь + согласованный графитовый композитный пол с кварцевой крошкой)
+ * - Путевая стена станции: белоснежная глазурованная керамическая плитка («кабанчик» / Subway Tiles)
+ * - Потолочные светильники: призматические светорассеиватели
  */
 
 import * as THREE from 'three';
 
-const textureLoader = new THREE.TextureLoader();
 const textureCache = new Map();
 
 /**
- * Загрузка PBR-карты с настройкой бесшовного тайлинга и трилинейной фильтрации
+ * Вспомогательная функция создания текстуры с максимальной трилинейной и анизотропной фильтрацией 16x
  */
-function loadPBR(path, repeatX = 1, repeatY = 1) {
-  const cacheKey = `${path}_${repeatX}_${repeatY}`;
-  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
-
-  const tex = textureLoader.load(path);
+function createHighResTexture(canvas, repeatX = 1, repeatY = 1) {
+  const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(repeatX, repeatY);
   tex.generateMipmaps = true;
+  tex.anisotropy = 16;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
-  textureCache.set(cacheKey, tex);
+function createNormalTexture(canvas, repeatX = 1, repeatY = 1) {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  tex.generateMipmaps = true;
+  tex.anisotropy = 16;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   return tex;
 }
 
 // =============================================================================
-// 1. АУТЕНТИЧНЫЕ СТЕНЫ ВАГОНА (РЕАЛЬНОЕ ФОТО: ШЛИФОВАННАЯ СТАЛЬ С РИСКАМИ)
+// 1. АРХИТЕКТУРНЫЕ СТЕНЫ ВАГОНА: САbdТИНИРОВАННАЯ ШЛИФОВАННАЯ СТАЛЬ (2048x1024)
 // =============================================================================
-
 export function getPhotoWallTextures() {
-  return {
-    colorMap: loadPBR('assets/textures/pbr_wall_steel_color.png', 4, 2),
-    normalMap: loadPBR('assets/textures/pbr_wall_steel_normal.png', 4, 2),
-    roughnessMap: loadPBR('assets/textures/pbr_wall_steel_roughness.png', 4, 2)
+  if (textureCache.has('wall_steel_pbr')) return textureCache.get('wall_steel_pbr');
+
+  const width = 2048;
+  const height = 1024;
+
+  // 1.1 Color Map: благородная сатинированная сталь с продольной микро-шлифовкой
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = width;
+  colorCanvas.height = height;
+  const cctx = colorCanvas.getContext('2d');
+
+  const grad = cctx.createLinearGradient(0, 0, 0, height);
+  grad.addColorStop(0.0, '#e4e9f0');
+  grad.addColorStop(0.2, '#d6dce4');
+  grad.addColorStop(0.5, '#cbd2db');
+  grad.addColorStop(0.8, '#c2c8d2');
+  grad.addColorStop(1.0, '#b6bdc8');
+  cctx.fillStyle = grad;
+  cctx.fillRect(0, 0, width, height);
+
+  const imgData = cctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+
+  // Псевдослучайный детерминированный генератор
+  let seed = 1234567;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
   };
+
+  for (let y = 0; y < height; y++) {
+    const rowGrain = (rnd() - 0.5) * 16;
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const grain = rowGrain + (rnd() - 0.5) * 6;
+      data[idx]     = Math.max(0, Math.min(255, data[idx] + grain));
+      data[idx + 1] = Math.max(0, Math.min(255, data[idx + 1] + grain));
+      data[idx + 2] = Math.max(0, Math.min(255, data[idx + 2] + grain + 2));
+    }
+  }
+  cctx.putImageData(imgData, 0, 0);
+
+  // Тонкие архитектурные стыки панелей вагона
+  cctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+  cctx.lineWidth = 2;
+  [512, 1024, 1536].forEach(px => {
+    cctx.beginPath();
+    cctx.moveTo(px, 0);
+    cctx.lineTo(px, height);
+    cctx.stroke();
+  });
+  cctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+  cctx.lineWidth = 1;
+  [513, 1025, 1537].forEach(px => {
+    cctx.beginPath();
+    cctx.moveTo(px, 0);
+    cctx.lineTo(px, height);
+    cctx.stroke();
+  });
+
+  // 1.2 Normal Map: анизотропные микро-борозды проката
+  const normalCanvas = document.createElement('canvas');
+  normalCanvas.width = width;
+  normalCanvas.height = height;
+  const nctx = normalCanvas.getContext('2d');
+  nctx.fillStyle = 'rgb(128, 128, 255)';
+  nctx.fillRect(0, 0, width, height);
+
+  const nImgData = nctx.getImageData(0, 0, width, height);
+  const ndata = nImgData.data;
+  seed = 7654321;
+  for (let y = 0; y < height; y++) {
+    const dy = (rnd() - 0.5) * 22;
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const dx = (rnd() - 0.5) * 8;
+      ndata[idx]     = Math.max(0, Math.min(255, 128 + dx));
+      ndata[idx + 1] = Math.max(0, Math.min(255, 128 + dy));
+      ndata[idx + 2] = 250;
+    }
+  }
+  nctx.putImageData(nImgData, 0, 0);
+
+  // 1.3 Roughness Map: шелковистый сатиновый отклик (0.26 - 0.32)
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = width;
+  roughCanvas.height = height;
+  const rctx = roughCanvas.getContext('2d');
+  rctx.fillStyle = 'rgb(72, 72, 72)';
+  rctx.fillRect(0, 0, width, height);
+
+  const result = {
+    colorMap: createHighResTexture(colorCanvas, 2, 1),
+    normalMap: createNormalTexture(normalCanvas, 2, 1),
+    roughnessMap: createNormalTexture(roughCanvas, 2, 1)
+  };
+  textureCache.set('wall_steel_pbr', result);
+  return result;
 }
 
 export function getPhotoDoorTextures() {
-  return {
-    colorMap: loadPBR('assets/textures/pbr_door_steel_color.png', 1, 1),
-    normalMap: loadPBR('assets/textures/pbr_door_steel_normal.png', 1, 1),
-    roughnessMap: loadPBR('assets/textures/pbr_door_steel_roughness.png', 1, 1)
-  };
+  return getPhotoWallTextures();
 }
 
 // =============================================================================
-// 2. АУТЕНТИЧНЫЙ ПОЛ ВАГОНА (РЕАЛЬНОЕ ФОТО: ТЕМНЫЙ ЛИНОЛЕУМ)
+// 2. СОГЛАСОВАННЫЙ ПОЛ ВАГОНА: ТРАНЗИТНЫЙ ГРАФИТОВЫЙ КВАРЦ-ТЕРРАЦЦО (2048x1024)
+//    (Единый дизайн-код со стенами: идеальная гармония оттенков и текстур)
 // =============================================================================
-
 export function getPhotoFloorTextures() {
-  return {
-    colorMap: loadPBR('assets/textures/pbr_floor_color.png', 8, 4),
-    normalMap: loadPBR('assets/textures/pbr_floor_normal.png', 8, 4),
-    roughnessMap: loadPBR('assets/textures/pbr_floor_roughness.png', 8, 4)
+  if (textureCache.has('floor_transit_pbr')) return textureCache.get('floor_transit_pbr');
+
+  const width = 2048;
+  const height = 1024;
+
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = width;
+  colorCanvas.height = height;
+  const cctx = colorCanvas.getContext('2d');
+
+  // Базовый цвет пола — глубокий графитово-сланцевый оттенок в тон стенам
+  cctx.fillStyle = '#20232a';
+  cctx.fillRect(0, 0, width, height);
+
+  // Высокодетализированная кварцевая крошка терраццо
+  const imgData = cctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+  let seed = 334455;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
   };
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = rnd();
+    let delta = (rnd() - 0.5) * 16;
+    if (r > 0.93) delta += 32; // светлая кварцевая песчинка
+    else if (r < 0.08) delta -= 18; // темный базальтовый элемент
+    data[i]     = Math.max(0, Math.min(255, data[i] + delta));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + delta + 1));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + delta + 2));
+  }
+  cctx.putImageData(imgData, 0, 0);
+
+  // Рельеф нескользящей поверхности пола
+  const normalCanvas = document.createElement('canvas');
+  normalCanvas.width = width;
+  normalCanvas.height = height;
+  const nctx = normalCanvas.getContext('2d');
+  nctx.fillStyle = 'rgb(128, 128, 255)';
+  nctx.fillRect(0, 0, width, height);
+
+  const nImgData = nctx.getImageData(0, 0, width, height);
+  const ndata = nImgData.data;
+  seed = 998877;
+  for (let i = 0; i < ndata.length; i += 4) {
+    const nx = (rnd() - 0.5) * 24;
+    const ny = (rnd() - 0.5) * 24;
+    ndata[i]     = Math.max(0, Math.min(255, 128 + nx));
+    ndata[i + 1] = Math.max(0, Math.min(255, 128 + ny));
+    ndata[i + 2] = 248;
+  }
+  nctx.putImageData(nImgData, 0, 0);
+
+  // Мягкий полуматовый отклик пола (0.34 roughness) с легкими бликами плафонов
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = width;
+  roughCanvas.height = height;
+  const rctx = roughCanvas.getContext('2d');
+  rctx.fillStyle = 'rgb(88, 88, 88)';
+  rctx.fillRect(0, 0, width, height);
+
+  const result = {
+    colorMap: createHighResTexture(colorCanvas, 3, 2),
+    normalMap: createNormalTexture(normalCanvas, 3, 2),
+    roughnessMap: createNormalTexture(roughCanvas, 3, 2)
+  };
+  textureCache.set('floor_transit_pbr', result);
+  return result;
 }
 
-// =============================================================================
-// 3. АУТЕНТИЧНЫЕ КРЕСЛА (РЕАЛЬНОЕ ФОТО: ЖЕЛТЫЙ И ОРАНЖЕВЫЙ СТЕКЛОПЛАСТИК)
-// =============================================================================
-
+// Заглушки для сидений (сиденья используют чистый procedural MeshPhysicalMaterial)
 export function getPhotoSeatYellowTextures() {
-  return {
-    colorMap: loadPBR('assets/textures/pbr_seat_yellow_color.png', 1, 1),
-    normalMap: loadPBR('assets/textures/pbr_seat_yellow_normal.png', 1, 1),
-    roughnessMap: loadPBR('assets/textures/pbr_seat_yellow_roughness.png', 1, 1)
-  };
+  return {};
 }
 
 export function getPhotoSeatOrangeTextures() {
-  return {
-    colorMap: loadPBR('assets/textures/pbr_seat_orange_color.png', 1, 1),
-    normalMap: loadPBR('assets/textures/pbr_seat_orange_normal.png', 1, 1),
-    roughnessMap: loadPBR('assets/textures/pbr_seat_orange_roughness.png', 1, 1)
-  };
+  return {};
 }
 
+// =============================================================================
+// 3. ПЕРФОРИРОВАННАЯ ВЕНТИЛЯЦИОННАЯ РЕШЕТКА ПОД СИДЕНЬЯМИ
+// =============================================================================
 export function getPhotoVentGrilleTexture() {
-  return loadPBR('assets/textures/pbr_vent_grille_color.png', 2, 1);
+  if (textureCache.has('vent_grille_pbr')) return textureCache.get('vent_grille_pbr');
+
+  const width = 1024;
+  const height = 512;
+  const cvs = document.createElement('canvas');
+  cvs.width = width;
+  cvs.height = height;
+  const ctx = cvs.getContext('2d');
+
+  ctx.fillStyle = '#22252c';
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = '#0f1115';
+  const holeR = 4;
+  const stepX = 16;
+  const stepY = 16;
+
+  for (let y = 10; y < height - 10; y += stepY) {
+    const shift = (Math.floor(y / stepY) % 2) * (stepX / 2);
+    for (let x = 10; x < width - 10; x += stepX) {
+      ctx.beginPath();
+      ctx.arc(x + shift, y, holeR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const tex = createHighResTexture(cvs, 2, 1);
+  textureCache.set('vent_grille_pbr', tex);
+  return tex;
 }
 
+// =============================================================================
+// 4. ПРИЗМАТИЧЕСКИЙ РАССЕИВАТЕЛЬ ПОТОЛОЧНЫХ СВЕТИЛЬНИКОВ
+// =============================================================================
 export function getPhotoCeilingLightTexture() {
-  return loadPBR('assets/textures/pbr_ceiling_light_diffuser.png', 1, 1);
+  if (textureCache.has('ceiling_diffuser_pbr')) return textureCache.get('ceiling_diffuser_pbr');
+
+  const width = 1024;
+  const height = 256;
+  const cvs = document.createElement('canvas');
+  cvs.width = width;
+  cvs.height = height;
+  const ctx = cvs.getContext('2d');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  // Микропризматическая сетка рассеивателя
+  ctx.strokeStyle = 'rgba(215, 225, 240, 0.45)';
+  ctx.lineWidth = 1;
+  const pStep = 8;
+  for (let x = 0; x < width; x += pStep) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < height; y += pStep) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  const tex = createHighResTexture(cvs, 1, 1);
+  textureCache.set('ceiling_diffuser_pbr', tex);
+  return tex;
 }
 
 // =============================================================================
-// 4. ГЛАЗУРОВАННАЯ КЕРАМИЧЕСКАЯ ПЛИТКА СТАНЦИИ («КАБАНЧИК»)
+// 5. БЕЛОСНЕЖНАЯ КЕРАМИЧЕСКАЯ ПЛИТКА СТАНЦИИ («КАБАНЧИК» / SUBWAY TILES) (2048x1024)
+//    (Глянцевая глазурь, объемные 3D-фаски и тонкая аккуратная цементная затирка)
 // =============================================================================
-
 export function getStationTileTextures() {
-  if (textureCache.has('station_tiles_pbr')) return textureCache.get('station_tiles_pbr');
+  if (textureCache.has('station_tiles_white_pbr')) return textureCache.get('station_tiles_white_pbr');
 
-  const size = 512;
-  const tileCols = 4;
-  const tileRows = 8;
-  const tileW = size / tileCols;
-  const tileH = size / tileRows;
-  const bevel = 6;
-  const grout = 3;
+  const width = 2048;
+  const height = 1024;
+  const cols = 8;
+  const rows = 8;
+  const tileW = width / cols;
+  const tileH = height / rows;
+  const bevel = 9;
+  const grout = 3.5;
 
+  // 5.1 Color Map: сияющая белая глазурованная плитка
   const colorCanvas = document.createElement('canvas');
-  colorCanvas.width = size;
-  colorCanvas.height = size;
+  colorCanvas.width = width;
+  colorCanvas.height = height;
   const cctx = colorCanvas.getContext('2d');
-  cctx.fillStyle = '#b0b6c0';
-  cctx.fillRect(0, 0, size, size);
+  cctx.fillStyle = '#b8c0cc'; // Аккуратная светло-серая затирка швов
+  cctx.fillRect(0, 0, width, height);
 
+  // 5.2 Normal Map: рельефные 3D-фаски плиток
   const normalCanvas = document.createElement('canvas');
-  normalCanvas.width = size;
-  normalCanvas.height = size;
+  normalCanvas.width = width;
+  normalCanvas.height = height;
   const nctx = normalCanvas.getContext('2d');
   nctx.fillStyle = 'rgb(128, 128, 255)';
-  nctx.fillRect(0, 0, size, size);
+  nctx.fillRect(0, 0, width, height);
 
+  // 5.3 Roughness Map: глянцевая глазурь (0.09) и матовые швы (0.75)
   const roughCanvas = document.createElement('canvas');
-  roughCanvas.width = size;
-  roughCanvas.height = size;
+  roughCanvas.width = width;
+  roughCanvas.height = height;
   const rctx = roughCanvas.getContext('2d');
-  rctx.fillStyle = 'rgb(220, 220, 220)';
-  rctx.fillRect(0, 0, size, size);
+  rctx.fillStyle = 'rgb(190, 190, 190)';
+  rctx.fillRect(0, 0, width, height);
 
-  for (let r = 0; r < tileRows; r++) {
+  for (let r = 0; r < rows; r++) {
     const isOdd = r % 2 === 1;
     const xOffset = isOdd ? -tileW / 2 : 0;
     const startCol = isOdd ? -1 : 0;
-    const endCol = isOdd ? tileCols + 1 : tileCols;
+    const endCol = isOdd ? cols + 1 : cols;
 
     for (let c = startCol; c <= endCol; c++) {
       const tx = c * tileW + xOffset + grout;
@@ -143,84 +357,86 @@ export function getStationTileTextures() {
       const tw = tileW - grout * 2;
       const th = tileH - grout * 2;
 
+      // Тело белой плитки с мягким светотеневым градиентом керамики
       const grad = cctx.createLinearGradient(tx, ty, tx + tw, ty + th);
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(0.5, '#f4f6fa');
-      grad.addColorStop(1, '#eaedf4');
+      grad.addColorStop(0.0, '#ffffff');
+      grad.addColorStop(0.35, '#f9fbff');
+      grad.addColorStop(0.75, '#f3f6fb');
+      grad.addColorStop(1.0, '#eaf0f8');
       cctx.fillStyle = grad;
       cctx.fillRect(tx, ty, tw, th);
 
-      rctx.fillStyle = 'rgb(22, 22, 22)'; // глянцевая керамическая глазурь (roughness 0.09)
-      rctx.fillRect(tx + bevel, ty + bevel, tw - bevel * 2, th - bevel * 2);
+      // Верхняя и левая световые фаски (Highlight)
+      cctx.fillStyle = '#ffffff';
+      cctx.fillRect(tx, ty, tw, bevel * 0.75);
+      cctx.fillRect(tx, ty, bevel * 0.75, th);
 
-      rctx.fillStyle = 'rgb(50, 50, 50)';
+      // Нижняя и правая теневые фаски (Ambient Shadow)
+      cctx.fillStyle = 'rgba(175, 190, 210, 0.45)';
+      cctx.fillRect(tx, ty + th - bevel * 0.85, tw, bevel * 0.85);
+      cctx.fillRect(tx + tw - bevel * 0.85, ty, bevel * 0.85, th);
+
+      // Глянцевая глазурь
+      rctx.fillStyle = 'rgb(22, 22, 22)'; // 0.08 roughness (зеркальный глянец)
+      rctx.fillRect(tx + bevel, ty + bevel, tw - bevel * 2, th - bevel * 2);
+      rctx.fillStyle = 'rgb(44, 44, 44)'; // 0.17 roughness на фаске
       rctx.fillRect(tx, ty, tw, bevel);
       rctx.fillRect(tx, ty + th - bevel, tw, bevel);
       rctx.fillRect(tx, ty, bevel, th);
       rctx.fillRect(tx + tw - bevel, ty, bevel, th);
 
-      nctx.fillStyle = 'rgb(128, 65, 240)';
+      // 3D векторные нормали скосов фаски
+      nctx.fillStyle = 'rgb(128, 55, 240)'; // скос вверх
       nctx.fillRect(tx, ty, tw, bevel);
-      nctx.fillStyle = 'rgb(128, 195, 240)';
+      nctx.fillStyle = 'rgb(128, 200, 240)'; // скос вниз
       nctx.fillRect(tx, ty + th - bevel, tw, bevel);
-      nctx.fillStyle = 'rgb(65, 128, 240)';
+      nctx.fillStyle = 'rgb(55, 128, 240)'; // скос влево
       nctx.fillRect(tx, ty, bevel, th);
-      nctx.fillStyle = 'rgb(195, 128, 240)';
+      nctx.fillStyle = 'rgb(200, 128, 240)'; // скос вправо
       nctx.fillRect(tx + tw - bevel, ty, bevel, th);
-
-      nctx.fillStyle = 'rgb(128, 128, 255)';
+      nctx.fillStyle = 'rgb(128, 128, 255)'; // центр плитки
       nctx.fillRect(tx + bevel, ty + bevel, tw - bevel * 2, th - bevel * 2);
     }
   }
 
-  const makeTex = (canvas, rx, ry) => {
-    const t = new THREE.CanvasTexture(canvas);
-    t.wrapS = THREE.RepeatWrapping;
-    t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(rx, ry);
-    t.generateMipmaps = true;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
-    t.magFilter = THREE.LinearFilter;
-    return t;
-  };
-
   const result = {
-    colorMap: makeTex(colorCanvas, 8, 4),
-    normalMap: makeTex(normalCanvas, 8, 4),
-    roughnessMap: makeTex(roughCanvas, 8, 4)
+    colorMap: createHighResTexture(colorCanvas, 5, 2.2),
+    normalMap: createNormalTexture(normalCanvas, 5, 2.2),
+    roughnessMap: createNormalTexture(roughCanvas, 5, 2.2)
   };
-  textureCache.set('station_tiles_pbr', result);
+  textureCache.set('station_tiles_white_pbr', result);
   return result;
 }
 
 // =============================================================================
-// 5. ТЕРМООБРАБОТАННЫЙ ГРАНИТ ПЛАТФОРМЫ
+// 6. ТЕРМООБРАБОТАННЫЙ ГРАНИТ ПЛАТФОРМЫ
 // =============================================================================
-
 export function getPlatformGraniteTextures() {
   if (textureCache.has('platform_granite_pbr')) return textureCache.get('platform_granite_pbr');
 
-  const size = 512;
+  const size = 1024;
   const colorCanvas = document.createElement('canvas');
   colorCanvas.width = size;
   colorCanvas.height = size;
   const cctx = colorCanvas.getContext('2d');
-  cctx.fillStyle = '#22252c';
+  cctx.fillStyle = '#1c1f26';
   cctx.fillRect(0, 0, size, size);
 
   const imgData = cctx.getImageData(0, 0, size, size);
   const d = imgData.data;
+  let seed = 887766;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
   for (let i = 0; i < d.length; i += 4) {
-    const grain = (Math.random() - 0.5) * 28;
+    const grain = (rnd() - 0.5) * 24;
     d[i] = Math.max(0, Math.min(255, d[i] + grain));
     d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + grain + 2));
     d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + grain + 4));
   }
   cctx.putImageData(imgData, 0, 0);
-
-  cctx.strokeStyle = '#121418';
-  cctx.lineWidth = 2;
-  cctx.strokeRect(0, 0, size, size);
 
   const normalCanvas = document.createElement('canvas');
   normalCanvas.width = size;
@@ -231,29 +447,19 @@ export function getPlatformGraniteTextures() {
 
   const nData = nctx.getImageData(0, 0, size, size);
   const nd = nData.data;
+  seed = 667788;
   for (let i = 0; i < nd.length; i += 4) {
-    const nx = (Math.random() - 0.5) * 16;
-    const ny = (Math.random() - 0.5) * 16;
+    const nx = (rnd() - 0.5) * 20;
+    const ny = (rnd() - 0.5) * 20;
     nd[i] = Math.max(0, Math.min(255, 128 + nx));
     nd[i + 1] = Math.max(0, Math.min(255, 128 + ny));
     nd[i + 2] = 250;
   }
   nctx.putImageData(nData, 0, 0);
 
-  const makeTex = (canvas, rx, ry) => {
-    const t = new THREE.CanvasTexture(canvas);
-    t.wrapS = THREE.RepeatWrapping;
-    t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(rx, ry);
-    t.generateMipmaps = true;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
-    t.magFilter = THREE.LinearFilter;
-    return t;
-  };
-
   const result = {
-    colorMap: makeTex(colorCanvas, 8, 3),
-    normalMap: makeTex(normalCanvas, 8, 3)
+    colorMap: createHighResTexture(colorCanvas, 6, 2.5),
+    normalMap: createNormalTexture(normalCanvas, 6, 2.5)
   };
   textureCache.set('platform_granite_pbr', result);
   return result;

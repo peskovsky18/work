@@ -210,3 +210,24 @@ export function playBrakeScreech() {
   osc1.stop(now + 1.35);
   osc2.stop(now + 1.35);
 }
+
+// Мягкий тактильный колокольчик включения звука
+export function playHapticChime() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(520, now);
+  osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
+
+  g.gain.setValueAtTime(0.06, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
+
+  osc.connect(g);
+  g.connect(audioCtx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.11);
+}

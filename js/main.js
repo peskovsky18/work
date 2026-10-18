@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 7. Подсказка включения звука
   initSoundHint();
+
+  // 8. Автозатемнение интерфейса при просмотре видео
+  initCinemaIdleDim();
 });
 
 // =============================================================================
@@ -370,5 +373,30 @@ function initSoundHint() {
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyM') dismiss();
+  });
+}
+
+// =============================================================================
+// АВТОЗАТЕМНЕНИЕ ИНТЕРФЕЙСА ПРИ ПРОСМОТРЕ ВИДЕО
+// =============================================================================
+function initCinemaIdleDim() {
+  let idleTimer = null;
+  const resetIdle = () => {
+    if (document.body.classList.contains('cinema-dimmed')) {
+      document.body.classList.remove('cinema-dimmed');
+    }
+    if (idleTimer) clearTimeout(idleTimer);
+
+    const activePill = document.querySelector('.stage-nav-pill.active');
+    const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+    if (cur === 1 || cur === 2) {
+      idleTimer = setTimeout(() => {
+        document.body.classList.add('cinema-dimmed');
+      }, 3500);
+    }
+  };
+
+  ['mousemove', 'touchstart', 'scroll', 'keydown', 'click'].forEach((evt) => {
+    window.addEventListener(evt, resetIdle, { passive: true });
   });
 }

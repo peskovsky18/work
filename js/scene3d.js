@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime } from './subwayAudio.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -879,6 +879,7 @@ export function toggleGlobalSound() {
   isGlobalMuted = !isGlobalMuted;
   if (!isGlobalMuted) {
     initSubwayAudio();
+    playHapticChime();
   }
   syncAudioForActiveStage();
   updateSoundButtonUI();

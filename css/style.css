@@ -1124,3 +1124,17 @@ body.tunnel-speed-active .cinematic-vignette {
 .sound-hint-close-btn:hover {
   color: #fff;
 }
+
+/* Автоматическое кинематографическое затемнение интерфейса при просмотре видео */
+body.cinema-dimmed .site-header,
+body.cinema-dimmed .floating-hud-bottom,
+body.cinema-dimmed .floating-hud-top {
+  opacity: 0.22;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.cinema-dimmed .site-header:hover,
+body.cinema-dimmed .floating-hud-bottom:hover,
+body.cinema-dimmed .floating-hud-top:hover {
+  opacity: 1;
+}

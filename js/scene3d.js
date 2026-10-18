@@ -5,8 +5,8 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime, playPassingTrainWhoosh } from './subwayAudio.js';
+import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture, getTrackWallSignTexture } from './subwayMap.js';
+import { initSubwayAudio, updateSubwayAudio, playNavTick, playHapticChime } from './subwayAudio.js';
 import {
   getPhotoWallTextures,
   getPhotoDoorTextures,
@@ -170,8 +170,8 @@ export function initSubwayScene() {
   // 4. Освещение вагона и станции
   setupSubwayLighting();
 
-  // 4.1 Система тоннеля (Tunnel Run)
-  setupTunnelSystem();
+  // 4.1 Архитектурное окружение станции (путевая стена с ретро-плиткой и современная платформа с неоном)
+  setupStationEnvironment();
 
   // 4.2 Атмосферные микрочастицы в лучах света вагона
   setupDustParticles();
@@ -208,26 +208,29 @@ const ceilingLamps = [];
 const grabStraps = [];
 let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
+let stationEnvGroup;
+
 function setupSubwayLighting() {
-  // Теплый кинематографичный рассеянный свет (как в оригинальном интерьере на фото)
-  const ambient = new THREE.AmbientLight(0x282622, 1.35);
+  // 1. Яркий нейтрально-белый свет современной станции метро (5500K daylight-white)
+  const ambient = new THREE.AmbientLight(0xecf2f8, 1.45);
   scene.add(ambient);
 
+  // 2. Потолочные люминесцентные светильники вагона с нейтрально-белым спектром
   [-4.5, -2.5, -0.5, 1.5, 3.5, 5.0].forEach(px => {
-    const lamp = new THREE.PointLight(0xffeed6, 1.50, 7.0, 1.2);
+    const lamp = new THREE.PointLight(0xf5f8fc, 1.65, 7.5, 1.1);
     lamp.position.set(px, 2.15, -1.20);
     scene.add(lamp);
     ceilingLamps.push(lamp);
   });
 
-  // Освещение платформы станции 1 снаружи открытых дверей и окон
-  station1Light = new THREE.PointLight(0xffeed6, 1.6, 12.0, 1.2);
-  station1Light.position.set(-3.765, 1.8, 1.8);
+  // 3. Освещение платформы станции снаружи открытых дверей и окон (Сторона A)
+  station1Light = new THREE.PointLight(0xffffff, 2.0, 16.0, 1.1);
+  station1Light.position.set(-3.765, 2.4, 2.2);
   scene.add(station1Light);
 
-  // Освещение платформы станции 2
-  station2Light = new THREE.PointLight(0xffdfb0, 1.4, 12.0, 1.2);
-  station2Light.position.set(-3.765, 1.9, -3.8);
+  // 4. Освещение путевой стены с ретро-плиткой снаружи окон (Сторона B)
+  station2Light = new THREE.PointLight(0xf0f5ff, 1.7, 12.0, 1.1);
+  station2Light.position.set(0.0, 2.4, -3.0);
   scene.add(station2Light);
 
   screenLight1 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
@@ -238,19 +241,182 @@ function setupSubwayLighting() {
   screenLight2.position.set(-0.565, 1.40, -0.28);
   scene.add(screenLight2);
 
-  windowPassingLight = new THREE.PointLight(0xffeed6, 0.4, 8.0, 1.3);
+  windowPassingLight = new THREE.PointLight(0xf0f6ff, 0.6, 9.0, 1.2);
   windowPassingLight.position.set(1.595, 1.45, 0.65);
   scene.add(windowPassingLight);
 
-  windowPassingLight2 = new THREE.PointLight(0xffeed6, 0.4, 8.0, 1.3);
+  windowPassingLight2 = new THREE.PointLight(0xf0f6ff, 0.6, 9.0, 1.2);
   windowPassingLight2.position.set(1.595, 1.45, -1.85);
   scene.add(windowPassingLight2);
 }
 
-function setupTunnelSystem() {
-  // Тоннель и встречный поезд полностью отключены: поезд стоит на красиво освещенной станции (60 FPS без лагов)
-  tunnelGroup = new THREE.Group();
-  scene.add(tunnelGroup);
+function setupStationEnvironment() {
+  stationEnvGroup = new THREE.Group();
+  const tilePBR = getStationTileTextures();
+  const granitePBR = getPlatformGraniteTextures();
+
+  // =========================================================================
+  // 1. СТОРОНА B: ПУТЕВАЯ СТЕНА С РЕТРО-ПЛИТКОЙ И НАЗВАНИЕМ СТАНЦИИ
+  // =========================================================================
+  const trackWallZ = -3.25; // 85 см от стены вагона (окна на Z = -2.40)
+  const trackWallW = 24.0;
+  const trackWallH = 3.20;
+
+  // 1.1 Керамическая ретро-плитка с глянцевой глазурью и выразительными фасками
+  const wallGeom = new THREE.PlaneGeometry(trackWallW, trackWallH, 48, 8);
+  const wallMat = new THREE.MeshStandardMaterial({
+    map: tilePBR.colorMap,
+    normalMap: tilePBR.normalMap,
+    normalScale: new THREE.Vector2(0.9, 0.9),
+    roughnessMap: tilePBR.roughnessMap,
+    roughness: 0.15,
+    metalness: 0.08,
+    side: THREE.FrontSide
+  });
+  const trackWallMesh = new THREE.Mesh(wallGeom, wallMat);
+  trackWallMesh.position.set(0, 1.45, trackWallZ);
+  stationEnvGroup.add(trackWallMesh);
+
+  // 1.2 Темный полированный гранитный цоколь путевой стены
+  const plinthGeom = new THREE.BoxGeometry(trackWallW, 0.40, 0.06);
+  const plinthMat = new THREE.MeshStandardMaterial({
+    map: granitePBR.colorMap,
+    normalMap: granitePBR.normalMap,
+    normalScale: new THREE.Vector2(0.8, 0.8),
+    roughness: 0.35,
+    metalness: 0.20
+  });
+  const plinthMesh = new THREE.Mesh(plinthGeom, plinthMat);
+  plinthMesh.position.set(0, 0.10, trackWallZ + 0.03);
+  stationEnvGroup.add(plinthMesh);
+
+  // 1.3 Карнизный ретро-пояс мозаики (вишнево-красный с золотистым кантом)
+  const mosaicGeom = new THREE.BoxGeometry(trackWallW, 0.16, 0.04);
+  const mosaicMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0x981820),
+    roughness: 0.25,
+    metalness: 0.30
+  });
+  const mosaicMesh = new THREE.Mesh(mosaicGeom, mosaicMat);
+  mosaicMesh.position.set(0, 2.50, trackWallZ + 0.02);
+  stationEnvGroup.add(mosaicMesh);
+
+  // 1.4 Аутентичные эмалированные таблички с названием станции («ПЕСКОВСКАЯ»)
+  const signTex = getTrackWallSignTexture(THREE);
+  const signGeom = new THREE.PlaneGeometry(2.20, 0.50);
+  const signMat = new THREE.MeshStandardMaterial({
+    map: signTex,
+    roughness: 0.18,
+    metalness: 0.35,
+    side: THREE.FrontSide
+  });
+
+  // Таблички размещены напротив окон поезда (по центру и по краям вагона)
+  [-4.2, 0.0, 4.2].forEach(px => {
+    const signMesh = new THREE.Mesh(signGeom, signMat);
+    signMesh.position.set(px, 1.45, trackWallZ + 0.02);
+    stationEnvGroup.add(signMesh);
+
+    // Локальный направленный спотлайт на табличку
+    const signSpot = new THREE.PointLight(0xffffff, 0.9, 4.5, 1.4);
+    signSpot.position.set(px, 2.45, trackWallZ + 0.55);
+    stationEnvGroup.add(signSpot);
+  });
+
+  // 1.5 Щебеночный балласт и рельсы под вагоном
+  const ballastGeom = new THREE.BoxGeometry(trackWallW, 0.15, 2.40);
+  const ballastMat = new THREE.MeshStandardMaterial({
+    color: 0x181a1f,
+    roughness: 0.95,
+    metalness: 0.10
+  });
+  const ballast = new THREE.Mesh(ballastGeom, ballastMat);
+  ballast.position.set(0, -0.12, -1.80);
+  stationEnvGroup.add(ballast);
+
+  const railGeom = new THREE.BoxGeometry(trackWallW, 0.08, 0.05);
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x78808d, metalness: 0.9, roughness: 0.25 });
+  [-2.15, -0.75].forEach(rz => {
+    const rail = new THREE.Mesh(railGeom, railMat);
+    rail.position.set(0, -0.04, rz);
+    stationEnvGroup.add(rail);
+  });
+
+  // =========================================================================
+  // 2. СТОРОНА A: СОВРЕМЕННАЯ ПЛАТФОРМА С НЕОНОВЫМИ ПОЛОСАМИ
+  // =========================================================================
+  const platformW = 24.0;
+
+  // 2.1 Широкий гранить платформы
+  const platFloorGeom = new THREE.BoxGeometry(platformW, 0.15, 4.80);
+  const platFloorMat = new THREE.MeshStandardMaterial({
+    map: granitePBR.colorMap,
+    normalMap: granitePBR.normalMap,
+    normalScale: new THREE.Vector2(0.7, 0.7),
+    roughness: 0.55,
+    metalness: 0.15
+  });
+  const platFloor = new THREE.Mesh(platFloorGeom, platFloorMat);
+  platFloor.position.set(0, -0.08, 2.40);
+  stationEnvGroup.add(platFloor);
+
+  // 2.2 Желтая тактильная линия безопасности вдоль края платформы
+  const safeLineGeom = new THREE.BoxGeometry(platformW, 0.012, 0.16);
+  const safeLineMat = new THREE.MeshStandardMaterial({
+    color: 0xf5a623,
+    roughness: 0.50,
+    metalness: 0.10
+  });
+  const safeLine = new THREE.Mesh(safeLineGeom, safeLineMat);
+  safeLine.position.set(0, 0.002, 0.22);
+  stationEnvGroup.add(safeLine);
+
+  // 2.3 Архитектурные колонны платформы (полированный белый мрамор)
+  const colGeom = new THREE.BoxGeometry(0.48, 3.10, 0.48);
+  const colMat = new THREE.MeshStandardMaterial({
+    color: 0xf2f5fa,
+    roughness: 0.22,
+    metalness: 0.08
+  });
+  [-6.2, -1.8, 2.6, 7.0].forEach(cx => {
+    const col = new THREE.Mesh(colGeom, colMat);
+    col.position.set(cx, 1.45, 2.60);
+    stationEnvGroup.add(col);
+  });
+
+  // 2.4 Линейные яркие нейтрально-белые неоновые полосы на потолке платформы
+  const neonMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const neonHousingMat = new THREE.MeshStandardMaterial({ color: 0x1c1f26, roughness: 0.4, metalness: 0.8 });
+
+  [-5.0, 0.0, 5.0].forEach(nx => {
+    const stripGeom = new THREE.BoxGeometry(3.6, 0.05, 0.10);
+    const strip = new THREE.Mesh(stripGeom, neonMat);
+    strip.position.set(nx, 2.45, 1.95);
+    stationEnvGroup.add(strip);
+
+    const housingGeom = new THREE.BoxGeometry(3.64, 0.04, 0.14);
+    const housing = new THREE.Mesh(housingGeom, neonHousingMat);
+    housing.position.set(nx, 2.48, 1.95);
+    stationEnvGroup.add(housing);
+
+    const neonLight = new THREE.PointLight(0xffffff, 1.2, 7.0, 1.3);
+    neonLight.position.set(nx, 2.40, 1.95);
+    stationEnvGroup.add(neonLight);
+  });
+
+  // 2.5 Задняя стена вестибюля платформы
+  const backWallGeom = new THREE.PlaneGeometry(platformW, 3.4, 16, 4);
+  const backWallMat = new THREE.MeshStandardMaterial({
+    color: 0x242832,
+    roughness: 0.45,
+    metalness: 0.15
+  });
+  const backWall = new THREE.Mesh(backWallGeom, backWallMat);
+  backWall.rotation.y = Math.PI;
+  backWall.position.set(0, 1.55, 4.80);
+  stationEnvGroup.add(backWall);
+
+  scene.add(stationEnvGroup);
 }
 
 // Атмосферные летающие микрочастицы (пылинки) в лучах освещения вагона
@@ -607,40 +773,8 @@ function loadSubwayModel() {
           return;
         }
 
-        if (child.name.includes('Platform_Tile_Wall')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: tilePBR.colorMap,
-            normalMap: tilePBR.normalMap,
-            normalScale: new THREE.Vector2(0.85, 0.85),
-            roughnessMap: tilePBR.roughnessMap,
-            roughness: 0.20,
-            metalness: 0.10,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        if (child.name.includes('Platform_Mosaic_Band')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xc02026),
-            normalMap: tilePBR.normalMap,
-            normalScale: new THREE.Vector2(0.5, 0.5),
-            roughness: 0.28,
-            metalness: 0.20,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        if (child.name.includes('Platform_Floor')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: granitePBR.colorMap,
-            normalMap: granitePBR.normalMap,
-            normalScale: new THREE.Vector2(0.65, 0.65),
-            roughness: 0.60,
-            metalness: 0.12,
-            side: THREE.DoubleSide
-          });
+        if (child.name.includes('Platform_Tile_Wall') || child.name.includes('Platform_Mosaic_Band') || child.name.includes('Platform_Floor')) {
+          child.visible = false;
           return;
         }
 
@@ -1013,30 +1147,7 @@ function initScrollTriggers() {
         camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
       }
 
-      // Звуковые сигналы отправления, закрытия дверей и прибытия на станцию
-      if (p < 0.005) {
-        hasPlayedDepartureGong = false;
-        hasPlayedDoorChime = false;
-      } else if (p > 0.008 && !hasPlayedDepartureGong && !isGlobalMuted) {
-        playStationDepartureGong();
-        hasPlayedDepartureGong = true;
-      } else if (p > 0.025 && !hasPlayedDoorChime && !isGlobalMuted) {
-        playDoorChime();
-        hasPlayedDoorChime = true;
-      }
-
-      if (p < 0.85) {
-        hasPlayedPAChime = false;
-        hasPlayedArrivalChime = false;
-      } else if (p > 0.89 && !hasPlayedPAChime && !isGlobalMuted) {
-        playStationPAChime();
-        hasPlayedPAChime = true;
-      } else if (p > 0.95 && !hasPlayedArrivalChime && !isGlobalMuted) {
-        playArrivalChime();
-        hasPlayedArrivalChime = true;
-      }
-
-      // Двери закрываются при отправлении со ст.1 и открываются при прибытии на ст.2
+      // Двери закрываются при начале скролла (0-8%) и открываются при прибытии в контакты (94-100%)
       if (p >= 0.94) {
         targetDoorCloseRatio = Math.max(0.0, 1.0 - (p - 0.94) / 0.06);
       } else {
@@ -1046,9 +1157,9 @@ function initScrollTriggers() {
       // Поезд стоит на станции (0.0): нулевая нагрузка на GPU/CPU, стабильные 60 FPS
       trainSpeed = 0.0;
 
-      // Теплое освещение платформы станции снаружи окон и дверей
-      if (station1Light) station1Light.intensity = Math.max(0.6, 1.6 * (1.0 - p * 0.5));
-      if (station2Light) station2Light.intensity = Math.max(0.6, 1.6 * (0.5 + p * 0.5));
+      // Яркое освещение современной платформы и путевой стены
+      if (station1Light) station1Light.intensity = Math.max(1.4, 2.0 * (1.0 - p * 0.3));
+      if (station2Light) station2Light.intensity = Math.max(1.4, 1.8 * (0.7 + p * 0.3));
       if (stationSignMesh) {
         stationSignMesh.visible = true;
         stationSignMesh.material.emissiveIntensity = Math.max(0.8, 1.4 * p);
@@ -1085,8 +1196,13 @@ function initScrollTriggers() {
 // ПЕРЕКЛЮЧЕНИЕ АКТИВНОГО ЭТАПА (HUD + АУДИО)
 // =============================================================================
 function setActiveStage(stageIndex) {
-  if (activeStage !== stageIndex && isZoomedToScreen) {
-    resetScreenZoom();
+  if (activeStage !== stageIndex) {
+    if (!isGlobalMuted) {
+      playNavTick();
+    }
+    if (isZoomedToScreen) {
+      resetScreenZoom();
+    }
   }
   activeStage = stageIndex;
 

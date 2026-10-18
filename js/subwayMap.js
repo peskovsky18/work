@@ -562,3 +562,34 @@ export function getNoLeanDecalTexture(THREE) {
 
   return cachedNoLeanTexture;
 }
+
+const placeholderCache = {};
+export function getPlaceholderScreenTexture(THREE, numStr, titleStr) {
+  const key = `${numStr}_${titleStr}`;
+  if (placeholderCache[key]) return placeholderCache[key];
+  const cvs = document.createElement('canvas');
+  cvs.width = 1920; cvs.height = 1080;
+  const ctx = cvs.getContext('2d');
+  const bg = ctx.createRadialGradient(960, 540, 200, 960, 540, 1000);
+  bg.addColorStop(0, '#10131a'); bg.addColorStop(0.6, '#090b0f'); bg.addColorStop(1, '#050608');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 1920, 1080);
+  // Grid & frame marks
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)'; ctx.lineWidth = 1;
+  for (let x = 0; x <= 1920; x += 80) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1080); ctx.stroke(); }
+  for (let y = 0; y <= 1080; y += 80) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1920, y); ctx.stroke(); }
+  const p = 80, m = 35; ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
+  ctx.strokeRect(p, p, m, m); ctx.strokeRect(1920 - p - m, p, m, m);
+  ctx.strokeRect(p, 1080 - p - m, m, m); ctx.strokeRect(1920 - p - m, 1080 - p - m, m, m);
+  // Status & Title
+  ctx.fillStyle = 'rgba(245, 166, 35, 0.85)'; ctx.beginPath(); ctx.arc(p + 15, p + 20, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '600 22px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillText('STANDBY // 16:9 4K', p + 32, p + 28);
+  ctx.font = '800 240px "Space Grotesk", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.035)'; ctx.fillText(numStr, 960, 520);
+  ctx.font = '700 52px "Space Grotesk", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText(titleStr, 960, 500);
+  ctx.font = '500 22px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(142,149,165,0.85)'; ctx.fillText('В РАЗРАБОТКЕ • СКОРО В ПОРТФОЛИО', 960, 570);
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false; tex.generateMipmaps = true;
+  placeholderCache[key] = tex;
+  return tex;
+}
+

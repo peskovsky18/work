@@ -436,6 +436,40 @@ body.dark-cinema-body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.hud-badge-tunnel {
+  color: #38ef7d;
+  border-color: rgba(56, 239, 125, 0.35);
+  background: rgba(56, 239, 125, 0.1);
+}
+
+.info-capsule {
+  padding: 10px 22px;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 90vw;
+}
+
+.status-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.status-indicator-dot.dot-active {
+  background: #38ef7d;
+  box-shadow: 0 0 10px #38ef7d;
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
 /* Нижняя капсула плеера */
 .player-capsule {
   padding: 8px 16px;

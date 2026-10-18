@@ -71,12 +71,15 @@
         <span class="brand-badge">Разнорабочий в медиа</span>
       </div>
 
-      <!-- Переключатель этапов (Вход, Свэг, Мини свэг, Контакты) -->
-      <nav class="stage-nav-bar" aria-label="Навигация по 3D вагону">
+      <!-- Переключатель этапов (7 станций/остановок) -->
+      <nav class="stage-nav-bar" aria-label="Навигация по вагону метро">
         <button class="apple-pill-btn stage-nav-pill active" data-stage="0">Вход</button>
         <button class="apple-pill-btn stage-nav-pill" data-stage="1">Свэг</button>
         <button class="apple-pill-btn stage-nav-pill" data-stage="2">Мини свэг</button>
-        <button class="apple-pill-btn stage-nav-pill" data-stage="3">Контакты</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="3">03 Тоннель</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="4">04</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="5">05–08</button>
+        <button class="apple-pill-btn stage-nav-pill" data-stage="6">Контакты</button>
       </nav>
 
       <!-- Действия: Звук, Email, Instagram -->
@@ -214,13 +217,75 @@
     </section>
 
     <!-- -----------------------------------------------------------------------
-         ЭТАП 3: ФИНАЛЬНЫЙ ПЛАН И КОНТАКТЫ
+         ЭТАП 3: ЭКРАН 3 (ПЛЕЙСХОЛДЕР 03 / СТАРТ ДВИЖЕНИЯ В ТОННЕЛЬ)
          ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-contact" id="stage-3" data-stage-index="3">
+    <section class="story-stage stage-placeholder" id="stage-3" data-stage-index="3">
+      <div class="stage-container">
+        <div class="floating-hud-top">
+          <div class="glass-capsule title-capsule">
+            <span class="hud-category-label">Проект 03</span>
+            <span class="hud-item-title">В производстве</span>
+            <span class="hud-badge hud-badge-tunnel">Отправление в тоннель</span>
+          </div>
+        </div>
+        <div class="floating-hud-bottom">
+          <div class="glass-capsule info-capsule">
+            <span class="status-indicator-dot dot-active"></span>
+            <span>Поезд начинает разгон. Место зарезервировано под следующую работу.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 4: ЭКРАН 4 (ПЛЕЙСХОЛДЕР 04 / КРЕЙСЕРСКИЙ ХОД В ТОННЕЛЕ)
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-placeholder" id="stage-4" data-stage-index="4">
+      <div class="stage-container">
+        <div class="floating-hud-top">
+          <div class="glass-capsule title-capsule">
+            <span class="hud-category-label">Проект 04</span>
+            <span class="hud-item-title">В производстве</span>
+            <span class="hud-badge hud-badge-tunnel">Скорость в тоннеле</span>
+          </div>
+        </div>
+        <div class="floating-hud-bottom">
+          <div class="glass-capsule info-capsule">
+            <span class="status-indicator-dot dot-active"></span>
+            <span>Крейсерский ход в тоннеле. Огни и световые полосы за окном.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 5: ОБЗОР ДРУГОЙ СТОРОНЫ ВАГОНА (ПРОЕКТЫ 05–08)
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-placeholder" id="stage-5" data-stage-index="5">
+      <div class="stage-container">
+        <div class="floating-hud-top">
+          <div class="glass-capsule title-capsule">
+            <span class="hud-category-label">Другая сторона</span>
+            <span class="hud-item-title">Проекты 05–08</span>
+            <span class="hud-badge">4 слота</span>
+          </div>
+        </div>
+        <div class="floating-hud-bottom">
+          <div class="glass-capsule info-capsule">
+            <span class="status-indicator-dot"></span>
+            <span>Подготовленные экраны на противоположной стороне вагона.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -----------------------------------------------------------------------
+         ЭТАП 6: ФИНАЛЬНЫЙ ПЛАН И ПРИБЫТИЕ НА СТАНЦИЮ (КОНТАКТЫ)
+         ----------------------------------------------------------------------- -->
+    <section class="story-stage stage-contact" id="stage-6" data-stage-index="6">
       <div class="stage-container contact-layout">
-        
         <div class="contact-glass-card">
-          <span class="contact-card-badge">СВЯЗЬ И СОТРУДНИЧЕСТВО</span>
+          <span class="contact-card-badge">ПРИБЫТИЕ НА СТАНЦИЮ • КОНТАКТЫ</span>
           <h2 class="contact-card-title">Александр Песковский</h2>
           <p class="contact-card-role">Разнорабочий в медиа • Видеопродакшн • Режиссура</p>
 
@@ -240,7 +305,6 @@
             © 2026 Александр Песковский • Shot on iPhone
           </div>
         </div>
-
       </div>
     </section>
 

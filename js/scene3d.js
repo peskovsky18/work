@@ -659,8 +659,10 @@ function loadSubwayModel() {
       }
     },
     (xhr) => {
-      if (progressBar && xhr.total) {
-        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+      if (progressBar) {
+        const percent = xhr.total
+          ? Math.round((xhr.loaded / xhr.total) * 100)
+          : Math.min(Math.round((xhr.loaded / 1800000) * 100), 95);
         progressBar.style.width = `${percent}%`;
       }
     },

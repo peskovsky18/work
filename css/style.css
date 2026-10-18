@@ -134,18 +134,19 @@ body.dark-cinema-body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 2px;
-  height: 2px;
+  width: 160px;
+  height: 90px;
   overflow: hidden;
-  opacity: 0.001;
+  opacity: 0.01;
   pointer-events: none;
-  z-index: -999;
+  z-index: 0;
 }
 
 .video-texture-sources video {
-  width: 2px;
-  height: 2px;
+  width: 160px;
+  height: 90px;
   object-fit: cover;
+  display: block;
 }
 
 /* ==========================================================================

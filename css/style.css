@@ -642,9 +642,9 @@ body.dark-cinema-body {
 
 .contact-glass-card {
   pointer-events: auto;
-  max-width: 580px;
+  max-width: 540px;
   width: 100%;
-  padding: 44px 48px;
+  padding: 38px 44px;
   background: rgba(14, 16, 22, 0.75);
   border: 1px solid var(--border-subtle);
   border-radius: 32px;
@@ -655,38 +655,23 @@ body.dark-cinema-body {
   animation: floatIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.contact-card-badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.74rem;
-  letter-spacing: 2px;
-  color: var(--accent-amber);
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: inline-block;
-}
-
 .contact-card-title {
   font-size: clamp(1.8rem, 3.5vw, 2.4rem);
   font-weight: 800;
   letter-spacing: -0.5px;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   color: #fff;
-}
-
-.contact-card-role {
-  font-size: 1rem;
-  color: var(--text-muted);
-  margin-bottom: 32px;
 }
 
 .contact-action-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-bottom: 32px;
+  margin-top: 26px;
+  margin-bottom: 0;
 }
 
 .contact-btn-large {
@@ -845,13 +830,20 @@ body.dark-cinema-body {
   }
 
   .contact-action-row {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 10px;
+    margin-top: 18px;
+    margin-bottom: 0;
   }
 
   .contact-btn-large {
-    width: 100%;
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 140px;
     justify-content: center;
+    padding: 10px 16px;
+    font-size: 0.88rem;
   }
 
   .emergency-banner {

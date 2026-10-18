@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
+import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, playNavTick, playHapticChime } from './subwayAudio.js';
 import {
   getPhotoWallTextures,
@@ -79,8 +79,7 @@ const CAMERA_WAYPOINTS = [
 let scene, camera, renderer, clock;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh, platformMapMesh, stationSignMesh;
-const grabStrapMeshes = [];
+let screen1Mesh, screen2Mesh, platformMapMesh;
 let video1, video2;
 let videoTexture1, videoTexture2;
 let screenLight1, screenLight2;
@@ -166,9 +165,6 @@ export function initSubwayScene() {
   // 4.1 Архитектурное окружение станции (путевая стена и детальная платформа с постерами и скамейками)
   setupStationEnvironment();
 
-  // 4.5 Подвесной светящийся указатель на станции прибытия
-  setupStation2Sign();
-
   // 5. Видеоэлементы и текстуры
   setupVideoTextures();
 
@@ -189,7 +185,6 @@ let trainSpeed = 0.0;
 let tunnelGroup, oppTrainGroup;
 const tunnelLights = [];
 const ceilingLamps = [];
-const grabStraps = [];
 let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
 let stationEnvGroup;
@@ -495,211 +490,7 @@ function setupStationEnvironment() {
     stationEnvGroup.add(posterGroup);
   });
 
-  // 2.8 Атмосферные силуэты ожидающих пассажиров на перроне
-  function createPassengerSilhouette(options = {}) {
-    const { isSitting = false, hasPhone = false, phoneColor = 0x88ccff } = options;
-    const person = new THREE.Group();
-    const silMat = new THREE.MeshStandardMaterial({
-      color: 0x141822,
-      roughness: 0.82,
-      metalness: 0.12
-    });
-
-    if (isSitting) {
-      // Сидящий пассажир на скамейке платформы
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 10), silMat);
-      head.position.set(0, 1.15, -0.05);
-      person.add(head);
-
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.50, 12), silMat);
-      torso.position.set(0, 0.82, -0.06);
-      person.add(torso);
-
-      const thighs = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.11, 0.36), silMat);
-      thighs.position.set(0, 0.50, 0.12);
-      person.add(thighs);
-
-      const shins = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.44, 0.11), silMat);
-      shins.position.set(0, 0.23, 0.26);
-      person.add(shins);
-    } else {
-      // Стоящий пассажир на платформе
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.10, 12, 10), silMat);
-      head.position.set(0, 1.66, 0);
-      person.add(head);
-
-      const coat = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.74, 12), silMat);
-      coat.position.set(0, 1.18, 0);
-      person.add(coat);
-
-      [-0.08, 0.08].forEach(lx => {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.80, 10), silMat);
-        leg.position.set(lx, 0.40, 0);
-        person.add(leg);
-      });
-
-      if (hasPhone) {
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.36, 8), silMat);
-        arm.position.set(0.16, 1.25, 0.12);
-        arm.rotation.x = Math.PI * 0.35;
-        person.add(arm);
-
-        const phoneMat = new THREE.MeshStandardMaterial({
-          color: phoneColor,
-          emissive: new THREE.Color(phoneColor),
-          emissiveIntensity: 1.6
-        });
-        const phone = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.08, 0.01), phoneMat);
-        phone.position.set(0.16, 1.34, 0.24);
-        phone.rotation.x = -Math.PI * 0.20;
-        person.add(phone);
-      } else {
-        [-0.19, 0.19].forEach(ax => {
-          const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.58, 8), silMat);
-          arm.position.set(ax, 1.15, 0);
-          person.add(arm);
-        });
-      }
-    }
-    return person;
-  }
-
-  // 1. Сидящий пассажир на центральной скамейке
-  const pSitting = createPassengerSilhouette({ isSitting: true });
-  pSitting.position.set(0.35, 0.0, 2.35);
-  stationEnvGroup.add(pSitting);
-
-  // 2. Стоящий пассажир у колонны со смартфоном
-  const pPhone = createPassengerSilhouette({ isSitting: false, hasPhone: true, phoneColor: 0x88d5ff });
-  pPhone.position.set(-2.40, 0.0, 2.75);
-  pPhone.rotation.y = -Math.PI * 0.35;
-  stationEnvGroup.add(pPhone);
-
-  // 3. Стоящий пассажир напротив второй двери
-  const pWaiting = createPassengerSilhouette({ isSitting: false, hasPhone: false });
-  pWaiting.position.set(1.90, 0.0, 2.65);
-  pWaiting.rotation.y = Math.PI * 0.20;
-  stationEnvGroup.add(pWaiting);
-
-  // 4. Пассажир, рассматривающий культурный постер на стене платформы
-  const pArtViewer = createPassengerSilhouette({ isSitting: false, hasPhone: true, phoneColor: 0xffaa44 });
-  pArtViewer.position.set(4.20, 0.0, 4.05);
-  pArtViewer.rotation.y = Math.PI;
-  stationEnvGroup.add(pArtViewer);
-
   scene.add(stationEnvGroup);
-}
-
-// Подвесные ручки-петли с инерционным маятниковым качанием
-function setupGrabStraps() {
-  const strapMat = new THREE.MeshStandardMaterial({ color: 0x1f232b, roughness: 0.72, metalness: 0.12 });
-  const buckleMat = new THREE.MeshStandardMaterial({ color: 0xe2e7ef, roughness: 0.18, metalness: 0.96 });
-  const handleMat = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.28, metalness: 0.25 });
-
-  const strapGeom = new THREE.BoxGeometry(0.024, 0.16, 0.007);
-  const buckleGeom = new THREE.BoxGeometry(0.034, 0.024, 0.016);
-  const ringGeom = new THREE.TorusGeometry(0.046, 0.0075, 8, 18);
-
-  const xPositions = [-2.8, -2.1, -1.4, -0.7, 0.0, 0.7, 1.4, 2.1, 2.8];
-  const zSides = [-0.44, -1.94];
-
-  zSides.forEach((sz) => {
-    xPositions.forEach((sx, idx) => {
-      const pivot = new THREE.Group();
-      pivot.position.set(sx, 2.18, sz);
-
-      const buckle = new THREE.Mesh(buckleGeom, buckleMat);
-      buckle.position.set(0, -0.012, 0);
-      pivot.add(buckle);
-
-      const strap = new THREE.Mesh(strapGeom, strapMat);
-      strap.position.set(0, -0.09, 0);
-      pivot.add(strap);
-
-      const ring = new THREE.Mesh(ringGeom, handleMat);
-      ring.position.set(0, -0.21, 0);
-      ring.userData = { isGrabStrap: true, strapIndex: grabStraps.length };
-      grabStrapMeshes.push(ring);
-
-      scene.add(pivot);
-      grabStraps.push({
-        pivot,
-        phase: sx * 1.6 + (sz > -1 ? 0 : Math.PI * 0.5),
-        currentAngleZ: 0,
-        currentAngleX: 0
-      });
-    });
-  });
-}
-
-// Подвесной светящийся указатель на станции назначения (Станция Песковская / Станция 2)
-function setupStation2Sign() {
-  const signTex = getStationSignTexture(THREE);
-
-  // Создаем плоский световой указатель станции с гарантированно правильной ориентацией UV
-  // Лицевая сторона строго направлена на пассажира в вагоне (нормаль 0, 0, -1)
-  const signGeom = new THREE.BufferGeometry();
-  const positions = new Float32Array([
-    // Первый треугольник (обход против часовой стрелки при взгляде с -Z)
-    -1.20, -0.30, 0.0,
-     1.20, -0.30, 0.0,
-     1.20,  0.30, 0.0,
-    // Второй треугольник
-    -1.20, -0.30, 0.0,
-     1.20,  0.30, 0.0,
-    -1.20,  0.30, 0.0
-  ]);
-  const uvs = new Float32Array([
-    0.0, 0.0,
-    1.0, 0.0,
-    1.0, 1.0,
-    0.0, 0.0,
-    1.0, 1.0,
-    0.0, 1.0
-  ]);
-  const normals = new Float32Array([
-    0, 0, -1,
-    0, 0, -1,
-    0, 0, -1,
-    0, 0, -1,
-    0, 0, -1,
-    0, 0, -1
-  ]);
-  signGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  signGeom.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  signGeom.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
-
-  const signMat = new THREE.MeshStandardMaterial({
-    map: signTex,
-    emissive: new THREE.Color(0xffffff),
-    emissiveMap: signTex,
-    emissiveIntensity: 0.0,
-    roughness: 0.25,
-    metalness: 0.05,
-    side: THREE.DoubleSide
-  });
-
-  stationSignMesh = new THREE.Mesh(signGeom, signMat);
-  stationSignMesh.position.set(-3.765, 2.18, 2.15);
-  stationSignMesh.visible = false; // Скрыт на станции 1, появляется только по прибытии на Станцию 2
-
-  // Корпус лайтбокса сзади
-  const housingGeom = new THREE.BoxGeometry(2.44, 0.64, 0.06);
-  const housingMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.35, metalness: 0.8 });
-  const housingMesh = new THREE.Mesh(housingGeom, housingMat);
-  housingMesh.position.set(0, 0, 0.035);
-  stationSignMesh.add(housingMesh);
-
-  // Подвесные металлические тросы указателя
-  const cableGeom = new THREE.CylinderGeometry(0.005, 0.005, 0.8, 6);
-  const cableMat = new THREE.MeshStandardMaterial({ color: 0x9098a5, metalness: 0.9, roughness: 0.2 });
-  [-0.95, 0.95].forEach((dx) => {
-    const c = new THREE.Mesh(cableGeom, cableMat);
-    c.position.set(dx, 0.45, 0);
-    stationSignMesh.add(c);
-  });
-
-  scene.add(stationSignMesh);
 }
 
 
@@ -1084,7 +875,7 @@ function loadSubwayModel() {
         }
 
         // 18. Металлические полированные поручни и вертикальные стойки
-        if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || child.name.includes('Flange') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
+        if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || child.name.includes('Flange') || child.name.includes('Hanger') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xdde1e8),
             roughness: 0.14,
@@ -1234,10 +1025,6 @@ function initScrollTriggers() {
       // Поезд стоит на станции (0.0): нулевая нагрузка на GPU/CPU, стабильные 60 FPS
       trainSpeed = 0.0;
 
-      // Статичное освещение станции гарантирует стабильные 60 FPS без лагов шейдеров
-      if (stationSignMesh && !stationSignMesh.visible) {
-        stationSignMesh.visible = true;
-      }
 
       // Обновление светодиодного индикатора маршрута в шапке
       const trackFill = document.getElementById('route-track-fill');
@@ -1452,14 +1239,7 @@ function setupEventListeners() {
     if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner')) return;
 
     if (hoveredScreen) {
-      if (hoveredScreen.userData && hoveredScreen.userData.isGrabStrap) {
-        const sIdx = hoveredScreen.userData.strapIndex;
-        if (grabStraps[sIdx]) {
-          grabStraps[sIdx].currentAngleZ += (Math.random() > 0.5 ? 0.42 : -0.42);
-          grabStraps[sIdx].currentAngleX += 0.32;
-          playHapticChime();
-        }
-      } else if (hoveredScreen === platformMapMesh) {
+      if (hoveredScreen === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else if (hoveredScreen === screen1Mesh) {
         if (activeStage === 1) {
@@ -1720,21 +1500,6 @@ function animate() {
     }
   }
 
-  // 2.6 Инерционное гармоническое покачивание подвесных ручек-петель
-  if (grabStraps.length > 0) {
-    const strapSpeedFactor = trainSpeed * 0.075 + 0.016;
-    const accelTilt = trainSpeed > 0.05 ? -trainSpeed * 0.035 : 0.0;
-    for (let i = 0; i < grabStraps.length; i++) {
-      const s = grabStraps[i];
-      const targetZ = Math.sin(time * 3.4 + s.phase) * strapSpeedFactor + accelTilt;
-      const targetX = Math.cos(time * 2.6 + s.phase) * (strapSpeedFactor * 0.45);
-      s.currentAngleZ += (targetZ - s.currentAngleZ) * 0.10;
-      s.currentAngleX += (targetX - s.currentAngleX) * 0.10;
-      s.pivot.rotation.z = s.currentAngleZ;
-      s.pivot.rotation.x = s.currentAngleX;
-    }
-  }
-
   // 2.7 Кинематографическая просадка напряжения в тоннеле (Third-Rail Power Gap)
   if (ceilingLamps.length > 0) {
     let powerFlicker = 1.0;
@@ -1749,10 +1514,9 @@ function animate() {
     }
   }
 
-  // 3. Raycaster для определения наведения на экраны, схему метро и ручки-петли
+  // 3. Raycaster для определения наведения на экраны и схему метро
   const validScreens = screenMeshes.filter(Boolean);
   if (platformMapMesh) validScreens.push(platformMapMesh);
-  if (grabStrapMeshes.length > 0) validScreens.push(...grabStrapMeshes);
   if (validScreens.length > 0) {
     raycaster.setFromCamera(mouseVec, camera);
     const intersects = raycaster.intersectObjects(validScreens, false);

@@ -87,6 +87,8 @@
   <div class="video-texture-sources" aria-hidden="true">
     <video id="video-swag" src="assets/videos/ir8kYNcLb8sn6EK.MP4" playsinline webkit-playsinline loop muted defaultMuted preload="auto"></video>
     <video id="video-mini-swag" src="assets/videos/mppRNz4EpVE8gnQ.MP4" playsinline webkit-playsinline loop muted defaultMuted preload="auto"></video>
+    <video id="video-tunnel" src="assets/videos/ir8kYNcLb8sn6EK.MP4" playsinline webkit-playsinline loop muted defaultMuted preload="auto"></video>
+    <video id="video-industry" src="assets/videos/mppRNz4EpVE8gnQ.MP4" playsinline webkit-playsinline loop muted defaultMuted preload="auto"></video>
   </div>
 
   <!-- =========================================================================
@@ -258,48 +260,82 @@
     <!-- -----------------------------------------------------------------------
          ЭТАП 3: ЭКРАН 3 («НОЧНОЙ ТОННЕЛЬ»)
          ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-placeholder" id="stage-3" data-stage-index="3">
+    <section class="story-stage stage-video" id="stage-3" data-stage-index="3">
       <div class="stage-container">
+        
+        <!-- Верхняя капсула заголовка -->
         <div class="floating-hud-top">
           <div class="glass-capsule title-capsule">
-            <span class="hud-category-label">Проект 03</span>
+            <span class="hud-category-label">Видео</span>
             <span class="hud-item-title">Ночной тоннель</span>
-            <span class="hud-badge hud-badge-tunnel">Пост-продакшн • 2026</span>
+            <span class="hud-badge">Shot on iPhone</span>
           </div>
         </div>
+
+        <!-- Нижняя капсула плеера (только таймлайн, пауза и звук) -->
         <div class="floating-hud-bottom">
-          <div class="glass-capsule info-capsule">
-            <span class="status-indicator-dot dot-active"></span>
-            <span>Экспериментальный короткометражный фильм об ускорении времени в мегаполисе. Apple Log.</span>
-            <button class="player-icon-btn info-btn" data-project="3" aria-label="Детали проекта" title="Детали проекта">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <div class="glass-capsule player-capsule">
+            
+            <button class="player-icon-btn play-pause-btn" id="play-btn-stage3" aria-label="Воспроизвести / пауза" title="Воспроизвести / пауза">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
             </button>
+
+            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage3" title="Перемотка">
+              <div class="timeline-bar-bg">
+                <div class="timeline-bar-fill" id="timeline-progress-stage3"></div>
+              </div>
+            </div>
+
+            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук" title="Включить / выключить звук">
+              <span class="sound-btn-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+              </span>
+            </button>
+
           </div>
         </div>
+
       </div>
     </section>
 
     <!-- -----------------------------------------------------------------------
          ЭТАП 4: ЭКРАН 4 («ИНДУСТРИЯ»)
          ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-placeholder" id="stage-4" data-stage-index="4">
+    <section class="story-stage stage-video" id="stage-4" data-stage-index="4">
       <div class="stage-container">
+        
+        <!-- Верхняя капсула заголовка -->
         <div class="floating-hud-top">
           <div class="glass-capsule title-capsule">
-            <span class="hud-category-label">Проект 04</span>
+            <span class="hud-category-label">Видео</span>
             <span class="hud-item-title">Индустрия</span>
-            <span class="hud-badge hud-badge-tunnel">Fashion / Commercial</span>
+            <span class="hud-badge">Shot on iPhone</span>
           </div>
         </div>
+
+        <!-- Нижняя капсула плеера (только таймлайн, пауза и звук) -->
         <div class="floating-hud-bottom">
-          <div class="glass-capsule info-capsule">
-            <span class="status-indicator-dot dot-active"></span>
-            <span>Симбиоз человека и индустриальных машин. Монохромная контрастная эстетика.</span>
-            <button class="player-icon-btn info-btn" data-project="4" aria-label="Детали проекта" title="Детали проекта">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <div class="glass-capsule player-capsule">
+            
+            <button class="player-icon-btn play-pause-btn" id="play-btn-stage4" aria-label="Воспроизвести / пауза" title="Воспроизвести / пауза">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
             </button>
+
+            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage4" title="Перемотка">
+              <div class="timeline-bar-bg">
+                <div class="timeline-bar-fill" id="timeline-progress-stage4"></div>
+              </div>
+            </div>
+
+            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук" title="Включить / выключить звук">
+              <span class="sound-btn-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+              </span>
+            </button>
+
           </div>
         </div>
+
       </div>
     </section>
 

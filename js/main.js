@@ -89,7 +89,7 @@ function initNavigation() {
 // УПРАВЛЕНИЕ ПЛЕЕРАМИ (КНОПКИ, СКРУББЕРЫ, ЗВУК)
 // =============================================================================
 function initPlayerControls() {
-  const { video1, video2 } = getVideos();
+  const { video1, video2, video3, video4 } = getVideos();
 
   // Кнопки глобального переключения звука
   const globalSoundBtns = document.querySelectorAll('.sound-toggle-btn');
@@ -105,6 +105,12 @@ function initPlayerControls() {
 
   // ЭКРАН 2: Мини свэг
   setupStagePlayer(2, video2);
+
+  // ЭКРАН 3: Ночной тоннель
+  setupStagePlayer(3, video3);
+
+  // ЭКРАН 4: Индустрия
+  setupStagePlayer(4, video4);
 }
 
 function setupStagePlayer(stageIndex, videoEl) {
@@ -113,11 +119,16 @@ function setupStagePlayer(stageIndex, videoEl) {
   const progressEl = document.getElementById(`timeline-progress-stage${stageIndex}`);
   const heartBtn = document.getElementById(`heart-btn-stage${stageIndex}`);
 
+  const getVideo = () => {
+    const videos = getVideos();
+    return stageIndex === 1 ? videos.video1 : (stageIndex === 2 ? videos.video2 : (stageIndex === 3 ? videos.video3 : videos.video4));
+  };
+
   // Play / Pause
   if (playBtn) {
     playBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const v = stageIndex === 1 ? getVideos().video1 : getVideos().video2;
+      const v = getVideo();
       if (!v) return;
 
       if (v.paused) {
@@ -133,7 +144,7 @@ function setupStagePlayer(stageIndex, videoEl) {
   if (timelineWrap) {
     timelineWrap.addEventListener('click', (e) => {
       e.stopPropagation();
-      const v = stageIndex === 1 ? getVideos().video1 : getVideos().video2;
+      const v = getVideo();
       if (!v || !v.duration) return;
 
       const rect = timelineWrap.getBoundingClientRect();
@@ -179,15 +190,16 @@ function initKeyboardShortcuts() {
       toggleGlobalSound();
     } else if (e.code === 'KeyF') {
       const cur = getActiveStage();
-      if (cur === 1 || cur === 2) {
+      if (cur >= 1 && cur <= 4) {
         e.preventDefault();
         toggleScreenZoom();
       }
     } else if (e.code === 'Space') {
       const cur = getActiveStage();
-      if (cur === 1 || cur === 2) {
+      if (cur >= 1 && cur <= 4) {
         e.preventDefault();
-        const v = cur === 1 ? getVideos().video1 : getVideos().video2;
+        const videos = getVideos();
+        const v = cur === 1 ? videos.video1 : (cur === 2 ? videos.video2 : (cur === 3 ? videos.video3 : videos.video4));
         if (v) {
           if (v.paused) v.play().catch(() => {});
           else v.pause();
@@ -252,8 +264,7 @@ const PROJECT_DATA = {
       { label: 'Камера', val: 'Sony FX3 / iPhone 15 Pro Max' },
       { label: 'Режиссура & Звук', val: 'Александр Песковский' },
       { label: 'Формат', val: '2.39:1 Anamorphic • 4K HDR' }
-    ],
-    isPlaceholder: true
+    ]
   },
   4: {
     badge: 'COMMERCIAL / FASHION • 2026',
@@ -264,8 +275,7 @@ const PROJECT_DATA = {
       { label: 'Жанр', val: 'Fashion Film / Visual Statement' },
       { label: 'Цветокоррекция', val: 'ACEScc • Kodak Vision Emulation' },
       { label: 'Формат', val: '16:9 • Apple ProRes 422HQ' }
-    ],
-    isPlaceholder: true
+    ]
   },
   5: {
     badge: 'MUSIC VIDEO • 2026',
@@ -370,8 +380,9 @@ function initProjectModal() {
       if (placeholderBox) placeholderBox.style.display = 'none';
       if (modalVideo) {
         const pidStr = String(pId);
-        const stageVideo = pidStr === '1' ? getVideos().video1 : getVideos().video2;
-        const vSrc = pidStr === '1' ? 'assets/videos/ir8kYNcLb8sn6EK.MP4' : 'assets/videos/mppRNz4EpVE8gnQ.MP4';
+        const stageVideos = getVideos();
+        const stageVideo = pidStr === '1' ? stageVideos.video1 : (pidStr === '2' ? stageVideos.video2 : (pidStr === '3' ? stageVideos.video3 : stageVideos.video4));
+        const vSrc = (pidStr === '1' || pidStr === '3') ? 'assets/videos/ir8kYNcLb8sn6EK.MP4' : 'assets/videos/mppRNz4EpVE8gnQ.MP4';
         modalVideo.src = vSrc;
         if (stageVideo && stageVideo.currentTime) {
           modalVideo.currentTime = stageVideo.currentTime;

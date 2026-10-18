@@ -120,14 +120,11 @@ function initKeyboardShortcuts() {
     if (e.code === 'KeyM') {
       e.preventDefault();
       toggleGlobalSound();
-    } else if (e.code === 'Digit1') {
-      scrollToStage(0);
-    } else if (e.code === 'Digit2') {
-      scrollToStage(1);
-    } else if (e.code === 'Digit3') {
-      scrollToStage(2);
-    } else if (e.code === 'Digit4') {
-      scrollToStage(3);
+    } else if (e.code.startsWith('Digit')) {
+      const num = parseInt(e.code.replace('Digit', ''), 10);
+      if (num >= 1 && num <= 7) {
+        scrollToStage(num - 1);
+      }
     }
   });
 }

@@ -588,7 +588,7 @@ export function getPlaceholderScreenTexture(THREE, numStr, titleStr) {
   ctx.font = '700 52px "Space Grotesk", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText(titleStr, 960, 500);
   ctx.font = '500 22px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(142,149,165,0.85)'; ctx.fillText('В РАЗРАБОТКЕ • СКОРО В ПОРТФОЛИО', 960, 570);
   const tex = new THREE.CanvasTexture(cvs);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false; tex.generateMipmaps = true;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = true; tex.generateMipmaps = true;
   placeholderCache[key] = tex;
   return tex;
 }

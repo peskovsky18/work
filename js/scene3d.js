@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime, playPassingTrainWhoosh } from './subwayAudio.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -127,6 +127,15 @@ export function initSubwayScene() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+  }, false);
+
+  canvas.addEventListener('webglcontextrestored', () => {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }, false);
 
   // 2. Сцена
   scene = new THREE.Scene();
@@ -1252,6 +1261,9 @@ function animate() {
   // 2.4 Движение встречного поезда в тоннеле за окнами
   if (oppTrainGroup && trainSpeed > 0.25) {
     oppTrainGroup.position.x += (trainSpeed * 22.0 + 36.0) * dt;
+    if (oppTrainGroup.position.x > -14.0 && oppTrainGroup.position.x < 14.0 && !isGlobalMuted) {
+      playPassingTrainWhoosh();
+    }
     if (oppTrainGroup.position.x > 50.0) {
       oppTrainGroup.position.x = -130.0 - Math.random() * 80.0;
     }

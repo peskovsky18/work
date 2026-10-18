@@ -283,3 +283,72 @@ export function playStationPAChime() {
   });
 }
 
+// Микро-тактильный щелчок переключения станций (Apple Haptic Click)
+export function playNavTick() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1400, now);
+  osc.frequency.exponentialRampToValueAtTime(500, now + 0.025);
+
+  g.gain.setValueAtTime(0.025, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+
+  osc.connect(g);
+  g.connect(audioCtx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.035);
+}
+
+// Проносящийся встречный поезд в тоннеле с эффектом Доплера и панорамированием
+let lastWhooshTime = 0;
+export function playPassingTrainWhoosh() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+  if (now - lastWhooshTime < 3.2) return;
+  lastWhooshTime = now;
+
+  const bSize = Math.floor(audioCtx.sampleRate * 1.6);
+  const nBuf = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
+  const data = nBuf.getChannelData(0);
+  for (let i = 0; i < bSize; i++) {
+    const t = i / bSize;
+    const envelope = Math.sin(t * Math.PI) * Math.sin(t * Math.PI);
+    data[i] = (Math.random() * 2 - 1) * envelope;
+  }
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = nBuf;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(240, now);
+  filter.frequency.linearRampToValueAtTime(650, now + 0.8);
+  filter.frequency.exponentialRampToValueAtTime(170, now + 1.6);
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.0, now);
+  gain.gain.linearRampToValueAtTime(0.08, now + 0.75);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+
+  src.connect(filter);
+  filter.connect(gain);
+
+  if (typeof audioCtx.createStereoPanner === 'function') {
+    const panner = audioCtx.createStereoPanner();
+    panner.pan.setValueAtTime(-0.85, now);
+    panner.pan.linearRampToValueAtTime(0.85, now + 1.6);
+    gain.connect(panner);
+    panner.connect(audioCtx.destination);
+  } else {
+    gain.connect(audioCtx.destination);
+  }
+
+  src.start(now);
+}
+
+

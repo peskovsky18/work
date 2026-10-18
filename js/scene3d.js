@@ -88,13 +88,6 @@ let screenLight1, screenLight2;
 let activeStage = 0;
 let isGlobalMuted = true;
 
-// Интерактивный свободный 3D-осмотр вагона (Free-Look Drag с мягкой инерцией)
-const freeLook = { x: 0, y: 0 };
-const freeLookDamped = { x: 0, y: 0 };
-const lookVelocity = { x: 0, y: 0 };
-let isDraggingLook = false;
-const lastDragPos = { x: 0, y: 0 };
-
 // Двери вагона
 let doorLeft, doorRight;
 const DOOR_LEFT_OPEN_X = -2.915;
@@ -844,11 +837,11 @@ function loadSubwayModel() {
           return;
         }
 
-        // 10. Архитектурная отделка окон, карнизов и молдингов
-        if (child.name.includes('Window_Inner_Frame')) {
+        // 10. Архитектурная отделка окон и резиновых уплотнителей
+        if (child.name.includes('Window_Frame') || child.name.includes('Gasket')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x1a1a1c), // плотный черный резиновый уплотнитель окна
-            roughness: 0.88,
+            color: new THREE.Color(0x18191c), // плотный черный резиновый уплотнитель окна
+            roughness: 0.85,
             metalness: 0.05,
             side: THREE.DoubleSide
           });
@@ -1171,10 +1164,6 @@ function initScrollTriggers() {
       const trackDot = document.getElementById('route-track-car-dot');
       if (trackFill) trackFill.style.width = `${p * 100}%`;
       if (trackDot) trackDot.style.left = `${p * 100}%`;
-      freeLook.x *= 0.96;
-      freeLook.y *= 0.96;
-      lookVelocity.x *= 0.85;
-      lookVelocity.y *= 0.85;
 
       const currentSectionIndex = Math.min(Math.round(scaledP), NUM_SEGMENTS);
       if (currentSectionIndex !== activeStage) {
@@ -1347,100 +1336,13 @@ export function scrollToStage(stageIndex) {
 }
 
 // =============================================================================
-// ПАРАЛЛАКС И ОБРАБОТЧИКИ СОБЫТИЙ
+// ОБРАБОТЧИКИ СОБЫТИЙ (ТОЛЬКО ЗАСКРИПТОВАННОЕ ДВИЖЕНИЕ КАМЕРЫ ПО СКРОЛЛУ)
 // =============================================================================
 function setupEventListeners() {
-  // Свободный 3D-осмотр вагона перетаскиванием мыши
-  window.addEventListener('mousedown', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, video')) return;
-    isDraggingLook = true;
-    lastDragPos.x = e.clientX;
-    lastDragPos.y = e.clientY;
-  });
-
-  // Движение мыши для кинематографичного параллакса и осмотра вагона
+  // Отслеживание курсора исключительно для Raycaster (интерактивность экранов и кнопок)
   window.addEventListener('mousemove', (e) => {
-    const nx = (e.clientX / window.innerWidth) * 2 - 1;
-    const ny = -(e.clientY / window.innerHeight) * 2 + 1;
-
-    mouseOffset.x = nx * 0.08;
-    mouseOffset.y = ny * 0.05;
-
-    // Вектор луча для Raycaster
-    mouseVec.x = nx;
-    mouseVec.y = ny;
-
-    if (isDraggingLook) {
-      const dx = e.clientX - lastDragPos.x;
-      const dy = e.clientY - lastDragPos.y;
-      lastDragPos.x = e.clientX;
-      lastDragPos.y = e.clientY;
-
-      const vx = dx * 0.0028;
-      const vy = -dy * 0.0028;
-      lookVelocity.x = vx;
-      lookVelocity.y = vy;
-      freeLook.x += vx;
-      freeLook.y += vy;
-      freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x)); // Мягкий деликатный диапазон до 30 градусов
-      freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
-    }
-  }, { passive: true });
-
-  const stopDrag = () => { isDraggingLook = false; };
-  window.addEventListener('mouseup', stopDrag);
-  window.addEventListener('mouseleave', stopDrag);
-
-  // Тач-параллакс и свободный 3D-осмотр вагона для телефонов
-  let touchStartPos = { x: 0, y: 0 };
-  let isTouchingLook = false;
-  window.addEventListener('touchstart', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, video')) return;
-    if (e.touches.length === 1) {
-      isTouchingLook = true;
-      touchStartPos.x = e.touches[0].clientX;
-      touchStartPos.y = e.touches[0].clientY;
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchmove', (e) => {
-    if (e.touches.length > 0) {
-      const touch = e.touches[0];
-      const nx = (touch.clientX / window.innerWidth) * 2 - 1;
-      const ny = -(touch.clientY / window.innerHeight) * 2 + 1;
-      mouseOffset.x = nx * 0.04;
-      mouseOffset.y = ny * 0.03;
-
-      if (isTouchingLook) {
-        const dx = touch.clientX - touchStartPos.x;
-        const dy = touch.clientY - touchStartPos.y;
-        touchStartPos.x = touch.clientX;
-        touchStartPos.y = touch.clientY;
-
-        const vx = dx * 0.0028;
-        const vy = -dy * 0.0028;
-        lookVelocity.x = vx;
-        lookVelocity.y = vy;
-        freeLook.x += vx;
-        freeLook.y += vy;
-        freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x));
-        freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
-      }
-    }
-  }, { passive: true });
-
-  const stopTouch = () => { isTouchingLook = false; };
-  window.addEventListener('touchend', stopTouch, { passive: true });
-  window.addEventListener('touchcancel', stopTouch, { passive: true });
-
-  // Гироскоп на смартфонах (наклон телефона для кинематографичного обзора)
-  window.addEventListener('deviceorientation', (e) => {
-    if (e.gamma !== null && e.beta !== null) {
-      const gx = Math.min(Math.max(e.gamma, -25), 25) / 25;
-      const gy = Math.min(Math.max(e.beta - 45, -25), 25) / 25;
-      mouseOffset.x = gx * 0.06;
-      mouseOffset.y = -gy * 0.04;
-    }
+    mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
   }, { passive: true });
 
   // Запрос разрешения на гироскоп для iOS 13+
@@ -1639,36 +1541,10 @@ function animate() {
   // 2.2 Процедурное покачивание вагона и микровибрация при движении в тоннеле
   const vibY = (Math.sin(time * 16.0) * 0.002 + Math.sin(time * 4.0) * 0.006) * trainSpeed;
   const vibX = (Math.cos(time * 12.0) * 0.0015 + Math.sin(time * 2.5) * 0.004) * trainSpeed;
-  const vibRoll = Math.sin(time * 3.0) * 0.003 * trainSpeed;
-  const emShake = isEmergencyBraking ? (Math.random() - 0.5) * 0.025 : 0;
-
-  if (!isDraggingLook) {
-    // Мягкая инерция: сохраняем остаточную скорость вращения и плавно гасим ее
-    freeLook.x += lookVelocity.x;
-    freeLook.y += lookVelocity.y;
-    lookVelocity.x *= 0.90;
-    lookVelocity.y *= 0.90;
-    freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x));
-    freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
-
-    // Медленное, деликатное центрирование камеры
-    freeLook.x *= 0.990;
-    freeLook.y *= 0.990;
-  }
-  freeLookDamped.x += (freeLook.x - freeLookDamped.x) * 0.08;
-  freeLookDamped.y += (freeLook.y - freeLookDamped.y) * 0.08;
-
-  camera.position.set(
-    camCurrentPos.x + mouseOffsetDamped.x + vibX + emShake,
-    camCurrentPos.y + mouseOffsetDamped.y + vibY + emShake,
-    camCurrentPos.z
-  );
-  camera.lookAt(
-    camCurrentTarget.x + mouseOffsetDamped.x * 0.5 + freeLookDamped.x,
-    camCurrentTarget.y + freeLookDamped.y,
-    camCurrentTarget.z
-  );
-  camera.rotation.z += vibRoll;
+  // Строго заскриптованное кинематографичное движение камеры по скроллу (без фри-камеры и тряски)
+  camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
+  camera.lookAt(camCurrentTarget.x, camCurrentTarget.y, camCurrentTarget.z);
+  camera.rotation.z = 0.0;
 
   // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
   if (trainSpeed > 0.01) {

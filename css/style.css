@@ -392,11 +392,11 @@ body.dark-cinema-body {
 }
 
 .floating-hud-bottom {
+  display: none !important;
   position: fixed;
   bottom: 32px;
   left: 0;
   width: 100%;
-  display: flex;
   justify-content: center;
   z-index: 50;
   pointer-events: none;
@@ -412,6 +412,7 @@ body.dark-cinema-body {
 }
 
 .story-stage.active .floating-hud-bottom {
+  display: none !important;
   opacity: 1;
   transform: translateY(0);
 }

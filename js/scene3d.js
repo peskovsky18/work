@@ -400,26 +400,51 @@ function setupStationEnvironment() {
     stationEnvGroup.add(benchGroup);
   });
 
-  // 2.7 Светящиеся рекламные и культурные лайтбоксы-постеры на стене платформы
+  // 2.7 Светящиеся рекламные лайтбоксы-постеры на стене платформы (мемы пользователя)
+  const texLoader = new THREE.TextureLoader();
   const posterHousingMat = new THREE.MeshStandardMaterial({
     color: 0x111317,
     roughness: 0.25,
     metalness: 0.90
   });
-  [-4.2, 0.0, 4.2].forEach((px, idx) => {
+
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.18,
+    roughness: 0.04,
+    reflectivity: 0.85,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.04
+  });
+
+  // 4 мема от пользователя, с естественными пропорциями и удобной расстановкой по стене
+  const memePosters = [
+    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.50, x: -4.0 },      // 1. Грустный муравей с узелком (вход, Stage 0)
+    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.50, x: -0.7 },   // 2. Задумавшаяся обезьяна (окно у Экрана 2)
+    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.35, x: 1.3 }, // 3. Рыбак и дельфины «Хотите верьте хотите нет» (окно у Экрана 3)
+    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.50, x: 4.5 }      // 4. Лысый лев схватился за голову (выход, Stage 5)
+  ];
+
+  memePosters.forEach((item) => {
     const posterGroup = new THREE.Group();
-    const housing = new THREE.Mesh(new THREE.BoxGeometry(1.42, 2.12, 0.08), posterHousingMat);
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(item.w + 0.10, item.h + 0.10, 0.08), posterHousingMat);
     posterGroup.add(housing);
 
-    const posterTex = getStationPosterTexture(THREE, idx % 3);
-    const posterFaceGeom = new THREE.PlaneGeometry(1.36, 2.04);
+    const tex = texLoader.load(item.url);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+
+    const posterFaceGeom = new THREE.PlaneGeometry(item.w, item.h);
     posterFaceGeom.scale(-1, 1, 1);
     const posterMat = new THREE.MeshStandardMaterial({
-      map: posterTex,
+      map: tex,
       emissive: new THREE.Color(0xffffff),
-      emissiveMap: posterTex,
-      emissiveIntensity: 0.90,
-      roughness: 0.15,
+      emissiveMap: tex,
+      emissiveIntensity: 0.92,
+      roughness: 0.18,
       metalness: 0.05,
       side: THREE.DoubleSide
     });
@@ -427,20 +452,11 @@ function setupStationEnvironment() {
     posterFace.position.set(0, 0, -0.045);
     posterGroup.add(posterFace);
 
-    const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.25,
-      roughness: 0.05,
-      reflectivity: 0.9,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.05
-    });
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 2.04), glassMat);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(item.w, item.h), glassMat);
     glass.position.set(0, 0, -0.048);
     posterGroup.add(glass);
 
-    posterGroup.position.set(px, 1.65, 4.74);
+    posterGroup.position.set(item.x, 1.65, 4.74);
     stationEnvGroup.add(posterGroup);
   });
 
@@ -909,34 +925,34 @@ function loadSubwayModel() {
       doorRight = subwayModel.getObjectByName('Door_Right_Photo') || subwayModel.getObjectByName('Door_ScreenRight');
       if (doorLeft && doorRight) {
         doorLeft.position.x = DOOR_LEFT_OPEN_X;
-        doorLeft.position.z = 0.054;
+        doorLeft.position.z = 0.026;
         doorRight.position.x = DOOR_RIGHT_OPEN_X;
-        doorRight.position.z = 0.054;
+        doorRight.position.z = 0.026;
       }
 
-      // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4) строго снаружи стен
+      // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4) строго по направляющим стен
       doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
       doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
       if (doorLeftD2 && doorRightD2) {
-        doorLeftD2.position.set(4.065, 0.99, 0.054);
-        doorRightD2.position.set(3.465, 0.99, 0.054);
+        doorLeftD2.position.set(4.065, 0.99, 0.026);
+        doorRightD2.position.set(3.465, 0.99, 0.026);
       }
 
       const doorLeftD3 = subwayModel.getObjectByName('Door_Left_Photo_D3');
       const doorRightD3 = subwayModel.getObjectByName('Door_Right_Photo_D3');
       if (doorLeftD3 && doorRightD3) {
-        doorLeftD3.position.set(-3.465, 0.99, -2.454);
-        doorRightD3.position.set(-4.065, 0.99, -2.454);
+        doorLeftD3.position.set(-3.465, 0.99, -2.426);
+        doorRightD3.position.set(-4.065, 0.99, -2.426);
       }
 
       const doorLeftD4 = subwayModel.getObjectByName('Door_Left_Photo_D4');
       const doorRightD4 = subwayModel.getObjectByName('Door_Right_Photo_D4');
       if (doorLeftD4 && doorRightD4) {
-        doorLeftD4.position.set(4.065, 0.99, -2.454);
-        doorRightD4.position.set(3.465, 0.99, -2.454);
+        doorLeftD4.position.set(4.065, 0.99, -2.426);
+        doorRightD4.position.set(3.465, 0.99, -2.426);
       }
 
-      // Предупреждающая надпись трафаретом «НЕ ПРИСЛОНЯТЬСЯ» (чистый белый текст) на стеклах всех дверей
+      // Предупреждающая надпись трафаретом «НЕ ПРИСЛОНЯТЬСЯ» (чистый белый текст) строго в пределах стекла дверей
       const doorDecalTex = getNoLeanDecalTexture(THREE);
       const doorDecalMat = new THREE.MeshBasicMaterial({
         map: doorDecalTex,
@@ -945,7 +961,8 @@ function loadSubwayModel() {
         depthWrite: false,
         side: THREE.DoubleSide
       });
-      const doorDecalGeom = new THREE.PlaneGeometry(0.34, 0.085);
+      // Стекло створки имеет ширину 0.27м, плашка 0.24x0.06м строго укладывается в стекло с запасом по краям
+      const doorDecalGeom = new THREE.PlaneGeometry(0.24, 0.060);
 
       const attachDoorDecal = (doorObj) => {
         if (!doorObj) return;
@@ -957,8 +974,8 @@ function loadSubwayModel() {
         // Полностью компенсируем неравномерный масштаб створки двери [0.60, 1.98, 0.038]
         decalMesh.scale.set(-1 / sx, 1 / sy, -1 / sz);
         // Центр створки на Y = 0.99, смещение +0.38м поднимает надпись на уровень глаз (Y ~ 1.37м)
-        // Смещение Z = -0.024м позиционирует надпись строго на внутренней поверхности стекла внутри салона
-        decalMesh.position.set(0, 0.38 / sy, -0.024 / sz);
+        // Смещение Z = -0.016м позиционирует надпись строго на внутренней поверхности стекла внутри салона
+        decalMesh.position.set(0, 0.38 / sy, -0.016 / sz);
         decalMesh.renderOrder = 4;
         doorObj.add(decalMesh);
       };

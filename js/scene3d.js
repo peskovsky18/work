@@ -152,6 +152,9 @@ export function initSubwayScene() {
   // 4.3 Интерактивный стоп-кран в вагоне
   setupEmergencyBrake();
 
+  // 4.4 Подвесные ручки-петли с инерционной физикой
+  setupGrabStraps();
+
   // 5. Видеоэлементы и текстуры
   setupVideoTextures();
 
@@ -171,6 +174,8 @@ export function initSubwayScene() {
 let trainSpeed = 0.0;
 let tunnelGroup, oppTrainGroup;
 const tunnelLights = [];
+const ceilingLamps = [];
+const grabStraps = [];
 let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
 function setupSubwayLighting() {
@@ -181,6 +186,7 @@ function setupSubwayLighting() {
     const lamp = new THREE.PointLight(0xfff3df, 1.5, 6.0, 1.2);
     lamp.position.set(px, 2.15, -1.20);
     scene.add(lamp);
+    ceilingLamps.push(lamp);
   });
 
   station1Light = new THREE.PointLight(0x8ec3f8, 1.4, 8.0, 1.3);
@@ -331,6 +337,47 @@ function triggerEmergencyBrake() {
     isEmergencyBraking = false;
     window.dispatchEvent(new CustomEvent('emergency-brake-reset'));
   }, 4500);
+}
+
+// Подвесные ручки-петли с инерционным маятниковым качанием
+function setupGrabStraps() {
+  const strapMat = new THREE.MeshStandardMaterial({ color: 0x1f232b, roughness: 0.72, metalness: 0.12 });
+  const buckleMat = new THREE.MeshStandardMaterial({ color: 0xe2e7ef, roughness: 0.18, metalness: 0.96 });
+  const handleMat = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.28, metalness: 0.25 });
+
+  const strapGeom = new THREE.BoxGeometry(0.024, 0.16, 0.007);
+  const buckleGeom = new THREE.BoxGeometry(0.034, 0.024, 0.016);
+  const ringGeom = new THREE.TorusGeometry(0.046, 0.0075, 8, 18);
+
+  const xPositions = [-2.8, -2.1, -1.4, -0.7, 0.0, 0.7, 1.4, 2.1, 2.8];
+  const zSides = [-0.44, -1.94];
+
+  zSides.forEach((sz) => {
+    xPositions.forEach((sx, idx) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(sx, 2.18, sz);
+
+      const buckle = new THREE.Mesh(buckleGeom, buckleMat);
+      buckle.position.set(0, -0.012, 0);
+      pivot.add(buckle);
+
+      const strap = new THREE.Mesh(strapGeom, strapMat);
+      strap.position.set(0, -0.09, 0);
+      pivot.add(strap);
+
+      const ring = new THREE.Mesh(ringGeom, handleMat);
+      ring.position.set(0, -0.21, 0);
+      pivot.add(ring);
+
+      scene.add(pivot);
+      grabStraps.push({
+        pivot,
+        phase: sx * 1.6 + (sz > -1 ? 0 : Math.PI * 0.5),
+        currentAngleZ: 0,
+        currentAngleX: 0
+      });
+    });
+  });
 }
 
 
@@ -1084,6 +1131,35 @@ function animate() {
       if (pArr[idx] < -4.1) pArr[idx] += 8.2;
     }
     posAttr.needsUpdate = true;
+  }
+
+  // 2.6 Инерционное гармоническое покачивание подвесных ручек-петель
+  if (grabStraps.length > 0) {
+    const strapSpeedFactor = trainSpeed * 0.075 + 0.016;
+    const accelTilt = isEmergencyBraking ? -0.40 : (trainSpeed > 0.05 ? -trainSpeed * 0.035 : 0.0);
+    for (let i = 0; i < grabStraps.length; i++) {
+      const s = grabStraps[i];
+      const targetZ = Math.sin(time * 3.4 + s.phase) * strapSpeedFactor + accelTilt;
+      const targetX = Math.cos(time * 2.6 + s.phase) * (strapSpeedFactor * 0.45);
+      s.currentAngleZ += (targetZ - s.currentAngleZ) * 0.10;
+      s.currentAngleX += (targetX - s.currentAngleX) * 0.10;
+      s.pivot.rotation.z = s.currentAngleZ;
+      s.pivot.rotation.x = s.currentAngleX;
+    }
+  }
+
+  // 2.7 Кинематографическая просадка напряжения в тоннеле (Third-Rail Power Gap)
+  if (ceilingLamps.length > 0) {
+    let powerFlicker = 1.0;
+    if (trainSpeed > 0.5) {
+      const cycle = (time * 0.065) % 1.0;
+      if (cycle > 0.88 && cycle < 0.91) {
+        powerFlicker = 0.35 + Math.random() * 0.15;
+      }
+    }
+    for (let i = 0; i < ceilingLamps.length; i++) {
+      ceilingLamps[i].intensity = 1.5 * powerFlicker;
+    }
   }
 
   // 3. Raycaster для определения наведения на экраны и схему метро

@@ -418,18 +418,49 @@ function setupStationEnvironment() {
     clearcoatRoughness: 0.04
   });
 
-  // 4 мема от пользователя, с естественными пропорциями и удобной расстановкой по стене
+  // 4 мема от пользователя, с естественными пропорциями, неоновой окантовкой и расстановкой по стене
   const memePosters = [
-    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.50, x: -4.0 },      // 1. Грустный муравей с узелком (вход, Stage 0)
-    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.50, x: -0.7 },   // 2. Задумавшаяся обезьяна (окно у Экрана 2)
-    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.35, x: 1.3 }, // 3. Рыбак и дельфины «Хотите верьте хотите нет» (окно у Экрана 3)
-    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.50, x: 4.5 }      // 4. Лысый лев схватился за голову (выход, Stage 5)
+    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.50, x: -4.0, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
+    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.50, x: -0.7, neon: 0xffaa00 },   // 2. Задумавшаяся обезьяна (теплый неоновый янтарь)
+    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.35, x: 1.3, neon: 0x00ffd0 }, // 3. Рыбак и дельфины «Хотите верьте хотите нет» (морской бирюзовый)
+    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.50, x: 4.5, neon: 0xff6644 }      // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
   ];
 
   memePosters.forEach((item) => {
     const posterGroup = new THREE.Group();
-    const housing = new THREE.Mesh(new THREE.BoxGeometry(item.w + 0.10, item.h + 0.10, 0.08), posterHousingMat);
+    const frameW = item.w + 0.10;
+    const frameH = item.h + 0.10;
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(frameW, frameH, 0.08), posterHousingMat);
     posterGroup.add(housing);
+
+    // Неоновая контурная трубка по периметру рамки
+    const neonMat = new THREE.MeshBasicMaterial({ color: item.neon });
+    const hw = frameW / 2;
+    const hh = frameH / 2;
+    const tubeThick = 0.016;
+    const tubeDepth = 0.016;
+    const neonZ = -0.046;
+
+    const neonTop = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeDepth), neonMat);
+    neonTop.position.set(0, hh, neonZ);
+    posterGroup.add(neonTop);
+
+    const neonBottom = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeDepth), neonMat);
+    neonBottom.position.set(0, -hh, neonZ);
+    posterGroup.add(neonBottom);
+
+    const neonLeft = new THREE.Mesh(new THREE.BoxGeometry(tubeThick, frameH, tubeDepth), neonMat);
+    neonLeft.position.set(-hw, 0, neonZ);
+    posterGroup.add(neonLeft);
+
+    const neonRight = new THREE.Mesh(new THREE.BoxGeometry(tubeThick, frameH, tubeDepth), neonMat);
+    neonRight.position.set(hw, 0, neonZ);
+    posterGroup.add(neonRight);
+
+    // Мягкий рассеянный неоновый свет на стену и платформу
+    const posterGlow = new THREE.PointLight(item.neon, 0.40, 2.8);
+    posterGlow.position.set(0, 0, -0.22);
+    posterGroup.add(posterGlow);
 
     const tex = texLoader.load(item.url);
     tex.colorSpace = THREE.SRGBColorSpace;

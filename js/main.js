@@ -4,6 +4,7 @@
  */
 
 import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos } from './scene3d.js';
+import { playNavTick } from './subwayAudio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Инициализация 3D сцены метро
@@ -45,6 +46,7 @@ function initNavigation() {
   navPills.forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      playNavTick();
       const stage = parseInt(btn.dataset.stage, 10);
       scrollToStage(stage);
     });
@@ -67,8 +69,10 @@ function initNavigation() {
         const activePill = document.querySelector('.stage-nav-pill.active');
         const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
         if (dx < 0 && cur < 9) {
+          playNavTick();
           scrollToStage(cur + 1);
         } else if (dx > 0 && cur > 0) {
+          playNavTick();
           scrollToStage(cur - 1);
         }
       }
@@ -186,6 +190,7 @@ function initKeyboardShortcuts() {
       const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
       if (cur < 9) {
         e.preventDefault();
+        playNavTick();
         scrollToStage(cur + 1);
       }
     } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
@@ -193,13 +198,16 @@ function initKeyboardShortcuts() {
       const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
       if (cur > 0) {
         e.preventDefault();
+        playNavTick();
         scrollToStage(cur - 1);
       }
     } else if (e.code.startsWith('Digit')) {
       const num = parseInt(e.code.replace('Digit', ''), 10);
       if (num >= 1 && num <= 9) {
+        playNavTick();
         scrollToStage(num - 1);
       } else if (num === 0) {
+        playNavTick();
         scrollToStage(9);
       }
     }
@@ -394,6 +402,7 @@ function initProjectModal() {
     stationNodes.forEach((node) => {
       node.addEventListener('click', () => {
         const stage = parseInt(node.dataset.gotoStage, 10);
+        playNavTick();
         closeMap();
         scrollToStage(stage);
       });

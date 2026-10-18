@@ -7,7 +7,17 @@ import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime, playPassingTrainWhoosh } from './subwayAudio.js';
-import { getStationTileTextures, getSubwayFloorTextures, getSubwayWallTextures, getFiberglassTextures, getPlatformGraniteTextures } from './subwayMaterials.js';
+import {
+  getPhotoWallTextures,
+  getPhotoDoorTextures,
+  getPhotoFloorTextures,
+  getPhotoSeatYellowTextures,
+  getPhotoSeatOrangeTextures,
+  getPhotoVentGrilleTexture,
+  getPhotoCeilingLightTexture,
+  getStationTileTextures,
+  getPlatformGraniteTextures
+} from './subwayMaterials.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -199,11 +209,12 @@ const grabStraps = [];
 let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
 function setupSubwayLighting() {
-  const ambient = new THREE.AmbientLight(0x141824, 0.9);
+  // Теплый кинематографичный рассеянный свет (как в оригинальном интерьере на фото)
+  const ambient = new THREE.AmbientLight(0x282622, 1.25);
   scene.add(ambient);
 
-  [-3.0, -1.0, 1.0, 3.0].forEach(px => {
-    const lamp = new THREE.PointLight(0xfff3df, 1.5, 6.0, 1.2);
+  [-4.5, -2.5, -0.5, 1.5, 3.5, 5.0].forEach(px => {
+    const lamp = new THREE.PointLight(0xffeed6, 1.45, 6.5, 1.2);
     lamp.position.set(px, 2.15, -1.20);
     scene.add(lamp);
     ceilingLamps.push(lamp);
@@ -502,14 +513,18 @@ function loadSubwayModel() {
     (gltf) => {
       subwayModel = gltf.scene;
 
-      // Инициализация фотореалистичных процедурных PBR-текстур
-      const tileTex = getStationTileTextures();
-      const floorTex = getSubwayFloorTextures();
-      const wallTex = getSubwayWallTextures();
-      const fiberTex = getFiberglassTextures();
-      const graniteTex = getPlatformGraniteTextures();
+      // Инициализация фотореалистичных PBR-текстур на основе реальной фотографии вагона
+      const wallPBR = getPhotoWallTextures();
+      const doorPBR = getPhotoDoorTextures();
+      const floorPBR = getPhotoFloorTextures();
+      const seatYellowPBR = getPhotoSeatYellowTextures();
+      const seatOrangePBR = getPhotoSeatOrangeTextures();
+      const ventGrilleTex = getPhotoVentGrilleTexture();
+      const ceilingLightTex = getPhotoCeilingLightTexture();
+      const tilePBR = getStationTileTextures();
+      const granitePBR = getPlatformGraniteTextures();
 
-      // Настройка материалов для реалистичного тёмного стиля Apple
+      // Настройка материалов для фотореалистичного интерьера вагона по фото
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
 
@@ -601,10 +616,10 @@ function loadSubwayModel() {
 
         if (child.name.includes('Platform_Tile_Wall')) {
           child.material = new THREE.MeshStandardMaterial({
-            map: tileTex.colorMap,
-            normalMap: tileTex.normalMap,
+            map: tilePBR.colorMap,
+            normalMap: tilePBR.normalMap,
             normalScale: new THREE.Vector2(0.85, 0.85),
-            roughnessMap: tileTex.roughnessMap,
+            roughnessMap: tilePBR.roughnessMap,
             roughness: 0.20,
             metalness: 0.10,
             side: THREE.DoubleSide
@@ -614,8 +629,8 @@ function loadSubwayModel() {
 
         if (child.name.includes('Platform_Mosaic_Band')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xc02026), // рубиновая керамическая полоса московского метро
-            normalMap: tileTex.normalMap,
+            color: new THREE.Color(0xc02026),
+            normalMap: tilePBR.normalMap,
             normalScale: new THREE.Vector2(0.5, 0.5),
             roughness: 0.28,
             metalness: 0.20,
@@ -626,8 +641,8 @@ function loadSubwayModel() {
 
         if (child.name.includes('Platform_Floor')) {
           child.material = new THREE.MeshStandardMaterial({
-            map: graniteTex.colorMap,
-            normalMap: graniteTex.normalMap,
+            map: granitePBR.colorMap,
+            normalMap: granitePBR.normalMap,
             normalScale: new THREE.Vector2(0.65, 0.65),
             roughness: 0.60,
             metalness: 0.12,
@@ -636,74 +651,9 @@ function loadSubwayModel() {
           return;
         }
 
-        // Архитектурная отделка окна, карнизов и стен вагона
-        if (child.name.includes('Window_Sill_Ledge')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xa4acb8), // сатинированный подоконник
-            normalMap: wallTex.normalMap,
-            normalScale: new THREE.Vector2(0.3, 0.3),
-            roughness: 0.28,
-            metalness: 0.76,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        if (child.name.includes('Frieze')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xb2b8c2), // карнизный фриз под потолком
-            normalMap: wallTex.normalMap,
-            normalScale: new THREE.Vector2(0.35, 0.35),
-            roughness: 0.28,
-            metalness: 0.82,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // Панели стен, переборки, притолоки (сатинированная шлифованная сталь)
-        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xbcc2cc),
-            normalMap: wallTex.normalMap,
-            normalScale: new THREE.Vector2(0.40, 0.40),
-            roughnessMap: wallTex.roughnessMap,
-            roughness: 0.35,
-            metalness: 0.72,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // Основания скамеек (цоколи)
-        if (child.name.includes('Plinth') || child.name.includes('Bench')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x22262e),
-            normalMap: wallTex.normalMap,
-            normalScale: new THREE.Vector2(0.25, 0.25),
-            roughness: 0.45,
-            metalness: 0.35,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // Потолок вагона
-        if (child.name.includes('Ceiling')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xdde1e8),
-            normalMap: wallTex.normalMap,
-            normalScale: new THREE.Vector2(0.2, 0.2),
-            roughness: 0.40,
-            metalness: 0.15,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
         const matName = child.material ? child.material.name : '';
 
-        // Стекла окон и дверей
+        // 5. Стекла окон и дверей
         if (child.name.includes('Glass') || matName === 'Mat_Glass') {
           child.material = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(0x7aa5c2),
@@ -720,47 +670,177 @@ function loadSubwayModel() {
           return;
         }
 
-        // Металлические хромированные поручни, ручки и стойки
-        if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
+        // 6. Резиновые уплотнители створок и стекол
+        if (child.name.includes('WindowGasket') || child.name.includes('RubberEdge') || matName === 'Mat_Rubber_Black') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xdce0e6),
-            roughness: 0.15,
-            metalness: 0.96
+            color: new THREE.Color(0x1a1a1c),
+            roughness: 0.85,
+            metalness: 0.05
           });
           return;
         }
 
-        // Алюминиевые элементы (стойки дверей, корпуса)
-        if (matName === 'Mat_Aluminum' || child.name.includes('Post') || child.name.includes('Housing')) {
+        // 7. Пороги дверей вагона
+        if (child.name.includes('Threshold')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xc2c7cf),
-            normalMap: wallTex.normalMap,
-            normalScale: new THREE.Vector2(0.3, 0.3),
+            color: new THREE.Color(0xced3dc),
+            roughness: 0.25,
+            metalness: 0.90,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 8. Дверные ручки
+        if (child.name.includes('Door') && (child.name.includes('Handle') || child.name.includes('RecessedHandle'))) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xdce0e6),
+            roughness: 0.20,
+            metalness: 0.95
+          });
+          return;
+        }
+
+        // 9. Створки дверей вагона (сатинированная шлифованная сталь створок из фото)
+        if (child.name.startsWith('Door_Left_Photo') || child.name.startsWith('Door_Right_Photo') || child.name.startsWith('Door_Screen')) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: doorPBR.colorMap,
+            normalMap: doorPBR.normalMap,
+            normalScale: new THREE.Vector2(0.55, 0.55),
+            roughnessMap: doorPBR.roughnessMap,
+            roughness: 0.35,
+            metalness: 0.88,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 10. Архитектурная отделка окон, карнизов и молдингов
+        if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar') || child.name.includes('Window_Inner_Frame')) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: wallPBR.colorMap,
+            normalMap: wallPBR.normalMap,
+            normalScale: new THREE.Vector2(0.35, 0.35),
+            roughnessMap: wallPBR.roughnessMap,
+            roughness: 0.32,
+            metalness: 0.82,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // Обрамления оконных проемов (светлый безель)
+        if (child.name.includes('Window_Surround_Bezel')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xd7dcd9),
+            roughness: 0.36,
+            metalness: 0.18,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 11. Стены вагона, торцевые переборки, притолоки дверей и торцевые двери (сатинированная сталь с круговыми рисками из фото)
+        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: wallPBR.colorMap,
+            normalMap: wallPBR.normalMap,
+            normalScale: new THREE.Vector2(0.50, 0.50),
+            roughnessMap: wallPBR.roughnessMap,
             roughness: 0.38,
+            metalness: 0.85,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 12. Вентиляционные решетки и цоколи сидений (аутентичная перфорированная решетка под сиденьями из фото)
+        if (child.name.includes('Grille') || child.name.includes('Vent')) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: ventGrilleTex,
+            roughness: 0.45,
+            metalness: 0.75,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        if (child.name.includes('Plinth') || child.name.includes('Bench')) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: ventGrilleTex,
+            roughness: 0.50,
             metalness: 0.70,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // Потолочные светильники / рассеиватели
-        if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser')) {
+        // 13. Фактурный темный линолеум пола вагона (точный рисунок из фото)
+        if (child.name === 'Car_Floor' || (child.name.includes('Floor') && !child.name.includes('Platform')) || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xfff6e5),
-            emissive: new THREE.Color(0xfff1dc),
-            emissiveIntensity: 2.3,
-            roughness: 0.2
+            map: floorPBR.colorMap,
+            normalMap: floorPBR.normalMap,
+            normalScale: new THREE.Vector2(0.70, 0.70),
+            roughnessMap: floorPBR.roughnessMap,
+            roughness: 0.45,
+            metalness: 0.15,
+            side: THREE.DoubleSide
           });
           return;
         }
 
-        // Рифленый пол вагона с резиновой текстурой
-        if (child.name.includes('Floor') || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
+        // 14. Желтые ковшеобразные стеклопластиковые сиденья из фото (с глубоким глянцем гелькоута)
+        if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
+          child.material = new THREE.MeshPhysicalMaterial({
+            map: seatYellowPBR.colorMap,
+            normalMap: seatYellowPBR.normalMap,
+            normalScale: new THREE.Vector2(0.40, 0.40),
+            roughnessMap: seatYellowPBR.roughnessMap,
+            roughness: 0.28,
+            metalness: 0.05,
+            clearcoat: 0.55,
+            clearcoatRoughness: 0.22,
+            reflectivity: 0.55,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 15. Оранжевые ковшеобразные стеклопластиковые сиденья из фото (с глубоким глянцем гелькоута)
+        if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
+          child.material = new THREE.MeshPhysicalMaterial({
+            map: seatOrangePBR.colorMap,
+            normalMap: seatOrangePBR.normalMap,
+            normalScale: new THREE.Vector2(0.40, 0.40),
+            roughnessMap: seatOrangePBR.roughnessMap,
+            roughness: 0.28,
+            metalness: 0.05,
+            clearcoat: 0.55,
+            clearcoatRoughness: 0.22,
+            reflectivity: 0.55,
+            side: THREE.DoubleSide
+          });
+          return;
+        }
+
+        // 16. Потолочные светильники / призматические рассеиватели из фото
+        if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser')) {
           child.material = new THREE.MeshStandardMaterial({
-            map: floorTex.colorMap,
-            normalMap: floorTex.normalMap,
-            normalScale: new THREE.Vector2(0.90, 0.90),
-            roughnessMap: floorTex.roughnessMap,
+            map: ceilingLightTex,
+            emissive: new THREE.Color(0xffeed6),
+            emissiveMap: ceilingLightTex,
+            emissiveIntensity: 2.2,
+            roughness: 0.25
+          });
+          return;
+        }
+
+        // 17. Потолок вагона
+        if (child.name.includes('Ceiling')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xdce0e7),
+            normalMap: wallPBR.normalMap,
+            normalScale: new THREE.Vector2(0.20, 0.20),
             roughness: 0.42,
             metalness: 0.25,
             side: THREE.DoubleSide
@@ -768,35 +848,24 @@ function loadSubwayModel() {
           return;
         }
 
-        // Желтые ретро-сиденья (стеклопластик с глубоким лаком)
-        if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xf2a91d),
-            normalMap: fiberTex.normalMap,
-            normalScale: new THREE.Vector2(0.35, 0.35),
-            roughnessMap: fiberTex.roughnessMap,
-            roughness: 0.30,
-            metalness: 0.05,
-            clearcoat: 0.60,
-            clearcoatRoughness: 0.20,
-            reflectivity: 0.55,
-            side: THREE.DoubleSide
+        // 18. Металлические полированные поручни и вертикальные стойки
+        if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || child.name.includes('Flange') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xdde1e8),
+            roughness: 0.14,
+            metalness: 0.96
           });
           return;
         }
 
-        // Оранжевые ретро-сиденья (стеклопластик с глубоким лаком)
-        if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xdc5018),
-            normalMap: fiberTex.normalMap,
-            normalScale: new THREE.Vector2(0.35, 0.35),
-            roughnessMap: fiberTex.roughnessMap,
-            roughness: 0.30,
-            metalness: 0.05,
-            clearcoat: 0.60,
-            clearcoatRoughness: 0.20,
-            reflectivity: 0.55,
+        // 19. Корпуса светильников и алюминиевые стойки
+        if (matName === 'Mat_Aluminum' || child.name.includes('Post') || child.name.includes('Housing') || child.name.includes('Frame')) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: wallPBR.colorMap,
+            normalMap: wallPBR.normalMap,
+            normalScale: new THREE.Vector2(0.3, 0.3),
+            roughness: 0.38,
+            metalness: 0.75,
             side: THREE.DoubleSide
           });
           return;

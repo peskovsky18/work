@@ -565,9 +565,11 @@ function setupVideoTextures() {
 
   // Разблокировка видео при первом любом касании, клике, скролле пользователя (Safari / iOS)
   const unlockVideos = () => {
-    [video1, video2, video3, video4].forEach((v) => {
-      if (v && v.paused) v.play().catch(() => {});
-    });
+    const cur = activeStage;
+    const targetVideo = cur === 1 ? video1 : (cur === 2 ? video2 : (cur === 3 ? video3 : (cur === 4 ? video4 : video1)));
+    if (targetVideo && targetVideo.paused) {
+      targetVideo.play().then(() => updatePlayButtonsUI()).catch(() => {});
+    }
   };
   ['click', 'touchstart', 'scroll', 'pointerdown', 'wheel', 'keydown'].forEach((evt) => {
     window.addEventListener(evt, unlockVideos, { passive: true });
@@ -986,6 +988,30 @@ function loadSubwayModel() {
         doorLeftD4.position.set(4.065, 0.99, -2.426);
         doorRightD4.position.set(3.465, 0.99, -2.426);
       }
+
+      // Гарантируем наличие и точное позиционирование стекол, ручек и уплотнителей для всех створок (Двери 2, 3, 4)
+      const ensureDoorFittings = (targetDoor, sourceDoor) => {
+        if (!targetDoor || !sourceDoor) return;
+        const hasGlass = targetDoor.children.some(c => c.name.includes('Glass'));
+        if (!hasGlass) {
+          sourceDoor.children.forEach(c => {
+            if (c.name.includes('Glass') || c.name.includes('WindowGasket') || c.name.includes('Handle')) {
+              const clone = c.clone();
+              clone.position.set(0, 0, 0);
+              clone.rotation.set(0, 0, 0);
+              clone.scale.set(1, 1, 1);
+              targetDoor.add(clone);
+            }
+          });
+        }
+      };
+
+      ensureDoorFittings(doorLeftD2, doorLeft);
+      ensureDoorFittings(doorRightD2, doorRight);
+      ensureDoorFittings(doorLeftD3, doorLeft);
+      ensureDoorFittings(doorRightD3, doorRight);
+      ensureDoorFittings(doorLeftD4, doorLeft);
+      ensureDoorFittings(doorRightD4, doorRight);
 
       // Предупреждающая надпись трафаретом «НЕ ПРИСЛОНЯТЬСЯ» (чистый белый текст) строго в пределах стекла дверей
       const doorDecalTex = getNoLeanDecalTexture(THREE);
@@ -1613,6 +1639,20 @@ function animate() {
   if (screenLight2 && video2) {
     const base2 = video2.paused ? 0.60 : 0.85;
     screenLight2.intensity += (base2 - screenLight2.intensity) * 0.15;
+  }
+
+  // 2.3d Обновление кадров видеотекстур на экранах
+  if (videoTexture1 && video1 && !video1.paused && video1.readyState >= 2) {
+    videoTexture1.needsUpdate = true;
+  }
+  if (videoTexture2 && video2 && !video2.paused && video2.readyState >= 2) {
+    videoTexture2.needsUpdate = true;
+  }
+  if (videoTexture3 && video3 && !video3.paused && video3.readyState >= 2) {
+    videoTexture3.needsUpdate = true;
+  }
+  if (videoTexture4 && video4 && !video4.paused && video4.readyState >= 2) {
+    videoTexture4.needsUpdate = true;
   }
 
   // 2.4 Движение встречного поезда в тоннеле за окнами

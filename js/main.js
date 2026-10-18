@@ -121,7 +121,7 @@ function setupStagePlayer(stageIndex, videoEl) {
     return stageIndex === 1 ? videos.video1 : (stageIndex === 2 ? videos.video2 : (stageIndex === 3 ? videos.video3 : videos.video4));
   };
 
-  // Play / Pause
+  // Play / Pause с надежной обработкой промиса и синхронизацией
   if (playBtn) {
     playBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -129,11 +129,22 @@ function setupStagePlayer(stageIndex, videoEl) {
       if (!v) return;
 
       if (v.paused) {
-        v.play().catch(() => {});
+        v.play().then(() => updatePlayIcon(playBtn, false)).catch(() => {});
       } else {
         v.pause();
+        updatePlayIcon(playBtn, true);
       }
-      updatePlayIcon(playBtn, v.paused);
+    });
+  }
+
+  // Привязка событий видео (play, pause) для обновления иконки кнопки
+  const v = getVideo();
+  if (v) {
+    v.addEventListener('play', () => {
+      if (playBtn) updatePlayIcon(playBtn, false);
+    });
+    v.addEventListener('pause', () => {
+      if (playBtn) updatePlayIcon(playBtn, true);
     });
   }
 

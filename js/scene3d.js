@@ -88,9 +88,10 @@ let screenLight1, screenLight2;
 let activeStage = 0;
 let isGlobalMuted = true;
 
-// Интерактивный свободный 3D-осмотр вагона (Free-Look Drag)
+// Интерактивный свободный 3D-осмотр вагона (Free-Look Drag с мягкой инерцией)
 const freeLook = { x: 0, y: 0 };
 const freeLookDamped = { x: 0, y: 0 };
+const lookVelocity = { x: 0, y: 0 };
 let isDraggingLook = false;
 const lastDragPos = { x: 0, y: 0 };
 
@@ -1170,8 +1171,10 @@ function initScrollTriggers() {
       const trackDot = document.getElementById('route-track-car-dot');
       if (trackFill) trackFill.style.width = `${p * 100}%`;
       if (trackDot) trackDot.style.left = `${p * 100}%`;
-      freeLook.x *= 0.88;
-      freeLook.y *= 0.88;
+      freeLook.x *= 0.96;
+      freeLook.y *= 0.96;
+      lookVelocity.x *= 0.85;
+      lookVelocity.y *= 0.85;
 
       const currentSectionIndex = Math.min(Math.round(scaledP), NUM_SEGMENTS);
       if (currentSectionIndex !== activeStage) {
@@ -1373,8 +1376,12 @@ function setupEventListeners() {
       lastDragPos.x = e.clientX;
       lastDragPos.y = e.clientY;
 
-      freeLook.x += dx * 0.003;
-      freeLook.y -= dy * 0.003;
+      const vx = dx * 0.0028;
+      const vy = -dy * 0.0028;
+      lookVelocity.x = vx;
+      lookVelocity.y = vy;
+      freeLook.x += vx;
+      freeLook.y += vy;
       freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x)); // Мягкий деликатный диапазон до 30 градусов
       freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
     }
@@ -1384,7 +1391,18 @@ function setupEventListeners() {
   window.addEventListener('mouseup', stopDrag);
   window.addEventListener('mouseleave', stopDrag);
 
-  // Тач-параллакс для телефонов
+  // Тач-параллакс и свободный 3D-осмотр вагона для телефонов
+  let touchStartPos = { x: 0, y: 0 };
+  let isTouchingLook = false;
+  window.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, video')) return;
+    if (e.touches.length === 1) {
+      isTouchingLook = true;
+      touchStartPos.x = e.touches[0].clientX;
+      touchStartPos.y = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
   window.addEventListener('touchmove', (e) => {
     if (e.touches.length > 0) {
       const touch = e.touches[0];
@@ -1392,8 +1410,28 @@ function setupEventListeners() {
       const ny = -(touch.clientY / window.innerHeight) * 2 + 1;
       mouseOffset.x = nx * 0.04;
       mouseOffset.y = ny * 0.03;
+
+      if (isTouchingLook) {
+        const dx = touch.clientX - touchStartPos.x;
+        const dy = touch.clientY - touchStartPos.y;
+        touchStartPos.x = touch.clientX;
+        touchStartPos.y = touch.clientY;
+
+        const vx = dx * 0.0028;
+        const vy = -dy * 0.0028;
+        lookVelocity.x = vx;
+        lookVelocity.y = vy;
+        freeLook.x += vx;
+        freeLook.y += vy;
+        freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x));
+        freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
+      }
     }
   }, { passive: true });
+
+  const stopTouch = () => { isTouchingLook = false; };
+  window.addEventListener('touchend', stopTouch, { passive: true });
+  window.addEventListener('touchcancel', stopTouch, { passive: true });
 
   // Гироскоп на смартфонах (наклон телефона для кинематографичного обзора)
   window.addEventListener('deviceorientation', (e) => {
@@ -1605,11 +1643,20 @@ function animate() {
   const emShake = isEmergencyBraking ? (Math.random() - 0.5) * 0.025 : 0;
 
   if (!isDraggingLook) {
-    freeLook.x *= 0.94;
-    freeLook.y *= 0.94;
+    // Мягкая инерция: сохраняем остаточную скорость вращения и плавно гасим ее
+    freeLook.x += lookVelocity.x;
+    freeLook.y += lookVelocity.y;
+    lookVelocity.x *= 0.90;
+    lookVelocity.y *= 0.90;
+    freeLook.x = Math.max(-0.52, Math.min(0.52, freeLook.x));
+    freeLook.y = Math.max(-0.30, Math.min(0.30, freeLook.y));
+
+    // Медленное, деликатное центрирование камеры
+    freeLook.x *= 0.990;
+    freeLook.y *= 0.990;
   }
-  freeLookDamped.x += (freeLook.x - freeLookDamped.x) * 0.10;
-  freeLookDamped.y += (freeLook.y - freeLookDamped.y) * 0.10;
+  freeLookDamped.x += (freeLook.x - freeLookDamped.x) * 0.08;
+  freeLookDamped.y += (freeLook.y - freeLookDamped.y) * 0.08;
 
   camera.position.set(
     camCurrentPos.x + mouseOffsetDamped.x + vibX + emShake,

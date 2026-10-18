@@ -201,6 +201,10 @@
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </button>
 
+            <button class="player-icon-btn cinema-expand-btn" data-project="1" aria-label="Кинозал" title="Развернуть в полный экран">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            </button>
+
           </div>
         </div>
 
@@ -250,6 +254,10 @@
 
             <button class="player-icon-btn info-btn" data-project="2" aria-label="О проекте" title="О проекте">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
+
+            <button class="player-icon-btn cinema-expand-btn" data-project="2" aria-label="Кинозал" title="Развернуть в полный экран">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
             </button>
 
           </div>
@@ -430,6 +438,11 @@
       <div class="modal-body">
         <span class="modal-badge" id="modal-badge">SHOT ON IPHONE • 2026</span>
         <h3 class="modal-title" id="modal-title">Свэг</h3>
+
+        <div class="modal-video-box">
+          <video id="modal-video-player" class="modal-video-elem" playsinline webkit-playsinline loop controls></video>
+        </div>
+
         <p class="modal-desc" id="modal-desc">Режиссура, съемка и цветокоррекция. Экспериментальный визуальный стиль с аутентичным ритмом монтажа.</p>
         <div class="modal-meta-grid" id="modal-meta">
           <div class="meta-item"><span class="meta-label">Камера</span><span class="meta-val">iPhone 4K 60fps</span></div>

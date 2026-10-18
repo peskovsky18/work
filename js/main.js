@@ -234,9 +234,10 @@ const PROJECT_DATA = {
     title: 'Свэг',
     desc: 'Режиссура, съемка и цветокоррекция. Экспериментальный визуальный стиль с аутентичным ритмом монтажа и динамичной операторской работой.',
     meta: [
-      { label: 'Камера', val: 'iPhone 4K 60fps' },
+      { label: 'Камера', val: 'iPhone 4K 60fps • Apple Log' },
       { label: 'Режиссер', val: 'Александр Песковский' },
-      { label: 'Формат', val: '16:9 • Apple Log' }
+      { label: 'Грейдинг', val: 'DaVinci Resolve Studio' },
+      { label: 'Формат', val: '16:9 • Stereo' }
     ]
   },
   2: {
@@ -244,74 +245,81 @@ const PROJECT_DATA = {
     title: 'Мини свэг',
     desc: 'Короткометражная визуальная зарисовка. Точная ритмика кадров, глубокие тени и акцент на деталях городской эстетики.',
     meta: [
-      { label: 'Камера', val: 'iPhone 4K 60fps' },
+      { label: 'Камера', val: 'iPhone 4K 60fps • Cinematic' },
       { label: 'Режиссер', val: 'Александр Песковский' },
-      { label: 'Формат', val: '16:9 • Cinematic' }
+      { label: 'Монтаж', val: 'Александр Песковский' },
+      { label: 'Формат', val: '16:9 • 24fps' }
     ]
   },
   3: {
-    badge: 'PRE-PRODUCTION • 2026',
-    title: 'Проект 03 • Ночной тоннель',
-    desc: 'Концептуальный короткометражный фильм об ускорении времени в мегаполисе. Ритмичный саунд-дизайн, съемка на сверхчувствительную оптику в Apple Log.',
+    badge: 'POST-PRODUCTION • 2026',
+    title: 'Ночной тоннель',
+    desc: 'Экспериментальный короткометражный фильм об ускорении времени в ночном мегаполисе. Ритмичный авторский саунд-дизайн, съемка на сверхчувствительную оптику с динамическим диапазоном Apple Log.',
     meta: [
-      { label: 'Статус', val: 'Пре-продакшн' },
-      { label: 'Жанр', val: 'Experimental / Noir' },
-      { label: 'Формат', val: '2.39:1 • 4K HDR' }
+      { label: 'Статус', val: 'Пост-продакшн' },
+      { label: 'Камера', val: 'Sony FX3 / iPhone 15 Pro Max' },
+      { label: 'Режиссура & Звук', val: 'Александр Песковский' },
+      { label: 'Формат', val: '2.39:1 Anamorphic • 4K HDR' }
     ],
     isPlaceholder: true
   },
   4: {
-    badge: 'DEVELOPMENT • 2026',
-    title: 'Проект 04 • Индустрия',
-    desc: 'Визуальный манифест о симбиозе человека и индустриальных машин. Монохромная контрастная эстетика и динамичный клиповый монтаж.',
+    badge: 'COMMERCIAL / FASHION • 2026',
+    title: 'Индустрия',
+    desc: 'Визуальный манифест о симбиозе человека и индустриальных машин. Монохромная контрастная эстетика, глубокие тени и плотный клиповый ритм.',
     meta: [
-      { label: 'Статус', val: 'Разработка' },
-      { label: 'Жанр', val: 'Fashion Film' },
-      { label: 'Формат', val: '16:9 • Apple Log' }
+      { label: 'Статус', val: 'Монтажно-тонировочный период' },
+      { label: 'Жанр', val: 'Fashion Film / Visual Statement' },
+      { label: 'Цветокоррекция', val: 'ACEScc • Kodak Vision Emulation' },
+      { label: 'Формат', val: '16:9 • Apple ProRes 422HQ' }
     ],
     isPlaceholder: true
   },
   5: {
-    badge: 'DEVELOPMENT • 2026',
-    title: 'Проект 05 • Ритм',
-    desc: 'Музыкальное видео с акцентом на кинетическую хореографию в замкнутом урбанистическом пространстве.',
+    badge: 'MUSIC VIDEO • 2026',
+    title: 'Ритм',
+    desc: 'Музыкальное видео с акцентом на кинетическую экспрессивную хореографию в замкнутом урбанистическом пространстве.',
     meta: [
-      { label: 'Статус', val: 'Сценарная разработка' },
-      { label: 'Жанр', val: 'Music Video' },
-      { label: 'Формат', val: 'Cinematic 4K' }
+      { label: 'Статус', val: 'Подготовка к релизу' },
+      { label: 'Жанр', val: 'Music Video / Kinetic Dance' },
+      { label: 'Световая партитура', val: 'Dynamic RGB Strobe System' },
+      { label: 'Формат', val: '4K DCI • 24fps' }
     ],
     isPlaceholder: true
   },
   6: {
-    badge: 'IN PRODUCTION • 2026',
-    title: 'Проект 06 • Светотень',
-    desc: 'Экспериментальный перформанс об игре света и архитектурных объемов на ночных улицах.',
+    badge: 'ART FILM • 2026',
+    title: 'Светотень',
+    desc: 'Архитектурный визуальный перформанс об игре света и геометрии ночного города. Медитативный темпоритм и макро-детализация фактур.',
     meta: [
-      { label: 'Статус', val: 'Подготовка к съемкам' },
-      { label: 'Жанр', val: 'Art Performance' },
-      { label: 'Формат', val: '4K 60fps' }
+      { label: 'Статус', val: 'Фестивальный цикл' },
+      { label: 'Жанр', val: 'Art Film / Architecture' },
+      { label: 'Оптика', val: 'Prime Cine Lenses 35mm / 50mm' },
+      { label: 'Формат', val: '4:3 Classic Academy' }
     ],
     isPlaceholder: true
   },
   7: {
-    badge: 'CONCEPT • 2026',
-    title: 'Проект 07 • Лица',
-    desc: 'Серия документальных микро-портретов современных независимых авторов и создателей.',
+    badge: 'DOCUMENTARY • 2026',
+    title: 'Лица',
+    desc: 'Серия интимных документальных микро-портретов современных независимых авторов, художников и мейкеров.',
     meta: [
-      { label: 'Статус', val: 'Кастинг' },
-      { label: 'Жанр', val: 'Documentary Mini' },
+      { label: 'Статус', val: 'Съемки эпизодов' },
+      { label: 'Жанр', val: 'Documentary Mini-series' },
+      { label: 'Звук', val: 'Binaural Field Recording' },
       { label: 'Формат', val: '16:9 • Natural Light' }
     ],
     isPlaceholder: true
   },
   8: {
-    badge: 'CONCEPT • 2026',
-    title: 'Проект 08 • Моушн',
-    desc: 'Синтез аналоговой оптики, цифровой графики и трехмерных пространственных симуляций.',
+    badge: '3D SPATIAL • 2026',
+    title: 'Моушн',
+    desc: 'Синтез кинематографической съемки, аналоговой оптики и трехмерных пространственных симуляций в реальном времени.',
     meta: [
-      { label: 'Статус', val: 'Концепт-арт' },
-      { label: 'Жанр', val: 'Mixed Media' },
-      { label: 'Формат', val: '3D Spatial' }
+      { label: 'Статус', val: 'Интерактивный релиз' },
+      { label: 'Технологии', val: 'Three.js • Blender • GLSL' },
+      { label: 'Концепт & Код', val: 'Александр Песковский' },
+      { label: 'Формат', val: 'Realtime WebGL 60fps' }
     ],
     isPlaceholder: true
   }

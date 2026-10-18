@@ -115,8 +115,9 @@
         <button class="apple-pill-btn stage-nav-pill" data-stage="9">Контакты</button>
       </nav>
 
-      <!-- Светодиодная линия пути вагона (LED Route Tracker) -->
-      <div class="header-route-track" aria-hidden="true">
+      <!-- Светодиодная линия пути вагона (LED Route Tracker с интерактивной перемоткой) -->
+      <div class="header-route-track" id="header-route-track" title="Нажмите для перехода к участку пути">
+        <div id="route-track-tooltip" class="route-track-tooltip"></div>
         <div id="route-track-fill" class="route-track-fill"></div>
         <div id="route-track-car-dot" class="route-track-car-dot"></div>
       </div>

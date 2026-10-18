@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, playDoorChime, playArrivalChime, playBrakeScreech, playHapticChime, playStationDepartureGong, playStationPAChime, playPassingTrainWhoosh } from './subwayAudio.js';
+import { getStationTileTextures, getSubwayFloorTextures, getSubwayWallTextures, getFiberglassTextures, getPlatformGraniteTextures } from './subwayMaterials.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
@@ -501,6 +502,13 @@ function loadSubwayModel() {
     (gltf) => {
       subwayModel = gltf.scene;
 
+      // Инициализация фотореалистичных процедурных PBR-текстур
+      const tileTex = getStationTileTextures();
+      const floorTex = getSubwayFloorTextures();
+      const wallTex = getSubwayWallTextures();
+      const fiberTex = getFiberglassTextures();
+      const graniteTex = getPlatformGraniteTextures();
+
       // Настройка материалов для реалистичного тёмного стиля Apple
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
@@ -593,9 +601,12 @@ function loadSubwayModel() {
 
         if (child.name.includes('Platform_Tile_Wall')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xf0f3f8), // глазурованная белая плитка станции
-            roughness: 0.18,
-            metalness: 0.15,
+            map: tileTex.colorMap,
+            normalMap: tileTex.normalMap,
+            normalScale: new THREE.Vector2(0.85, 0.85),
+            roughnessMap: tileTex.roughnessMap,
+            roughness: 0.20,
+            metalness: 0.10,
             side: THREE.DoubleSide
           });
           return;
@@ -604,7 +615,9 @@ function loadSubwayModel() {
         if (child.name.includes('Platform_Mosaic_Band')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xc02026), // рубиновая керамическая полоса московского метро
-            roughness: 0.30,
+            normalMap: tileTex.normalMap,
+            normalScale: new THREE.Vector2(0.5, 0.5),
+            roughness: 0.28,
             metalness: 0.20,
             side: THREE.DoubleSide
           });
@@ -613,9 +626,11 @@ function loadSubwayModel() {
 
         if (child.name.includes('Platform_Floor')) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x282c34), // темно-серый шлифованный гранит платформы
-            roughness: 0.38,
-            metalness: 0.18,
+            map: graniteTex.colorMap,
+            normalMap: graniteTex.normalMap,
+            normalScale: new THREE.Vector2(0.65, 0.65),
+            roughness: 0.60,
+            metalness: 0.12,
             side: THREE.DoubleSide
           });
           return;
@@ -625,6 +640,8 @@ function loadSubwayModel() {
         if (child.name.includes('Window_Sill_Ledge')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xa4acb8), // сатинированный подоконник
+            normalMap: wallTex.normalMap,
+            normalScale: new THREE.Vector2(0.3, 0.3),
             roughness: 0.28,
             metalness: 0.76,
             side: THREE.DoubleSide
@@ -635,6 +652,8 @@ function loadSubwayModel() {
         if (child.name.includes('Frieze')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xb2b8c2), // карнизный фриз под потолком
+            normalMap: wallTex.normalMap,
+            normalScale: new THREE.Vector2(0.35, 0.35),
             roughness: 0.28,
             metalness: 0.82,
             side: THREE.DoubleSide
@@ -642,11 +661,14 @@ function loadSubwayModel() {
           return;
         }
 
-        // Панели стен, переборки, притолоки (глухие, непрозрачные с обеих сторон)
+        // Панели стен, переборки, притолоки (сатинированная шлифованная сталь)
         if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xb6bcc6),
-            roughness: 0.32,
+            color: new THREE.Color(0xbcc2cc),
+            normalMap: wallTex.normalMap,
+            normalScale: new THREE.Vector2(0.40, 0.40),
+            roughnessMap: wallTex.roughnessMap,
+            roughness: 0.35,
             metalness: 0.72,
             side: THREE.DoubleSide
           });
@@ -657,7 +679,9 @@ function loadSubwayModel() {
         if (child.name.includes('Plinth') || child.name.includes('Bench')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0x22262e),
-            roughness: 0.42,
+            normalMap: wallTex.normalMap,
+            normalScale: new THREE.Vector2(0.25, 0.25),
+            roughness: 0.45,
             metalness: 0.35,
             side: THREE.DoubleSide
           });
@@ -668,6 +692,8 @@ function loadSubwayModel() {
         if (child.name.includes('Ceiling')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xdde1e8),
+            normalMap: wallTex.normalMap,
+            normalScale: new THREE.Vector2(0.2, 0.2),
             roughness: 0.40,
             metalness: 0.15,
             side: THREE.DoubleSide
@@ -708,6 +734,8 @@ function loadSubwayModel() {
         if (matName === 'Mat_Aluminum' || child.name.includes('Post') || child.name.includes('Housing')) {
           child.material = new THREE.MeshStandardMaterial({
             color: new THREE.Color(0xc2c7cf),
+            normalMap: wallTex.normalMap,
+            normalScale: new THREE.Vector2(0.3, 0.3),
             roughness: 0.38,
             metalness: 0.70,
             side: THREE.DoubleSide
@@ -726,34 +754,49 @@ function loadSubwayModel() {
           return;
         }
 
-        // Темный пол вагона
+        // Рифленый пол вагона с резиновой текстурой
         if (child.name.includes('Floor') || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x181a20),
-            roughness: 0.24,
-            metalness: 0.42,
+            map: floorTex.colorMap,
+            normalMap: floorTex.normalMap,
+            normalScale: new THREE.Vector2(0.90, 0.90),
+            roughnessMap: floorTex.roughnessMap,
+            roughness: 0.42,
+            metalness: 0.25,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // Желтые ретро-сиденья
+        // Желтые ретро-сиденья (стеклопластик с глубоким лаком)
         if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
-          child.material = new THREE.MeshStandardMaterial({
+          child.material = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(0xf2a91d),
-            roughness: 0.36,
-            metalness: 0.06,
+            normalMap: fiberTex.normalMap,
+            normalScale: new THREE.Vector2(0.35, 0.35),
+            roughnessMap: fiberTex.roughnessMap,
+            roughness: 0.30,
+            metalness: 0.05,
+            clearcoat: 0.60,
+            clearcoatRoughness: 0.20,
+            reflectivity: 0.55,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // Оранжевые ретро-сиденья
+        // Оранжевые ретро-сиденья (стеклопластик с глубоким лаком)
         if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
-          child.material = new THREE.MeshStandardMaterial({
+          child.material = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(0xdc5018),
-            roughness: 0.36,
-            metalness: 0.06,
+            normalMap: fiberTex.normalMap,
+            normalScale: new THREE.Vector2(0.35, 0.35),
+            roughnessMap: fiberTex.roughnessMap,
+            roughness: 0.30,
+            metalness: 0.05,
+            clearcoat: 0.60,
+            clearcoatRoughness: 0.20,
+            reflectivity: 0.55,
             side: THREE.DoubleSide
           });
           return;

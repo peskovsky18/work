@@ -589,6 +589,33 @@ function loadSubwayModel() {
           return;
         }
 
+        if (child.name === 'Platform_Tile_Wall') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xf0f3f8), // глазурованная белая плитка станции
+            roughness: 0.18,
+            metalness: 0.15
+          });
+          return;
+        }
+
+        if (child.name === 'Platform_Mosaic_Band') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xc02026), // рубиновая керамическая полоса московского метро
+            roughness: 0.30,
+            metalness: 0.20
+          });
+          return;
+        }
+
+        if (child.name === 'Platform_Floor') {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x282c34), // темно-серый шлифованный гранит платформы
+            roughness: 0.38,
+            metalness: 0.18
+          });
+          return;
+        }
+
         // 5. Архитектурная отделка окна и стен вагона
         if (child.name === 'Window_Sill_Ledge') {
           child.material = new THREE.MeshStandardMaterial({
@@ -741,6 +768,17 @@ function loadSubwayModel() {
 
       scene.add(subwayModel);
 
+      // Желтая рельефная тактильная полоса безопасности вдоль края платформы
+      const safetyLineGeom = new THREE.BoxGeometry(12, 0.008, 0.16);
+      const safetyLineMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0xf5a623),
+        roughness: 0.40,
+        metalness: 0.05
+      });
+      const safetyLine = new THREE.Mesh(safetyLineGeom, safetyLineMat);
+      safetyLine.position.set(0, 0.004, 0.32);
+      scene.add(safetyLine);
+
       // Инициализация привязки скролла GSAP ScrollTrigger
       initScrollTriggers();
 
@@ -793,6 +831,11 @@ function initScrollTriggers() {
     scrub: 1.0,
     onUpdate: (self) => {
       const p = Math.max(0.0, Math.min(1.0, self.progress));
+
+      if (isZoomedToScreen) {
+        isZoomedToScreen = false;
+        document.body.classList.remove('screen-zoomed');
+      }
 
       const scaledP = p * NUM_SEGMENTS;
       const fromIdx = Math.min(Math.floor(scaledP), NUM_SEGMENTS - 1);
@@ -1085,6 +1128,39 @@ function setupEventListeners() {
 
   // Ресайз окна
   window.addEventListener('resize', onWindowResize, { passive: true });
+
+  // Двойной клик для приближения к экрану (Director's Viewfinder / Inspector)
+  window.addEventListener('dblclick', (e) => {
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
+    toggleScreenZoom();
+  });
+}
+
+let isZoomedToScreen = false;
+export function toggleScreenZoom() {
+  if (activeStage !== 1 && activeStage !== 2) return;
+  isZoomedToScreen = !isZoomedToScreen;
+  playHapticChime();
+
+  const isMobile = window.innerWidth < 768;
+  const currentWp = CAMERA_WAYPOINTS[activeStage][isMobile ? 'mobile' : 'desktop'];
+
+  if (isZoomedToScreen) {
+    const targetZ = isMobile ? -0.80 : -0.52;
+    camTargetPos.set(currentWp.pos.x, currentWp.pos.y, targetZ);
+    camTargetLookAt.set(currentWp.target.x, currentWp.target.y, currentWp.target.z);
+    document.body.classList.add('screen-zoomed');
+  } else {
+    camTargetPos.copy(currentWp.pos);
+    camTargetLookAt.copy(currentWp.target);
+    document.body.classList.remove('screen-zoomed');
+  }
+}
+
+export function resetScreenZoom() {
+  if (isZoomedToScreen) {
+    toggleScreenZoom();
+  }
 }
 
 function toggleVideoPlay(video) {

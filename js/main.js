@@ -3,7 +3,7 @@
  * Основная точка входа: UI логика и связка с 3D сценой
  */
 
-import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos } from './scene3d.js';
+import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 10. Регистрация Service Worker для PWA
   initServiceWorker();
+
+  // 11. Интерактивная перемотка по линии маршрута
+  initRouteTrackSeek();
 });
 
 // =============================================================================
@@ -164,7 +167,9 @@ function initKeyboardShortcuts() {
     // Не перехватывать при вводе в текстовые поля
     if (['input', 'textarea'].includes(document.activeElement?.tagName?.toLowerCase())) return;
 
-    if (e.code === 'KeyM') {
+    if (e.code === 'Escape') {
+      resetScreenZoom();
+    } else if (e.code === 'KeyM') {
       e.preventDefault();
       toggleGlobalSound();
     } else if (e.code === 'KeyF') {
@@ -584,4 +589,51 @@ function initServiceWorker() {
     });
   }
 }
+
+// =============================================================================
+// ИНТЕРАКТИВНАЯ ЛИНИЯ МАРШРУТА (ROUTE TRACK TOOLTIP & SEEK)
+// =============================================================================
+const STAGE_NAMES = [
+  '00 // Вход на станцию',
+  '01 // Свэг',
+  '02 // Мини свэг',
+  '03 // Проект 03 • Тоннель',
+  '04 // Проект 04 • Крейсерский ход',
+  '05 // Проект 08 • Сторона B',
+  '06 // Проект 07 • Сторона B',
+  '07 // Проект 06 • Сторона B',
+  '08 // Проект 05 • Торможение',
+  '09 // Станция 2 • Контакты'
+];
+
+function initRouteTrackSeek() {
+  const track = document.getElementById('header-route-track');
+  const tooltip = document.getElementById('route-track-tooltip');
+  if (!track || !tooltip) return;
+
+  const handleTrackMove = (e) => {
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const stageIdx = Math.min(Math.round(ratio * 9), 9);
+
+    tooltip.textContent = STAGE_NAMES[stageIdx] || '';
+    tooltip.style.left = `${ratio * 100}%`;
+    tooltip.classList.add('show');
+  };
+
+  track.addEventListener('mousemove', handleTrackMove);
+
+  track.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('show');
+  });
+
+  track.addEventListener('click', (e) => {
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const stageIdx = Math.min(Math.round(ratio * 9), 9);
+    playNavTick();
+    scrollToStage(stageIdx);
+  });
+}
+
 

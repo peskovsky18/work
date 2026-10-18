@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, playNavTick, playHapticChime } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime } from './subwayAudio.js';
 import {
   getPhotoWallTextures,
   getPhotoDoorTextures,
@@ -208,6 +208,14 @@ function setupSubwayLighting() {
     lampB.position.set(px, 2.20, -1.65);
     scene.add(lampB);
     ceilingLamps.push(lampB);
+  });
+
+  // 2.1 Сплошная центральная LED-световая линия вагона (современный поезд метро «Москва-2024» / «Иволга»)
+  [-5.0, -3.75, -2.5, -1.25, 0.0, 1.25, 2.5, 3.75, 5.0].forEach(px => {
+    const centralLed = new THREE.PointLight(0xfffcf5, 2.6, 7.0, 1.1);
+    centralLed.position.set(px, 2.22, -1.192);
+    scene.add(centralLed);
+    ceilingLamps.push(centralLed);
   });
 
   // 3. Направленный скользящий свет с потолка (Raking Key Lights) — подчеркивает микрорельеф и фактуру шлифованной стали стен и пола
@@ -1124,14 +1132,16 @@ function fadeVideoVolume(video, targetVolume, duration = 260) {
     video._fadeAnimId = null;
   }
 
-  if (targetVolume > 0 && video.muted) {
-    video.muted = false;
+  if (targetVolume === 0) {
+    video.volume = 0;
+    video.muted = true;
+    return;
   }
 
+  video.muted = false;
   const startVol = video.volume;
   if (Math.abs(startVol - targetVolume) < 0.02) {
     video.volume = targetVolume;
-    if (targetVolume === 0) video.muted = true;
     return;
   }
 
@@ -1147,9 +1157,6 @@ function fadeVideoVolume(video, targetVolume, duration = 260) {
       video._fadeAnimId = requestAnimationFrame(step);
     } else {
       video.volume = targetVolume;
-      if (targetVolume === 0) {
-        video.muted = true;
-      }
       video._fadeAnimId = null;
     }
   }
@@ -1160,25 +1167,38 @@ function syncAudioForActiveStage() {
   if (!video1 || !video2) return;
 
   if (isGlobalMuted) {
-    fadeVideoVolume(video1, 0, 180);
-    fadeVideoVolume(video2, 0, 180);
+    if (video1._fadeAnimId) { cancelAnimationFrame(video1._fadeAnimId); video1._fadeAnimId = null; }
+    if (video2._fadeAnimId) { cancelAnimationFrame(video2._fadeAnimId); video2._fadeAnimId = null; }
+    video1.volume = 0;
+    video1.muted = true;
+    video2.volume = 0;
+    video2.muted = true;
+    setSubwayMuted(true);
+    updateSoundButtonUI();
     return;
   }
 
   // Если звук включен глобально (тише на 33% -> громкость 0.67):
+  setSubwayMuted(false);
   const MEDIA_VOLUME = 0.67;
   if (activeStage === 1) {
     // В фокусе «Свэг»
-    fadeVideoVolume(video1, MEDIA_VOLUME, 300);
-    fadeVideoVolume(video2, 0, 220);
+    if (video2._fadeAnimId) { cancelAnimationFrame(video2._fadeAnimId); video2._fadeAnimId = null; }
+    video2.volume = 0;
+    video2.muted = true;
+    video1.muted = false;
+    fadeVideoVolume(video1, MEDIA_VOLUME, 220);
   } else if (activeStage === 2) {
     // В фокусе «Мини свэг»
-    fadeVideoVolume(video2, MEDIA_VOLUME, 300);
-    fadeVideoVolume(video1, 0, 220);
+    if (video1._fadeAnimId) { cancelAnimationFrame(video1._fadeAnimId); video1._fadeAnimId = null; }
+    video1.volume = 0;
+    video1.muted = true;
+    video2.muted = false;
+    fadeVideoVolume(video2, MEDIA_VOLUME, 220);
   } else {
-    // На заставке или в других отсеках — мягко глушим оба звука
-    fadeVideoVolume(video1, 0, 220);
-    fadeVideoVolume(video2, 0, 220);
+    // На заставке или в других отсеках — глушим оба звука
+    fadeVideoVolume(video1, 0, 180);
+    fadeVideoVolume(video2, 0, 180);
   }
 
   updateSoundButtonUI();
@@ -1188,17 +1208,27 @@ export function toggleGlobalSound() {
   isGlobalMuted = !isGlobalMuted;
   if (!isGlobalMuted) {
     initSubwayAudio();
+    setSubwayMuted(false);
     playHapticChime();
+  } else {
+    setSubwayMuted(true);
   }
   syncAudioForActiveStage();
   updateSoundButtonUI();
   return !isGlobalMuted;
 }
 
+export function getActiveStage() {
+  return activeStage;
+}
+
 function updateSoundButtonUI() {
   const soundBtns = document.querySelectorAll('.sound-toggle-btn');
   soundBtns.forEach((btn) => {
     btn.classList.toggle('sound-on', !isGlobalMuted);
+    btn.classList.toggle('sound-muted', isGlobalMuted);
+    btn.setAttribute('aria-label', isGlobalMuted ? 'Включить звук' : 'Выключить звук');
+    btn.setAttribute('title', isGlobalMuted ? 'Включить звук' : 'Выключить звук');
     const label = btn.querySelector('.sound-btn-label');
     const icon = btn.querySelector('.sound-btn-icon');
     if (label) {
@@ -1246,19 +1276,6 @@ function setupEventListeners() {
   window.addEventListener('click', requestGyro, { once: true });
   window.addEventListener('touchstart', requestGyro, { once: true });
 
-  // Включение тихого фонового эмбиента и стука колес при первом скролле
-  const enableSoundOnFirstInteraction = () => {
-    if (isGlobalMuted) {
-      isGlobalMuted = false;
-      initSubwayAudio();
-      syncAudioForActiveStage();
-      updateSoundButtonUI();
-    }
-  };
-  window.addEventListener('wheel', enableSoundOnFirstInteraction, { passive: true, once: true });
-  window.addEventListener('touchmove', enableSoundOnFirstInteraction, { passive: true, once: true });
-  window.addEventListener('scroll', enableSoundOnFirstInteraction, { passive: true, once: true });
-
   // Клик по экрану в 3D пространстве — плавный зум и разворачивание модального окна проекта
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по интерфейсу (кнопкам, модалкам)
@@ -1272,13 +1289,8 @@ function setupEventListeners() {
         const stageMap = { 1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8 };
         const targetStage = stageMap[sIdx] || (hoveredScreen === screen1Mesh ? 1 : (hoveredScreen === screen2Mesh ? 2 : Math.max(1, activeStage)));
 
-        // 1. Плавный кинематографический зум камеры прямо к выбранному экрану
+        // Плавный кинематографический зум камеры прямо к выбранному экрану
         zoomToScreen(targetStage);
-
-        // 2. Открытие информационного модального окна проекта
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('open-project-modal', { detail: { project: targetStage } }));
-        }, 220);
       }
     }
   });

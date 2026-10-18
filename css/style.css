@@ -1049,3 +1049,15 @@ body.dark-cinema-body {
 body.tunnel-speed-active .cinematic-vignette {
   opacity: 0.82;
 }
+
+/* Кинематографическое пленочное зерно (35mm Film Grain) */
+.cinema-film-grain {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.65;
+  mix-blend-mode: overlay;
+}

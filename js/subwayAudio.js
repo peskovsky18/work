@@ -61,13 +61,57 @@ export function updateSubwayAudio(speed, isMuted) {
   if (isMuted || speed < 0.02) {
     // Плавное затухание звука поезда
     masterGain.gain.setTargetAtTime(0.0, now, 0.2);
+    if (clatterTimer) {
+      clearTimeout(clatterTimer);
+      clatterTimer = null;
+    }
   } else {
-    // Громкость и частота фильтра растут с набором скорости (макс громкость 0.18 - мягкий комфортный фон)
+    // Громкость и частота фильтра растут с набором скорости
     const targetGain = Math.min(speed * 0.16, 0.16);
     const targetFreq = 110 + speed * 220; // 110Hz -> 330Hz
     masterGain.gain.setTargetAtTime(targetGain, now, 0.15);
     rumbleFilter.frequency.setTargetAtTime(targetFreq, now, 0.2);
+
+    // Стук колес на стыках рельсов при движении в тоннеле
+    if (speed > 0.35 && !clatterTimer) {
+      const runClatterLoop = () => {
+        if (!audioCtx || isMuted || speed < 0.35) {
+          clatterTimer = null;
+          return;
+        }
+        playWheelClick(0, 0.09 * speed);
+        playWheelClick(0.085, 0.065 * speed);
+        const nextDelay = (1150 + Math.random() * 350) / Math.max(speed, 0.4);
+        clatterTimer = setTimeout(runClatterLoop, nextDelay);
+      };
+      clatterTimer = setTimeout(runClatterLoop, 500);
+    }
   }
+}
+
+function playWheelClick(timeOffset, vol) {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime + timeOffset;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const f = audioCtx.createBiquadFilter();
+
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(115 + Math.random() * 35, now);
+  osc.frequency.exponentialRampToValueAtTime(42, now + 0.055);
+
+  f.type = 'lowpass';
+  f.frequency.value = 240;
+
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.065);
+
+  osc.connect(f);
+  f.connect(g);
+  g.connect(masterGain);
+
+  osc.start(now);
+  osc.stop(now + 0.075);
 }
 
 // Двухтональный звуковой сигнал закрытия дверей (E5 -> C5) и пневматический выпуск воздуха

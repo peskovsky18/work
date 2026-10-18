@@ -26,32 +26,32 @@ const CAMERA_WAYPOINTS = [
   // 0: Старт из глубокого торца вагона у межвагонной двери (X = -5.50), двери открыты на станции
   {
     desktop: { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
+    mobile:  { pos: new THREE.Vector3(-5.50, 1.40, -1.250), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
   },
   // 1: Проект 1 («Свэг», видео 1, Screen 1 на X = -2.675) — точный центр экрана
   {
     desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.350), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
+    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.450), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
   },
   // 2: Проект 2 («Мини свэг», видео 2, Screen 2 на X = -0.565) — точный центр экрана
   {
     desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.350), target: new THREE.Vector3(-0.565, 1.40, -0.016) }
+    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.450), target: new THREE.Vector3(-0.565, 1.40, -0.016) }
   },
   // 3: Проект 3 («Ночной тоннель», Screen 3 на X = 0.515) — точный центр экрана
   {
     desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.350), target: new THREE.Vector3(0.515, 1.40, -0.016) }
+    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.450), target: new THREE.Vector3(0.515, 1.40, -0.016) }
   },
   // 4: Проект 4 («Индустрия», Screen 4 на X = 2.675) — точный центр экрана
   {
     desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.350), target: new THREE.Vector3(2.675, 1.40, -0.016) }
+    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.450), target: new THREE.Vector3(2.675, 1.40, -0.016) }
   },
   // 5: Прибытие на конечную станцию и выход к контактам (X = 3.765, выходная дверь)
   {
     desktop: { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) },
-    mobile:  { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) }
+    mobile:  { pos: new THREE.Vector3(3.765, 1.38, -1.350), target: new THREE.Vector3(3.765, 1.40, 1.800) }
   }
 ];
 
@@ -129,6 +129,7 @@ export function initSubwayScene() {
   const isMobile = window.innerWidth < 768;
   const initialConfig = CAMERA_WAYPOINTS[0][isMobile ? 'mobile' : 'desktop'];
   camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 50);
+  updateCameraFov();
   camera.position.copy(initialConfig.pos);
   camCurrentPos.copy(initialConfig.pos);
   camTargetPos.copy(initialConfig.pos);
@@ -1029,7 +1030,7 @@ function initScrollTriggers() {
     trigger: '#scroll-story',
     start: 'top top',
     end: 'bottom bottom',
-    scrub: 1.8,
+    scrub: isMobile() ? 0.8 : 1.8,
     onUpdate: (self) => {
       const p = Math.max(0.0, Math.min(1.0, self.progress));
 
@@ -1284,23 +1285,34 @@ function setupEventListeners() {
   window.addEventListener('click', requestGyro, { once: true });
   window.addEventListener('touchstart', requestGyro, { once: true });
 
-  // Клик по экрану в 3D пространстве — плавный зум и разворачивание модального окна проекта
-  window.addEventListener('click', (e) => {
-    // Не срабатывать, если клик был по интерфейсу (кнопкам, модалкам)
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
-
-    if (hoveredScreen) {
-      if (hoveredScreen === platformMapMesh) {
+  // Клик и тап по экрану в 3D пространстве — плавный зум и интерактивность
+  const handleScreenInteract = (clientX, clientY) => {
+    if (!camera) return;
+    const clickVec = new THREE.Vector2(
+      (clientX / window.innerWidth) * 2 - 1,
+      -(clientY / window.innerHeight) * 2 + 1
+    );
+    raycaster.setFromCamera(clickVec, camera);
+    const screenTargets = screenMeshes.filter(Boolean);
+    if (platformMapMesh) screenTargets.push(platformMapMesh);
+    const intersects = raycaster.intersectObjects(screenTargets, false);
+    if (intersects.length > 0) {
+      const hit = intersects[0].object;
+      if (hit === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else {
-        const sIdx = screenMeshes.indexOf(hoveredScreen);
+        const sIdx = screenMeshes.indexOf(hit);
         const stageMap = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 1, 6: 2, 7: 3, 8: 4 };
-        const targetStage = stageMap[sIdx] || (hoveredScreen === screen1Mesh ? 1 : (hoveredScreen === screen2Mesh ? 2 : Math.max(1, activeStage)));
-
-        // Плавный кинематографический зум камеры прямо к выбранному экрану
+        const targetStage = stageMap[sIdx] || Math.max(1, Math.min(activeStage, 4));
         zoomToScreen(targetStage);
       }
     }
+  };
+
+  window.addEventListener('click', (e) => {
+    // Не срабатывать, если клик был по элементам интерфейса
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, #vf-exit-btn')) return;
+    handleScreenInteract(e.clientX, e.clientY);
   });
 
   // Ресайз окна
@@ -1338,7 +1350,8 @@ function setupEventListeners() {
 let isZoomedToScreen = false;
 
 export function zoomToScreen(stage) {
-  const targetStage = Math.max(1, Math.min(stage || activeStage, 8));
+  const maxStage = CAMERA_WAYPOINTS.length - 2; // Экран 4 (Index 4)
+  const targetStage = Math.max(1, Math.min(stage || activeStage, maxStage));
   isZoomedToScreen = true;
   playHapticChime();
 
@@ -1399,11 +1412,28 @@ function updatePlayButtonsUI() {
   });
 }
 
+function updateCameraFov() {
+  if (!camera) return;
+  const aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = aspect;
+  if (aspect < 1.0) {
+    // В портретном режиме (смартфоны) вычисляем вертикальный угол так, чтобы по горизонтали
+    // сохранялся комфортный угол обзора (~68°), и экран вагона шириной 1.6м помещался целиком без обрезки
+    const targetHFov = 68.0;
+    const hRad = THREE.MathUtils.degToRad(targetHFov);
+    const vRad = 2 * Math.atan(Math.tan(hRad / 2) / aspect);
+    camera.fov = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(vRad), 46, 84);
+  } else {
+    // В десктопном и альбомном режимах — 46°
+    camera.fov = 46;
+  }
+  camera.updateProjectionMatrix();
+}
+
 function onWindowResize() {
   if (!camera || !renderer) return;
 
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  updateCameraFov();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1467,7 +1497,7 @@ function animate() {
     doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
   }
   if (doorLeftD2 && doorRightD2) {
-    const d2Open = activeStage === 9 ? (1.0 - currentDoorCloseRatio) : 0.0;
+    const d2Open = (activeStage === 5) ? (1.0 - currentDoorCloseRatio) : 0.0;
     doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, d2Open);
     doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, d2Open);
   }

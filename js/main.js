@@ -140,19 +140,43 @@ function setupStagePlayer(stageIndex, videoEl) {
     });
   }
 
-  // Скруббер (клик и перемотка)
+  // Скруббер (клик и плавная перемотка пальцем / курсором)
   if (timelineWrap) {
-    timelineWrap.addEventListener('click', (e) => {
-      e.stopPropagation();
+    let isScrubbing = false;
+
+    const handleSeek = (clientX) => {
       const v = getVideo();
       if (!v || !v.duration) return;
 
       const rect = timelineWrap.getBoundingClientRect();
-      const pct = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+      const pct = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
       v.currentTime = pct * v.duration;
       if (progressEl) {
         progressEl.style.width = `${pct * 100}%`;
       }
+    };
+
+    timelineWrap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleSeek(e.clientX);
+    });
+
+    timelineWrap.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      if (e.touches && e.touches[0]) {
+        isScrubbing = true;
+        handleSeek(e.touches[0].clientX);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (isScrubbing && e.touches && e.touches[0]) {
+        handleSeek(e.touches[0].clientX);
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      isScrubbing = false;
     });
   }
 

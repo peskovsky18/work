@@ -38,8 +38,10 @@ body.dark-cinema-body {
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ==========================================================================
@@ -121,8 +123,9 @@ body.dark-cinema-body {
 .webgl-fixed-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   z-index: 1;
   display: block;
 }
@@ -154,8 +157,8 @@ body.dark-cinema-body {
   left: 0;
   width: 100%;
   z-index: 100;
-  padding: 16px 24px;
-  background: linear-gradient(to bottom, rgba(7, 8, 10, 0.85) 0%, rgba(7, 8, 10, 0.4) 70%, transparent 100%);
+  padding: max(14px, env(safe-area-inset-top, 14px)) max(20px, env(safe-area-inset-right, 20px)) 14px max(20px, env(safe-area-inset-left, 20px));
+  background: linear-gradient(to bottom, rgba(7, 8, 10, 0.90) 0%, rgba(7, 8, 10, 0.45) 75%, transparent 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -379,7 +382,7 @@ body.dark-cinema-body {
    -------------------------------------------------------------------------- */
 .floating-hud-top {
   position: fixed;
-  top: 92px;
+  top: calc(max(14px, env(safe-area-inset-top, 14px)) + 74px);
   left: 0;
   width: 100%;
   display: flex;
@@ -395,7 +398,7 @@ body.dark-cinema-body {
 .floating-hud-bottom {
   display: none;
   position: fixed;
-  bottom: 32px;
+  bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 20px));
   left: 0;
   width: 100%;
   justify-content: center;
@@ -509,8 +512,8 @@ body.dark-cinema-body {
 .player-capsule {
   padding: 8px 16px;
   gap: 14px;
-  min-width: 320px;
-  max-width: 90vw;
+  min-width: 280px;
+  max-width: min(460px, calc(100vw - 32px));
 }
 
 .player-icon-btn {
@@ -524,6 +527,14 @@ body.dark-cinema-body {
   padding: 6px;
   border-radius: 50%;
   transition: all 0.2s ease;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.player-icon-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
 }
 
 .player-icon-btn:hover {
@@ -533,15 +544,15 @@ body.dark-cinema-body {
 
 .play-pause-btn {
   background: rgba(255, 255, 255, 0.12);
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
 }
 
 .player-capsule .sound-toggle-btn {
   background: rgba(255, 255, 255, 0.12);
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
 }
 
@@ -559,11 +570,14 @@ body.dark-cinema-body {
 /* Скруббер прогресса */
 .timeline-scrubber-wrap {
   flex: 1;
-  min-width: 140px;
-  height: 20px;
+  min-width: 100px;
+  height: 32px;
   display: flex;
   align-items: center;
   cursor: pointer;
+  touch-action: none;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .timeline-bar-bg {
@@ -719,55 +733,76 @@ body.dark-cinema-body {
    ========================================================================== */
 @media (max-width: 768px) {
   .site-header {
-    padding: 12px 16px;
+    padding: max(10px, env(safe-area-inset-top, 10px)) max(16px, env(safe-area-inset-right, 16px)) 10px max(16px, env(safe-area-inset-left, 16px));
   }
 
   .header-container {
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   .brand-block {
     width: 100%;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 8px;
   }
 
   .brand-name {
-    font-size: 1.15rem;
+    font-size: clamp(0.92rem, 4.2vw, 1.15rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .stage-nav-bar {
-    order: 2;
-    padding: 3px;
-  }
-
-  .stage-nav-bar .apple-pill-btn {
-    padding: 5px 10px;
-    font-size: 0.75rem;
+  .brand-badge {
+    font-size: clamp(0.62rem, 2.4vw, 0.72rem);
+    padding: 2px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .header-actions {
-    order: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
     gap: 6px;
+    flex-wrap: nowrap;
   }
 
   .header-actions .apple-pill-btn {
-    padding: 5px 10px;
+    padding: 6px 10px;
     font-size: 0.75rem;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .intro-layout {
+    min-height: calc(100dvh - 120px);
+    justify-content: center;
+    text-align: center;
   }
 
   .intro-glass-panel {
-    padding: 24px 20px;
-    border-radius: 20px;
+    padding: clamp(22px, 5vw, 28px) clamp(16px, 4vw, 24px);
+    border-radius: 22px;
     margin: 0 auto;
+    max-width: min(440px, calc(100vw - 32px));
+    text-align: center;
   }
 
   .intro-headline {
-    font-size: 1.85rem;
+    font-size: clamp(1.6rem, 5.5vw, 2.1rem);
+  }
+
+  .intro-subheadline {
+    font-size: 0.92rem;
   }
 
   .floating-hud-top {
-    top: 115px;
+    top: calc(max(10px, env(safe-area-inset-top, 10px)) + 84px);
   }
 
   .title-capsule {
@@ -780,27 +815,38 @@ body.dark-cinema-body {
   }
 
   .floating-hud-bottom {
-    bottom: 20px;
+    bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 16px));
   }
 
   .player-capsule {
-    min-width: 280px;
+    min-width: 260px;
+    max-width: calc(100vw - 28px);
     padding: 6px 12px;
-    gap: 10px;
+    gap: 8px;
   }
 
   .timeline-scrubber-wrap {
-    min-width: 80px;
+    min-width: 70px;
+  }
+
+  .contact-layout {
+    min-height: calc(100dvh - 120px);
+    padding: 24px 0 calc(max(24px, env(safe-area-inset-bottom, 0px) + 20px));
   }
 
   .contact-glass-card {
-    padding: 28px 20px;
+    padding: clamp(24px, 5vw, 32px) clamp(16px, 4vw, 24px);
     border-radius: 24px;
+    max-width: min(480px, calc(100vw - 32px));
+  }
+
+  .contact-card-title {
+    font-size: clamp(1.5rem, 5vw, 2.0rem);
   }
 
   .contact-action-row {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
 
   .contact-btn-large {
@@ -809,8 +855,8 @@ body.dark-cinema-body {
   }
 
   .emergency-banner {
-    top: 115px;
-    width: 94%;
+    top: calc(max(10px, env(safe-area-inset-top, 10px)) + 84px);
+    width: calc(100% - 32px);
   }
 
   .emergency-banner-content {
@@ -818,6 +864,53 @@ body.dark-cinema-body {
     text-align: center;
     gap: 10px;
     padding: 12px 14px;
+  }
+
+  .modal-sheet {
+    padding: 20px 16px;
+    border-radius: 20px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Мобильный альбомный режим (Landscape) */
+@media (max-height: 520px) {
+  .site-header {
+    padding: max(6px, env(safe-area-inset-top, 6px)) max(16px, env(safe-area-inset-right, 16px)) 6px max(16px, env(safe-area-inset-left, 16px));
+  }
+
+  .header-container {
+    gap: 6px;
+  }
+
+  .brand-badge {
+    display: none;
+  }
+
+  .floating-hud-top {
+    top: calc(max(6px, env(safe-area-inset-top, 6px)) + 46px);
+  }
+
+  .floating-hud-bottom {
+    bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+  }
+
+  .player-capsule {
+    padding: 4px 10px;
+  }
+
+  .intro-layout,
+  .contact-layout {
+    min-height: calc(100dvh - 60px);
+  }
+
+  .intro-glass-panel,
+  .contact-glass-card {
+    padding: 18px 20px;
+    max-height: calc(100dvh - 70px);
+    overflow-y: auto;
   }
 }
 

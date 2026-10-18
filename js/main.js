@@ -223,6 +223,72 @@ const PROJECT_DATA = {
       { label: 'Режиссер', val: 'Александр Песковский' },
       { label: 'Формат', val: '16:9 • Cinematic' }
     ]
+  },
+  3: {
+    badge: 'PRE-PRODUCTION • 2026',
+    title: 'Проект 03 • Ночной тоннель',
+    desc: 'Концептуальный короткометражный фильм об ускорении времени в мегаполисе. Ритмичный саунд-дизайн, съемка на сверхчувствительную оптику в Apple Log.',
+    meta: [
+      { label: 'Статус', val: 'Пре-продакшн' },
+      { label: 'Жанр', val: 'Experimental / Noir' },
+      { label: 'Формат', val: '2.39:1 • 4K HDR' }
+    ],
+    isPlaceholder: true
+  },
+  4: {
+    badge: 'DEVELOPMENT • 2026',
+    title: 'Проект 04 • Индустрия',
+    desc: 'Визуальный манифест о симбиозе человека и индустриальных машин. Монохромная контрастная эстетика и динамичный клиповый монтаж.',
+    meta: [
+      { label: 'Статус', val: 'Разработка' },
+      { label: 'Жанр', val: 'Fashion Film' },
+      { label: 'Формат', val: '16:9 • Apple Log' }
+    ],
+    isPlaceholder: true
+  },
+  5: {
+    badge: 'DEVELOPMENT • 2026',
+    title: 'Проект 05 • Ритм',
+    desc: 'Музыкальное видео с акцентом на кинетическую хореографию в замкнутом урбанистическом пространстве.',
+    meta: [
+      { label: 'Статус', val: 'Сценарная разработка' },
+      { label: 'Жанр', val: 'Music Video' },
+      { label: 'Формат', val: 'Cinematic 4K' }
+    ],
+    isPlaceholder: true
+  },
+  6: {
+    badge: 'IN PRODUCTION • 2026',
+    title: 'Проект 06 • Светотень',
+    desc: 'Экспериментальный перформанс об игре света и архитектурных объемов на ночных улицах.',
+    meta: [
+      { label: 'Статус', val: 'Подготовка к съемкам' },
+      { label: 'Жанр', val: 'Art Performance' },
+      { label: 'Формат', val: '4K 60fps' }
+    ],
+    isPlaceholder: true
+  },
+  7: {
+    badge: 'CONCEPT • 2026',
+    title: 'Проект 07 • Лица',
+    desc: 'Серия документальных микро-портретов современных независимых авторов и создателей.',
+    meta: [
+      { label: 'Статус', val: 'Кастинг' },
+      { label: 'Жанр', val: 'Documentary Mini' },
+      { label: 'Формат', val: '16:9 • Natural Light' }
+    ],
+    isPlaceholder: true
+  },
+  8: {
+    badge: 'CONCEPT • 2026',
+    title: 'Проект 08 • Моушн',
+    desc: 'Синтез аналоговой оптики, цифровой графики и трехмерных пространственных симуляций.',
+    meta: [
+      { label: 'Статус', val: 'Концепт-арт' },
+      { label: 'Жанр', val: 'Mixed Media' },
+      { label: 'Формат', val: '3D Spatial' }
+    ],
+    isPlaceholder: true
   }
 };
 
@@ -231,6 +297,8 @@ function initProjectModal() {
   const closeBtn = document.getElementById('modal-close-btn');
   const backdrop = document.getElementById('modal-backdrop');
   const modalVideo = document.getElementById('modal-video-player');
+  const videoBox = modal ? modal.querySelector('.modal-video-box') : null;
+  const placeholderBox = document.getElementById('modal-placeholder-box');
   if (!modal) return;
 
   const closeModal = () => {
@@ -264,15 +332,26 @@ function initProjectModal() {
       `).join('');
     }
 
-    if (modalVideo) {
-      const pidStr = String(pId);
-      const stageVideo = pidStr === '1' ? getVideos().video1 : getVideos().video2;
-      const vSrc = pidStr === '1' ? 'assets/videos/ir8kYNcLb8sn6EK.MP4' : 'assets/videos/mppRNz4EpVE8gnQ.MP4';
-      modalVideo.src = vSrc;
-      if (stageVideo && stageVideo.currentTime) {
-        modalVideo.currentTime = stageVideo.currentTime;
+    if (data.isPlaceholder) {
+      if (videoBox) videoBox.style.display = 'none';
+      if (placeholderBox) placeholderBox.style.display = 'block';
+      if (modalVideo) {
+        modalVideo.pause();
+        modalVideo.src = '';
       }
-      modalVideo.play().catch(() => {});
+    } else {
+      if (videoBox) videoBox.style.display = 'block';
+      if (placeholderBox) placeholderBox.style.display = 'none';
+      if (modalVideo) {
+        const pidStr = String(pId);
+        const stageVideo = pidStr === '1' ? getVideos().video1 : getVideos().video2;
+        const vSrc = pidStr === '1' ? 'assets/videos/ir8kYNcLb8sn6EK.MP4' : 'assets/videos/mppRNz4EpVE8gnQ.MP4';
+        modalVideo.src = vSrc;
+        if (stageVideo && stageVideo.currentTime) {
+          modalVideo.currentTime = stageVideo.currentTime;
+        }
+        modalVideo.play().catch(() => {});
+      }
     }
 
     modal.classList.add('open');

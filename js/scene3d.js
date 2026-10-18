@@ -59,9 +59,9 @@ const CAMERA_WAYPOINTS = [
 let scene, camera, renderer, clock;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh, platformMapMesh;
-let video1, video2;
-let videoTexture1, videoTexture2;
+let screen1Mesh, screen2Mesh, screen3Mesh, screen4Mesh, platformMapMesh;
+let video1, video2, video3, video4;
+let videoTexture1, videoTexture2, videoTexture3, videoTexture4;
 let screenLight1, screenLight2;
 let activeStage = 0;
 let isGlobalMuted = true;
@@ -503,10 +503,31 @@ function setupVideoTextures() {
     videoTexture2 = v2.texture;
   }
 
+  const v3 = initVideo('video-tunnel');
+  if (v3) {
+    video3 = v3.video;
+    videoTexture3 = v3.texture;
+    video3.addEventListener('loadedmetadata', () => {
+      // Смещение по времени для создания уникального зацикленного фрагмента
+      video3.currentTime = Math.min(12.0, (video3.duration || 20) * 0.4);
+    });
+  }
+
+  const v4 = initVideo('video-industry');
+  if (v4) {
+    video4 = v4.video;
+    videoTexture4 = v4.texture;
+    video4.addEventListener('loadedmetadata', () => {
+      // Смещение по времени для создания уникального зацикленного фрагмента
+      video4.currentTime = Math.min(7.0, (video4.duration || 15) * 0.3);
+    });
+  }
+
   // Разблокировка видео при первом любом касании, клике, скролле пользователя (Safari / iOS)
   const unlockVideos = () => {
-    if (video1 && video1.paused) video1.play().catch(() => {});
-    if (video2 && video2.paused) video2.play().catch(() => {});
+    [video1, video2, video3, video4].forEach((v) => {
+      if (v && v.paused) v.play().catch(() => {});
+    });
   };
   ['click', 'touchstart', 'scroll', 'pointerdown', 'wheel', 'keydown'].forEach((evt) => {
     window.addEventListener(evt, unlockVideos, { passive: true });
@@ -561,11 +582,25 @@ function loadSubwayModel() {
                 emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
               });
             }
+          } else if (sIdx === 3) {
+            screen3Mesh = child;
+            if (videoTexture3) {
+              child.material = new THREE.MeshStandardMaterial({
+                map: videoTexture3, emissive: new THREE.Color(0xffffff), emissiveMap: videoTexture3,
+                emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
+              });
+            }
+          } else if (sIdx === 4) {
+            screen4Mesh = child;
+            if (videoTexture4) {
+              child.material = new THREE.MeshStandardMaterial({
+                map: videoTexture4, emissive: new THREE.Color(0xffffff), emissiveMap: videoTexture4,
+                emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
+              });
+            }
           } else {
             const numStr = sIdx < 10 ? `0${sIdx}` : `${sIdx}`;
             const projectTitles = {
-              3: 'НОЧНОЙ ТОННЕЛЬ',
-              4: 'ИНДУСТРИЯ',
               5: 'РИТМ',
               6: 'СВЕТОТЕНЬ',
               7: 'ЛИЦА',
@@ -1087,24 +1122,15 @@ function setActiveStage(stageIndex) {
   syncAudioForActiveStage();
 
   // Автоматический запуск активного видео без звука при доезде камеры
-  if (stageIndex === 1) {
-    if (video1 && video1.paused) {
-      video1.play().catch(() => {});
+  const allVideos = [video1, video2, video3, video4];
+  allVideos.forEach((v, vIdx) => {
+    if (!v) return;
+    if (stageIndex === vIdx + 1) {
+      if (v.paused) v.play().catch(() => {});
+    } else {
+      if (!v.paused) v.pause();
     }
-    if (video2 && !video2.paused) {
-      video2.pause();
-    }
-  } else if (stageIndex === 2) {
-    if (video2 && video2.paused) {
-      video2.play().catch(() => {});
-    }
-    if (video1 && !video1.paused) {
-      video1.pause();
-    }
-  } else {
-    if (video1 && !video1.paused) video1.pause();
-    if (video2 && !video2.paused) video2.pause();
-  }
+  });
   updatePlayButtonsUI();
 
   // Синхронизация хэша в адресной строке
@@ -1157,15 +1183,15 @@ function fadeVideoVolume(video, targetVolume, duration = 260) {
 }
 
 function syncAudioForActiveStage() {
-  if (!video1 || !video2) return;
+  const allVideos = [video1, video2, video3, video4];
 
   if (isGlobalMuted) {
-    if (video1._fadeAnimId) { cancelAnimationFrame(video1._fadeAnimId); video1._fadeAnimId = null; }
-    if (video2._fadeAnimId) { cancelAnimationFrame(video2._fadeAnimId); video2._fadeAnimId = null; }
-    video1.volume = 0;
-    video1.muted = true;
-    video2.volume = 0;
-    video2.muted = true;
+    allVideos.forEach((v) => {
+      if (!v) return;
+      if (v._fadeAnimId) { cancelAnimationFrame(v._fadeAnimId); v._fadeAnimId = null; }
+      v.volume = 0;
+      v.muted = true;
+    });
     setSubwayMuted(true);
     updateSoundButtonUI();
     return;
@@ -1174,25 +1200,17 @@ function syncAudioForActiveStage() {
   // Если звук включен глобально (тише на 33% -> громкость 0.67):
   setSubwayMuted(false);
   const MEDIA_VOLUME = 0.67;
-  if (activeStage === 1) {
-    // В фокусе «Свэг»
-    if (video2._fadeAnimId) { cancelAnimationFrame(video2._fadeAnimId); video2._fadeAnimId = null; }
-    video2.volume = 0;
-    video2.muted = true;
-    video1.muted = false;
-    fadeVideoVolume(video1, MEDIA_VOLUME, 220);
-  } else if (activeStage === 2) {
-    // В фокусе «Мини свэг»
-    if (video1._fadeAnimId) { cancelAnimationFrame(video1._fadeAnimId); video1._fadeAnimId = null; }
-    video1.volume = 0;
-    video1.muted = true;
-    video2.muted = false;
-    fadeVideoVolume(video2, MEDIA_VOLUME, 220);
-  } else {
-    // На заставке или в других отсеках — глушим оба звука
-    fadeVideoVolume(video1, 0, 180);
-    fadeVideoVolume(video2, 0, 180);
-  }
+  allVideos.forEach((v, vIdx) => {
+    if (!v) return;
+    if (activeStage === vIdx + 1) {
+      v.muted = false;
+      fadeVideoVolume(v, MEDIA_VOLUME, 220);
+    } else {
+      if (v._fadeAnimId) { cancelAnimationFrame(v._fadeAnimId); v._fadeAnimId = null; }
+      v.volume = 0;
+      v.muted = true;
+    }
+  });
 
   updateSoundButtonUI();
 }
@@ -1367,15 +1385,21 @@ function toggleVideoPlay(video) {
 }
 
 function updatePlayButtonsUI() {
-  const playBtn1 = document.getElementById('play-btn-stage1');
-  const playBtn2 = document.getElementById('play-btn-stage2');
+  const playBtns = [
+    document.getElementById('play-btn-stage1'),
+    document.getElementById('play-btn-stage2'),
+    document.getElementById('play-btn-stage3'),
+    document.getElementById('play-btn-stage4')
+  ];
+  const videos = [video1, video2, video3, video4];
 
   const getPlaySvg = (isPaused) => isPaused
     ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`
     : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`;
 
-  if (playBtn1 && video1) playBtn1.innerHTML = getPlaySvg(video1.paused);
-  if (playBtn2 && video2) playBtn2.innerHTML = getPlaySvg(video2.paused);
+  playBtns.forEach((btn, idx) => {
+    if (btn && videos[idx]) btn.innerHTML = getPlaySvg(videos[idx].paused);
+  });
 }
 
 function onWindowResize() {
@@ -1549,31 +1573,21 @@ function animate() {
 }
 
 function syncScrubberUI() {
-  // Видео 1
-  if (video1 && video1.duration) {
-    const progressEl1 = document.getElementById('timeline-progress-stage1');
-    const timeText1 = document.getElementById('time-text-stage1');
-    if (progressEl1) {
-      const pct = (video1.currentTime / video1.duration) * 100;
-      progressEl1.style.width = `${pct}%`;
+  const allVideos = [video1, video2, video3, video4];
+  allVideos.forEach((v, idx) => {
+    if (v && v.duration) {
+      const stageIdx = idx + 1;
+      const progressEl = document.getElementById(`timeline-progress-stage${stageIdx}`);
+      const timeText = document.getElementById(`time-text-stage${stageIdx}`);
+      if (progressEl) {
+        const pct = (v.currentTime / v.duration) * 100;
+        progressEl.style.width = `${pct}%`;
+      }
+      if (timeText) {
+        timeText.textContent = formatTime(v.currentTime);
+      }
     }
-    if (timeText1) {
-      timeText1.textContent = formatTime(video1.currentTime);
-    }
-  }
-
-  // Видео 2
-  if (video2 && video2.duration) {
-    const progressEl2 = document.getElementById('timeline-progress-stage2');
-    const timeText2 = document.getElementById('time-text-stage2');
-    if (progressEl2) {
-      const pct = (video2.currentTime / video2.duration) * 100;
-      progressEl2.style.width = `${pct}%`;
-    }
-    if (timeText2) {
-      timeText2.textContent = formatTime(video2.currentTime);
-    }
-  }
+  });
 }
 
 function formatTime(seconds) {
@@ -1584,5 +1598,5 @@ function formatTime(seconds) {
 
 // Экспорт для управления воспроизведением из внешнего UI
 export function getVideos() {
-  return { video1, video2 };
+  return { video1, video2, video3, video4 };
 }

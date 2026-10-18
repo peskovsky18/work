@@ -29,7 +29,7 @@ function loadPBR(path, repeatX = 1, repeatY = 1) {
   tex.generateMipmaps = true;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  tex.anisotropy = 8;
+  tex.anisotropy = 16;
 
   textureCache.set(cacheKey, tex);
   return tex;

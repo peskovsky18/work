@@ -759,5 +759,136 @@ export function getTrackWallSignTexture(THREE) {
   return cachedTrackWallSignTex;
 }
 
+/**
+ * Генератор детальных рекламных и культурных постеров для оформления платформы станции
+ */
+const posterCache = {};
+export function getStationPosterTexture(THREE, index = 0) {
+  if (posterCache[index]) return posterCache[index];
+
+  const cvs = document.createElement('canvas');
+  cvs.width = 720;
+  cvs.height = 1080;
+  const ctx = cvs.getContext('2d');
+
+  if (index === 0) {
+    // Постер 1: Выставка современного медиа-арта
+    const bgGrad = ctx.createLinearGradient(0, 0, 720, 1080);
+    bgGrad.addColorStop(0, '#0c0f17');
+    bgGrad.addColorStop(0.5, '#161a24');
+    bgGrad.addColorStop(1, '#090a0f');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 720, 1080);
+
+    // Геометрический супрематический акцент
+    ctx.fillStyle = '#e63946';
+    ctx.beginPath();
+    ctx.arc(360, 440, 150, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#f4a261';
+    ctx.beginPath();
+    ctx.arc(430, 360, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(120, 680);
+    ctx.lineTo(600, 680);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 46px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('MEDIA ART 2026', 360, 755);
+
+    ctx.font = '600 22px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#a8b2c6';
+    ctx.fillText('ЦВЗ МАНЕЖ // 18 ОКТЯБРЯ — 20 НОЯБРЯ', 360, 805);
+    ctx.fillText('ЦИФРОВАЯ СЦЕНОГРАФИЯ И ДИЗАЙН', 360, 845);
+
+    ctx.font = '700 16px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#e63946';
+    ctx.fillText('МОСКВА • ПОРТФОЛИО ПРОЕКТОВ', 360, 925);
+  } else if (index === 1) {
+    // Постер 2: Московский скоростной транспорт
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, 1080);
+    bgGrad.addColorStop(0, '#0a1017');
+    bgGrad.addColorStop(1, '#05070a');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 720, 1080);
+
+    const lines = [
+      { y: 320, color: '#00f0ff', w: 8 },
+      { y: 380, color: '#ff0055', w: 12 },
+      { y: 440, color: '#f5a623', w: 6 },
+      { y: 520, color: '#00ff88', w: 10 }
+    ];
+    lines.forEach(l => {
+      ctx.strokeStyle = l.color;
+      ctx.lineWidth = l.w;
+      ctx.beginPath();
+      ctx.moveTo(80, l.y);
+      ctx.bezierCurveTo(240, l.y - 40, 480, l.y + 60, 640, l.y - 20);
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 44px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('СКОРОСТЬ И ДВИЖЕНИЕ', 360, 740);
+
+    ctx.font = '600 22px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#8ea0b8';
+    ctx.fillText('МОСКОВСКИЙ СКОРОСТНОЙ ТРАНСПОРТ', 360, 795);
+    ctx.fillText('СЕТЬ НОВОГО ПОКОЛЕНИЯ • 2026', 360, 835);
+
+    ctx.font = '700 16px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillText('БОЛЬШАЯ КОЛЬЦЕВАЯ ЛИНИЯ', 360, 920);
+  } else {
+    // Постер 3: Архитектура и дизайн
+    const bgGrad = ctx.createLinearGradient(0, 0, 720, 1080);
+    bgGrad.addColorStop(0, '#15171e');
+    bgGrad.addColorStop(1, '#0e0f14');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 720, 1080);
+
+    ctx.strokeStyle = '#c9933b';
+    ctx.lineWidth = 3;
+    for (let r = 80; r <= 220; r += 35) {
+      ctx.beginPath();
+      ctx.arc(360, 460, r, Math.PI, 0, false);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 42px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('АРХИТЕКТУРА И ДИЗАЙН', 360, 750);
+
+    ctx.font = '600 22px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#c9933b';
+    ctx.fillText('БИЕННАЛЕ ВИЗУАЛЬНЫХ МЕДИА', 360, 805);
+
+    ctx.font = '500 20px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#8f9baa';
+    ctx.fillText('СИНТЕЗ ФОРМЫ, СВЕТА И ЗВУКА', 360, 845);
+  }
+
+  // Рамка со стеклом
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(16, 16, 688, 1048);
+
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.flipY = true;
+  tex.generateMipmaps = true;
+  posterCache[index] = tex;
+  return tex;
+}
+
 
 

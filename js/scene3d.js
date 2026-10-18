@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture, getTrackWallSignTexture } from './subwayMap.js';
+import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getStationSignTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, playNavTick, playHapticChime } from './subwayAudio.js';
 import {
   getPhotoWallTextures,
@@ -25,8 +25,8 @@ import {
 const CAMERA_WAYPOINTS = [
   // 0: Старт у дверей вагона (вход на станции, взгляд вперед по вагону)
   {
-    desktop: { pos: new THREE.Vector3(-3.765, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
-    mobile:  { pos: new THREE.Vector3(-3.765, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
+    desktop: { pos: new THREE.Vector3(-4.85, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(-4.85, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
   },
   // 1: Экран 1 («Свэг», видео 1, Стена A)
   {
@@ -79,9 +79,8 @@ const CAMERA_WAYPOINTS = [
 let scene, camera, renderer, clock;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh, platformMapMesh, emergencyBrakeMesh, stationSignMesh;
+let screen1Mesh, screen2Mesh, platformMapMesh, stationSignMesh;
 const grabStrapMeshes = [];
-let isEmergencyBraking = false;
 let video1, video2;
 let videoTexture1, videoTexture2;
 let screenLight1, screenLight2;
@@ -164,17 +163,8 @@ export function initSubwayScene() {
   // 4. Освещение вагона и станции
   setupSubwayLighting();
 
-  // 4.1 Архитектурное окружение станции (путевая стена с ретро-плиткой и современная платформа с неоном)
+  // 4.1 Архитектурное окружение станции (путевая стена и детальная платформа с постерами и скамейками)
   setupStationEnvironment();
-
-  // 4.2 Атмосферные микрочастицы в лучах света вагона
-  setupDustParticles();
-
-  // 4.3 Интерактивный стоп-кран в вагоне
-  setupEmergencyBrake();
-
-  // 4.4 Подвесные ручки-петли (отключены для соответствия реальному вагону по фото и исключения визуального шума)
-  // setupGrabStraps();
 
   // 4.5 Подвесной светящийся указатель на станции прибытия
   setupStation2Sign();
@@ -256,15 +246,12 @@ function setupStationEnvironment() {
   const trackWallW = 24.0;
   const trackWallH = 3.20;
 
-  // 1.1 Керамическая ретро-плитка с глянцевой глазурью
+  // 1.1 Архитектурная путевая стена (сплошной глубокий графитово-серый сатин)
   const wallGeom = new THREE.PlaneGeometry(trackWallW, trackWallH, 1, 1);
   const wallMat = new THREE.MeshStandardMaterial({
-    map: tilePBR.colorMap,
-    normalMap: tilePBR.normalMap,
-    normalScale: new THREE.Vector2(0.8, 0.8),
-    roughnessMap: tilePBR.roughnessMap,
-    roughness: 0.25,
-    metalness: 0.05,
+    color: new THREE.Color(0x232730),
+    roughness: 0.38,
+    metalness: 0.25,
     side: THREE.FrontSide
   });
   const trackWallMesh = new THREE.Mesh(wallGeom, wallMat);
@@ -274,11 +261,9 @@ function setupStationEnvironment() {
   // 1.2 Темный полированный гранитный цоколь путевой стены
   const plinthGeom = new THREE.BoxGeometry(trackWallW, 0.40, 0.06);
   const plinthMat = new THREE.MeshStandardMaterial({
-    map: granitePBR.colorMap,
-    normalMap: granitePBR.normalMap,
-    normalScale: new THREE.Vector2(0.8, 0.8),
-    roughness: 0.35,
-    metalness: 0.20
+    color: new THREE.Color(0x131519),
+    roughness: 0.30,
+    metalness: 0.40
   });
   const plinthMesh = new THREE.Mesh(plinthGeom, plinthMat);
   plinthMesh.position.set(0, 0.10, trackWallZ + 0.03);
@@ -340,14 +325,12 @@ function setupStationEnvironment() {
   // =========================================================================
   const platformW = 24.0;
 
-  // 2.1 Широкий гранит платформы
+  // 2.1 Сплошной гранитный пол платформы (без швов и тайловых артефактов)
   const platFloorGeom = new THREE.BoxGeometry(platformW, 0.15, 4.80);
   const platFloorMat = new THREE.MeshStandardMaterial({
-    map: granitePBR.colorMap,
-    normalMap: granitePBR.normalMap,
-    normalScale: new THREE.Vector2(0.7, 0.7),
-    roughness: 0.55,
-    metalness: 0.15
+    color: new THREE.Color(0x1a1d24),
+    roughness: 0.45,
+    metalness: 0.20
   });
   const platFloor = new THREE.Mesh(platFloorGeom, platFloorMat);
   platFloor.position.set(0, -0.08, 2.40);
@@ -393,88 +376,99 @@ function setupStationEnvironment() {
     stationEnvGroup.add(housing);
   });
 
-  // 2.5 Задняя стена вестибюля платформы
+  // 2.5 Задняя стена вестибюля платформы (сплошная темно-серая архитектурная отделка)
   const backWallGeom = new THREE.PlaneGeometry(platformW, 3.4, 1, 1);
   const backWallMat = new THREE.MeshStandardMaterial({
-    color: 0x242832,
-    roughness: 0.45,
-    metalness: 0.15
+    color: new THREE.Color(0x181a20),
+    roughness: 0.50,
+    metalness: 0.20
   });
   const backWall = new THREE.Mesh(backWallGeom, backWallMat);
   backWall.rotation.y = Math.PI;
   backWall.position.set(0, 1.55, 4.80);
   stationEnvGroup.add(backWall);
 
-  scene.add(stationEnvGroup);
-}
+  // 2.6 Аутентичные скамейки на платформе станции (натуральные деревянные рейки + чугунный каркас)
+  [-4.8, 0.0, 4.8].forEach(bx => {
+    const benchGroup = new THREE.Group();
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x151619, roughness: 0.4, metalness: 0.85 });
+    [-0.85, 0.85].forEach(lx => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.50), legMat);
+      leg.position.set(lx, 0.22, 0);
+      benchGroup.add(leg);
 
-// Атмосферные летающие микрочастицы (пылинки) в лучах освещения вагона
-let dustParticles, dustPositions;
-const DUST_COUNT = 160;
+      const armrest = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.06), legMat);
+      armrest.position.set(lx, 0.52, -0.22);
+      benchGroup.add(armrest);
+    });
 
-function setupDustParticles() {
-  const geom = new THREE.BufferGeometry();
-  dustPositions = new Float32Array(DUST_COUNT * 3);
-  for (let i = 0; i < DUST_COUNT; i++) {
-    dustPositions[i * 3]     = (Math.random() - 0.5) * 8.2;
-    dustPositions[i * 3 + 1] = 0.35 + Math.random() * 1.9;
-    dustPositions[i * 3 + 2] = -0.15 - Math.random() * 2.1;
-  }
-  geom.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
-  const mat = new THREE.PointsMaterial({
-    color: 0xfff4d8,
-    size: 0.024,
-    transparent: true,
-    opacity: 0.35,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  dustParticles = new THREE.Points(geom, mat);
-  scene.add(dustParticles);
-}
-
-// Интерактивный стоп-кран в вагоне (пасхалка)
-function setupEmergencyBrake() {
-  const brakeGroup = new THREE.Group();
-  const redBox = new THREE.Mesh(
-    new THREE.BoxGeometry(0.10, 0.16, 0.05),
-    new THREE.MeshStandardMaterial({ color: 0xd61818, roughness: 0.30, metalness: 0.35 })
-  );
-  brakeGroup.add(redBox);
-
-  const lever = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.009, 0.009, 0.12, 8),
-    new THREE.MeshStandardMaterial({ color: 0xf0f3f6, roughness: 0.12, metalness: 0.98 })
-  );
-  lever.position.set(0, -0.012, 0.035);
-  lever.rotation.z = Math.PI * 0.25;
-  brakeGroup.add(lever);
-
-  brakeGroup.position.set(-3.25, 1.62, -0.06);
-  emergencyBrakeMesh = redBox;
-  redBox.userData = { isBrake: true, group: brakeGroup, lever };
-  scene.add(brakeGroup);
-}
-
-function triggerEmergencyBrake() {
-  if (isEmergencyBraking) return;
-  isEmergencyBraking = true;
-  playBrakeScreech();
-
-  if (emergencyBrakeMesh && emergencyBrakeMesh.userData.lever) {
-    emergencyBrakeMesh.userData.lever.rotation.z = -Math.PI * 0.25;
-  }
-
-  window.dispatchEvent(new CustomEvent('emergency-brake-triggered'));
-  trainSpeed = 0.0;
-
-  setTimeout(() => {
-    if (emergencyBrakeMesh && emergencyBrakeMesh.userData.lever) {
-      emergencyBrakeMesh.userData.lever.rotation.z = Math.PI * 0.25;
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0xba7a44,
+      roughness: 0.38,
+      metalness: 0.05
+    });
+    // 4 рейки сиденья
+    for (let s = 0; s < 4; s++) {
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.028, 0.09), woodMat);
+      slat.position.set(0, 0.45, -0.15 + s * 0.11);
+      benchGroup.add(slat);
     }
-    isEmergencyBraking = false;
-    window.dispatchEvent(new CustomEvent('emergency-brake-reset'));
-  }, 4500);
+    // 3 рейки спинки
+    for (let b = 0; b < 3; b++) {
+      const backSlat = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.09, 0.028), woodMat);
+      backSlat.position.set(0, 0.56 + b * 0.11, -0.23);
+      benchGroup.add(backSlat);
+    }
+
+    benchGroup.position.set(bx, 0.0, 2.35);
+    stationEnvGroup.add(benchGroup);
+  });
+
+  // 2.7 Светящиеся рекламные и культурные лайтбоксы-постеры на стене платформы
+  const posterHousingMat = new THREE.MeshStandardMaterial({
+    color: 0x111317,
+    roughness: 0.25,
+    metalness: 0.90
+  });
+  [-4.2, 0.0, 4.2].forEach((px, idx) => {
+    const posterGroup = new THREE.Group();
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(1.42, 2.12, 0.08), posterHousingMat);
+    posterGroup.add(housing);
+
+    const posterTex = getStationPosterTexture(THREE, idx % 3);
+    const posterFaceGeom = new THREE.PlaneGeometry(1.36, 2.04);
+    posterFaceGeom.scale(-1, 1, 1);
+    const posterMat = new THREE.MeshStandardMaterial({
+      map: posterTex,
+      emissive: new THREE.Color(0xffffff),
+      emissiveMap: posterTex,
+      emissiveIntensity: 0.90,
+      roughness: 0.15,
+      metalness: 0.05,
+      side: THREE.DoubleSide
+    });
+    const posterFace = new THREE.Mesh(posterFaceGeom, posterMat);
+    posterFace.position.set(0, 0, -0.045);
+    posterGroup.add(posterFace);
+
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.25,
+      roughness: 0.05,
+      reflectivity: 0.9,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05
+    });
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 2.04), glassMat);
+    glass.position.set(0, 0, -0.048);
+    posterGroup.add(glass);
+
+    posterGroup.position.set(px, 1.65, 4.74);
+    stationEnvGroup.add(posterGroup);
+  });
+
+  scene.add(stationEnvGroup);
 }
 
 // Подвесные ручки-петли с инерционным маятниковым качанием
@@ -730,6 +724,8 @@ function loadSubwayModel() {
         if (child.name === 'Platform_Map_Display') {
           platformMapMesh = child;
           const mapTex = getSubwayMapTexture(THREE);
+          mapTex.repeat.x = -1;
+          mapTex.offset.x = 1;
           child.material = new THREE.MeshStandardMaterial({
             map: mapTex,
             emissive: new THREE.Color(0xffffff),
@@ -763,6 +759,12 @@ function loadSubwayModel() {
         }
 
         if (child.name.includes('Platform_Tile_Wall') || child.name.includes('Platform_Mosaic_Band') || child.name.includes('Platform_Floor')) {
+          child.visible = false;
+          return;
+        }
+
+        // Скрыть любые остаточные поручни перед сиденьями и ненужные наклейки
+        if (child.name.includes('Handrail') || child.name.includes('Waist') || child.name.includes('Partition_Loop') || child.name.includes('Decal_Red')) {
           child.visible = false;
           return;
         }
@@ -916,35 +918,29 @@ function loadSubwayModel() {
           return;
         }
 
-        // 14. Желтые ковшеобразные стеклопластиковые сиденья из фото (с глубоким глянцем гелькоута)
+        // 14. Желтые ковшеобразные стеклопластиковые сиденья (чистый сплошной цвет без мыльных текстур и блоков)
         if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
           child.material = new THREE.MeshPhysicalMaterial({
-            map: seatYellowPBR.colorMap,
-            normalMap: seatYellowPBR.normalMap,
-            normalScale: new THREE.Vector2(0.40, 0.40),
-            roughnessMap: seatYellowPBR.roughnessMap,
-            roughness: 0.28,
-            metalness: 0.05,
-            clearcoat: 0.55,
-            clearcoatRoughness: 0.22,
-            reflectivity: 0.55,
+            color: new THREE.Color(0xf5a300), // Насыщенный теплый желтый цвет сидений метро
+            roughness: 0.16,
+            metalness: 0.02,
+            clearcoat: 0.95,
+            clearcoatRoughness: 0.08,
+            reflectivity: 0.85,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // 15. Оранжевые ковшеобразные стеклопластиковые сиденья из фото (с глубоким глянцем гелькоута)
+        // 15. Оранжевые ковшеобразные стеклопластиковые сиденья (чистый сплошной цвет без мыльных текстур и блоков)
         if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
           child.material = new THREE.MeshPhysicalMaterial({
-            map: seatOrangePBR.colorMap,
-            normalMap: seatOrangePBR.normalMap,
-            normalScale: new THREE.Vector2(0.40, 0.40),
-            roughnessMap: seatOrangePBR.roughnessMap,
-            roughness: 0.28,
-            metalness: 0.05,
-            clearcoat: 0.55,
-            clearcoatRoughness: 0.22,
-            reflectivity: 0.55,
+            color: new THREE.Color(0xe64a19), // Сочный чистый оранжевый цвет сидений метро
+            roughness: 0.16,
+            metalness: 0.02,
+            clearcoat: 0.95,
+            clearcoatRoughness: 0.08,
+            reflectivity: 0.85,
             side: THREE.DoubleSide
           });
           return;
@@ -1344,9 +1340,7 @@ function setupEventListeners() {
     if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner')) return;
 
     if (hoveredScreen) {
-      if (hoveredScreen === emergencyBrakeMesh || (hoveredScreen.userData && hoveredScreen.userData.isBrake)) {
-        triggerEmergencyBrake();
-      } else if (hoveredScreen.userData && hoveredScreen.userData.isGrabStrap) {
+      if (hoveredScreen.userData && hoveredScreen.userData.isGrabStrap) {
         const sIdx = hoveredScreen.userData.strapIndex;
         if (grabStraps[sIdx]) {
           grabStraps[sIdx].currentAngleZ += (Math.random() > 0.5 ? 0.42 : -0.42);
@@ -1601,24 +1595,10 @@ function animate() {
     }
   }
 
-  // 2.5 Дрейф атмосферных микрочастиц в воздухе вагона (обновление буфера только при движении)
-  if (dustParticles && dustPositions && trainSpeed > 0.02) {
-    const posAttr = dustParticles.geometry.attributes.position;
-    const pArr = posAttr.array;
-    const airDraft = trainSpeed * 1.5 * dt;
-    for (let i = 0; i < DUST_COUNT; i++) {
-      const idx = i * 3;
-      pArr[idx + 1] += Math.sin(time * 1.6 + pArr[idx]) * 0.0006;
-      pArr[idx] -= airDraft;
-      if (pArr[idx] < -4.1) pArr[idx] += 8.2;
-    }
-    posAttr.needsUpdate = true;
-  }
-
   // 2.6 Инерционное гармоническое покачивание подвесных ручек-петель
   if (grabStraps.length > 0) {
     const strapSpeedFactor = trainSpeed * 0.075 + 0.016;
-    const accelTilt = isEmergencyBraking ? -0.40 : (trainSpeed > 0.05 ? -trainSpeed * 0.035 : 0.0);
+    const accelTilt = trainSpeed > 0.05 ? -trainSpeed * 0.035 : 0.0;
     for (let i = 0; i < grabStraps.length; i++) {
       const s = grabStraps[i];
       const targetZ = Math.sin(time * 3.4 + s.phase) * strapSpeedFactor + accelTilt;
@@ -1647,7 +1627,6 @@ function animate() {
   // 3. Raycaster для определения наведения на экраны, схему метро и ручки-петли
   const validScreens = screenMeshes.filter(Boolean);
   if (platformMapMesh) validScreens.push(platformMapMesh);
-  if (emergencyBrakeMesh) validScreens.push(emergencyBrakeMesh);
   if (grabStrapMeshes.length > 0) validScreens.push(...grabStrapMeshes);
   if (validScreens.length > 0) {
     raycaster.setFromCamera(mouseVec, camera);

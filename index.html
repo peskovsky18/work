@@ -168,6 +168,26 @@
     <button id="sound-hint-close" class="sound-hint-close-btn" aria-label="Закрыть">✕</button>
   </aside>
 
+  <!-- Кинематографический видоискатель режиссера (при приближении к экрану) -->
+  <div id="viewfinder-hud" class="viewfinder-hud" aria-hidden="true">
+    <div class="vf-frame">
+      <div class="vf-corner vf-tl"></div>
+      <div class="vf-corner vf-tr"></div>
+      <div class="vf-corner vf-bl"></div>
+      <div class="vf-corner vf-br"></div>
+      <div class="vf-center-cross"></div>
+    </div>
+    <div class="vf-badge" id="vf-exit-btn" role="button" tabindex="0" title="Нажмите для возврата к вагону">
+      <span class="vf-rec-dot"></span>
+      <span>4K APPLE LOG • 1:1 INSPECT • НАЖМИТЕ ДЛЯ ВЫХОДА ✕</span>
+    </div>
+  </div>
+
+  <!-- Всплывающее уведомление (Apple Frosted Glass Toast) -->
+  <div id="app-toast" class="app-toast" aria-hidden="true">
+    <span id="app-toast-text">Ссылка скопирована в буфер</span>
+  </div>
+
   <!-- =========================================================================
        SCROLLYTELLING ТРЕК: 4 ЭТАПА ПОГРУЖЕНИЯ В ПРОСТРАНСТВО
        ========================================================================= -->
@@ -238,6 +258,10 @@
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
             </button>
 
+            <button class="player-icon-btn share-link-btn" data-stage="1" aria-label="Поделиться" title="Скопировать ссылку на проект">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            </button>
+
           </div>
         </div>
 
@@ -295,6 +319,10 @@
 
             <button class="player-icon-btn cinema-expand-btn" data-project="2" aria-label="Кинозал" title="Развернуть в полный экран">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            </button>
+
+            <button class="player-icon-btn share-link-btn" data-stage="2" aria-label="Поделиться" title="Скопировать ссылку на проект">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
             </button>
 
           </div>
@@ -512,6 +540,13 @@
           <div class="meta-item"><span class="meta-label">Камера</span><span class="meta-val">iPhone 4K 60fps</span></div>
           <div class="meta-item"><span class="meta-label">Режиссер</span><span class="meta-val">Александр Песковский</span></div>
           <div class="meta-item"><span class="meta-label">Формат</span><span class="meta-val">16:9 • Apple Log</span></div>
+        </div>
+
+        <div class="modal-footer-actions">
+          <button class="apple-pill-btn modal-share-action" id="modal-share-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            <span>Скопировать ссылку 🔗</span>
+          </button>
         </div>
       </div>
     </div>

@@ -926,6 +926,9 @@ function initScrollTriggers() {
 // ПЕРЕКЛЮЧЕНИЕ АКТИВНОГО ЭТАПА (HUD + АУДИО)
 // =============================================================================
 function setActiveStage(stageIndex) {
+  if (activeStage !== stageIndex && isZoomedToScreen) {
+    resetScreenZoom();
+  }
   activeStage = stageIndex;
 
   // Обновление навигационных кнопок в шапке
@@ -943,19 +946,63 @@ function setActiveStage(stageIndex) {
 
   // Управление звуком в зависимости от экрана
   syncAudioForActiveStage();
+
+  // Синхронизация хэша в адресной строке
+  const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 9: 'contacts' };
+  const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;
+  if (history.replaceState && window.location.hash !== `#${hashStr}`) {
+    history.replaceState(null, '', `#${hashStr}`);
+  }
 }
 
 // =============================================================================
-// СИНХРОНИЗАЦИЯ ЗВУКА И ВИДЕО
+// СИНХРОНИЗАЦИЯ ЗВУКА И ВИДЕО С ПЛАВНЫМ КРОССФЕЙДОМ
 // =============================================================================
+function fadeVideoVolume(video, targetVolume, duration = 260) {
+  if (!video) return;
+  if (video._fadeAnimId) {
+    cancelAnimationFrame(video._fadeAnimId);
+    video._fadeAnimId = null;
+  }
+
+  if (targetVolume > 0 && video.muted) {
+    video.muted = false;
+  }
+
+  const startVol = video.volume;
+  if (Math.abs(startVol - targetVolume) < 0.02) {
+    video.volume = targetVolume;
+    if (targetVolume === 0) video.muted = true;
+    return;
+  }
+
+  const startTime = performance.now();
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1.0, elapsed / duration);
+    // Плавный ease-in-out косинусный переход без клиппинга звука
+    const ease = 0.5 - 0.5 * Math.cos(progress * Math.PI);
+    video.volume = Math.max(0, Math.min(1, startVol + (targetVolume - startVol) * ease));
+
+    if (progress < 1.0) {
+      video._fadeAnimId = requestAnimationFrame(step);
+    } else {
+      video.volume = targetVolume;
+      if (targetVolume === 0) {
+        video.muted = true;
+      }
+      video._fadeAnimId = null;
+    }
+  }
+  video._fadeAnimId = requestAnimationFrame(step);
+}
+
 function syncAudioForActiveStage() {
   if (!video1 || !video2) return;
 
   if (isGlobalMuted) {
-    video1.muted = true;
-    video1.volume = 0;
-    video2.muted = true;
-    video2.volume = 0;
+    fadeVideoVolume(video1, 0, 180);
+    fadeVideoVolume(video2, 0, 180);
     return;
   }
 
@@ -963,22 +1010,16 @@ function syncAudioForActiveStage() {
   const MEDIA_VOLUME = 0.67;
   if (activeStage === 1) {
     // В фокусе «Свэг»
-    video1.muted = false;
-    video1.volume = MEDIA_VOLUME;
-    video2.muted = true;
-    video2.volume = 0;
+    fadeVideoVolume(video1, MEDIA_VOLUME, 300);
+    fadeVideoVolume(video2, 0, 220);
   } else if (activeStage === 2) {
     // В фокусе «Мини свэг»
-    video2.muted = false;
-    video2.volume = MEDIA_VOLUME;
-    video1.muted = true;
-    video1.volume = 0;
+    fadeVideoVolume(video2, MEDIA_VOLUME, 300);
+    fadeVideoVolume(video1, 0, 220);
   } else {
-    // На заставке или в контактах — мягко глушим оба звука
-    video1.muted = true;
-    video1.volume = 0;
-    video2.muted = true;
-    video2.volume = 0;
+    // На заставке или в других отсеках — мягко глушим оба звука
+    fadeVideoVolume(video1, 0, 220);
+    fadeVideoVolume(video2, 0, 220);
   }
 
   updateSoundButtonUI();
@@ -1019,6 +1060,11 @@ export function scrollToStage(stageIndex) {
   const stageEls = document.querySelectorAll('.story-stage');
   if (stageEls[stageIndex]) {
     stageEls[stageIndex].scrollIntoView({ behavior: 'smooth' });
+    const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 9: 'contacts' };
+    const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;
+    if (history.replaceState) {
+      history.replaceState(null, '', `#${hashStr}`);
+    }
   }
 }
 
@@ -1131,9 +1177,31 @@ function setupEventListeners() {
 
   // Двойной клик для приближения к экрану (Director's Viewfinder / Inspector)
   window.addEventListener('dblclick', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, #vf-exit-btn')) return;
     toggleScreenZoom();
   });
+
+  // Двойной тап для мобильных устройств
+  let lastTouchEndTime = 0;
+  window.addEventListener('touchend', (e) => {
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, #vf-exit-btn')) return;
+    const now = performance.now();
+    if (now - lastTouchEndTime < 350 && now - lastTouchEndTime > 50) {
+      toggleScreenZoom();
+      lastTouchEndTime = 0;
+    } else {
+      lastTouchEndTime = now;
+    }
+  }, { passive: true });
+
+  // Клик по бейджу видоискателя для быстрого выхода
+  const vfExitBtn = document.getElementById('vf-exit-btn');
+  if (vfExitBtn) {
+    vfExitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetScreenZoom();
+    });
+  }
 }
 
 let isZoomedToScreen = false;
@@ -1150,10 +1218,12 @@ export function toggleScreenZoom() {
     camTargetPos.set(currentWp.pos.x, currentWp.pos.y, targetZ);
     camTargetLookAt.set(currentWp.target.x, currentWp.target.y, currentWp.target.z);
     document.body.classList.add('screen-zoomed');
+    window.dispatchEvent(new CustomEvent('screen-zoom-toggled', { detail: { isZoomed: true } }));
   } else {
     camTargetPos.copy(currentWp.pos);
     camTargetLookAt.copy(currentWp.target);
     document.body.classList.remove('screen-zoomed');
+    window.dispatchEvent(new CustomEvent('screen-zoom-toggled', { detail: { isZoomed: false } }));
   }
 }
 

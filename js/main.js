@@ -3,7 +3,7 @@
  * Основная точка входа: UI логика и связка с 3D сценой
  */
 
-import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom } from './scene3d.js';
+import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 11. Интерактивная перемотка по линии маршрута
   initRouteTrackSeek();
+
+  // 12. Обработка прямых ссылок (URL Hash Routing)
+  initHashRouting();
+
+  // 13. Кнопки копирования ссылок и шаринга
+  initShareButtons();
 });
 
 // =============================================================================
@@ -169,6 +175,9 @@ function initKeyboardShortcuts() {
 
     if (e.code === 'Escape') {
       resetScreenZoom();
+    } else if (e.code === 'KeyZ') {
+      e.preventDefault();
+      toggleScreenZoom();
     } else if (e.code === 'KeyM') {
       e.preventDefault();
       toggleGlobalSound();
@@ -635,5 +644,98 @@ function initRouteTrackSeek() {
     scrollToStage(stageIdx);
   });
 }
+
+// =============================================================================
+// ВСПЛЫВАЮЩИЙ ТОАСТ УВЕДОМЛЕНИЙ
+// =============================================================================
+let toastTimer = null;
+export function showAppToast(msg) {
+  const toast = document.getElementById('app-toast');
+  const textEl = document.getElementById('app-toast-text');
+  if (!toast) return;
+  if (textEl) textEl.textContent = msg;
+
+  toast.classList.add('show');
+  toast.setAttribute('aria-hidden', 'false');
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    toast.setAttribute('aria-hidden', 'true');
+  }, 2400);
+}
+
+// =============================================================================
+// ОБРАБОТКА ПРЯМЫХ ССЫЛОК (URL HASH ROUTING)
+// =============================================================================
+const HASH_MAP = {
+  '#intro': 0, '#stage-0': 0,
+  '#swag': 1, '#stage-1': 1,
+  '#mini-swag': 2, '#stage-2': 2,
+  '#03': 3, '#stage-3': 3,
+  '#04': 4, '#stage-4': 4,
+  '#08': 5, '#stage-5': 5,
+  '#07': 6, '#stage-6': 6,
+  '#06': 7, '#stage-7': 7,
+  '#05': 8, '#stage-8': 8,
+  '#contacts': 9, '#stage-9': 9
+};
+
+function initHashRouting() {
+  const applyHash = () => {
+    const hash = window.location.hash.toLowerCase();
+    if (hash && HASH_MAP[hash] !== undefined) {
+      const targetStage = HASH_MAP[hash];
+      scrollToStage(targetStage);
+    }
+  };
+
+  // Проверка при первом входе после скрытия прелоадера
+  window.addEventListener('load', () => {
+    setTimeout(applyHash, 650);
+  });
+
+  window.addEventListener('hashchange', applyHash);
+}
+
+// =============================================================================
+// КНОПКИ ШАРИНГА И КОПИРОВАНИЯ ССЫЛОК
+// =============================================================================
+function initShareButtons() {
+  const copyUrl = (stageIdx) => {
+    const base = window.location.origin + window.location.pathname;
+    const stageName = stageIdx === 1 ? 'swag' : stageIdx === 2 ? 'mini-swag' : `stage-${stageIdx}`;
+    const url = `${base}#${stageName}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        showAppToast('Ссылка скопирована в буфер 🔗');
+        playNavTick();
+      }).catch(() => {
+        showAppToast(url);
+      });
+    } else {
+      showAppToast(url);
+    }
+  };
+
+  document.querySelectorAll('.share-link-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const s = parseInt(btn.dataset.stage, 10) || 1;
+      copyUrl(s);
+    });
+  });
+
+  const modalShareBtn = document.getElementById('modal-share-btn');
+  if (modalShareBtn) {
+    modalShareBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const activePill = document.querySelector('.stage-nav-pill.active');
+      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 1;
+      copyUrl(cur);
+    });
+  }
+}
+
 
 

@@ -368,10 +368,10 @@ function createSeatFabricPBR(type, palette) {
   });
   cctx.restore();
 
-  // Добавляем рельеф швов на карту нормалей
+  // Добавляем рельеф швов и валиков на карту нормалей
   nctx.save();
-  nctx.strokeStyle = 'rgb(100, 100, 240)';
-  nctx.lineWidth = 3;
+  nctx.strokeStyle = 'rgb(90, 90, 245)';
+  nctx.lineWidth = 4;
   nctx.setLineDash([8, 8]);
   [128, 384, 640, 896].forEach(sx => {
     nctx.beginPath();
@@ -381,10 +381,44 @@ function createSeatFabricPBR(type, palette) {
   });
   nctx.restore();
 
+  // Карта рассеянного затенения (Ambient Occlusion) для объемного рельефа подушек и швов
+  const aoCanvas = document.createElement('canvas');
+  aoCanvas.width = size;
+  aoCanvas.height = size;
+  const aoCtx = aoCanvas.getContext('2d');
+
+  // Базовый цвет карты AO (полный свет на вершинах подушки)
+  aoCtx.fillStyle = '#ffffff';
+  aoCtx.fillRect(0, 0, size, size);
+
+  // Мягкое затенение продольных линий утяжки и швов
+  [128, 384, 640, 896].forEach(sx => {
+    const grad = aoCtx.createLinearGradient(sx - 28, 0, sx + 28, 0);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.45)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    aoCtx.fillStyle = grad;
+    aoCtx.fillRect(sx - 28, 0, 56, size);
+  });
+
+  // Затенение по краям подушки (межкресельный зазор)
+  const leftGrad = aoCtx.createLinearGradient(0, 0, 36, 0);
+  leftGrad.addColorStop(0, 'rgba(0, 0, 0, 0.60)');
+  leftGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  aoCtx.fillStyle = leftGrad;
+  aoCtx.fillRect(0, 0, 36, size);
+
+  const rightGrad = aoCtx.createLinearGradient(size - 36, 0, size, 0);
+  rightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  rightGrad.addColorStop(1, 'rgba(0, 0, 0, 0.60)');
+  aoCtx.fillStyle = rightGrad;
+  aoCtx.fillRect(size - 36, 0, 36, size);
+
   const result = {
     colorMap: createHighResTexture(colorCanvas, 3, 3),
     normalMap: createNormalTexture(normalCanvas, 3, 3),
-    roughnessMap: createNormalTexture(roughCanvas, 3, 3)
+    roughnessMap: createNormalTexture(roughCanvas, 3, 3),
+    aoMap: createNormalTexture(aoCanvas, 3, 3)
   };
   textureCache.set(cacheKey, result);
   return result;

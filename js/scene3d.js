@@ -866,37 +866,41 @@ function loadSubwayModel() {
           return;
         }
 
-        // 14. Желтые сиденья вагона: аутентичная жаккардовая транзитная ткань обивки высокой детализации
+        // 14. Желтые сиденья вагона: аутентичная объемная жаккардовая ткань с картой затенения AO
         if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
           child.material = new THREE.MeshPhysicalMaterial({
             map: seatYellowPBR.colorMap,
             normalMap: seatYellowPBR.normalMap,
-            normalScale: new THREE.Vector2(0.85, 0.85),
+            normalScale: new THREE.Vector2(1.25, 1.25),
             roughnessMap: seatYellowPBR.roughnessMap,
-            roughness: 0.74,
+            roughness: 0.72,
             metalness: 0.02,
-            sheen: 0.90,
-            sheenRoughness: 0.40,
+            aoMap: seatYellowPBR.aoMap,
+            aoMapIntensity: 1.15,
+            sheen: 0.95,
+            sheenRoughness: 0.35,
             sheenColor: new THREE.Color(0xffc566),
-            clearcoat: 0.02,
+            clearcoat: 0.04,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // 15. Оранжевые сиденья вагона: аутентичная терракотовая транзитная ткань обивки высокой детализации
+        // 15. Оранжевые сиденья вагона: аутентичная объемная терракотовая ткань с картой затенения AO
         if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
           child.material = new THREE.MeshPhysicalMaterial({
             map: seatOrangePBR.colorMap,
             normalMap: seatOrangePBR.normalMap,
-            normalScale: new THREE.Vector2(0.85, 0.85),
+            normalScale: new THREE.Vector2(1.25, 1.25),
             roughnessMap: seatOrangePBR.roughnessMap,
-            roughness: 0.74,
+            roughness: 0.72,
             metalness: 0.02,
-            sheen: 0.90,
-            sheenRoughness: 0.40,
+            aoMap: seatOrangePBR.aoMap,
+            aoMapIntensity: 1.15,
+            sheen: 0.95,
+            sheenRoughness: 0.35,
             sheenColor: new THREE.Color(0xff8c4a),
-            clearcoat: 0.02,
+            clearcoat: 0.04,
             side: THREE.DoubleSide
           });
           return;

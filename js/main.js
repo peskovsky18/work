@@ -154,6 +154,38 @@ function initKeyboardShortcuts() {
     if (e.code === 'KeyM') {
       e.preventDefault();
       toggleGlobalSound();
+    } else if (e.code === 'KeyF') {
+      const activePill = document.querySelector('.stage-nav-pill.active');
+      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      if (cur === 1 || cur === 2) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('open-project-modal', { detail: { project: cur } }));
+      }
+    } else if (e.code === 'Space') {
+      const activePill = document.querySelector('.stage-nav-pill.active');
+      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      if (cur === 1 || cur === 2) {
+        e.preventDefault();
+        const v = cur === 1 ? getVideos().video1 : getVideos().video2;
+        if (v) {
+          if (v.paused) v.play().catch(() => {});
+          else v.pause();
+        }
+      }
+    } else if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
+      const activePill = document.querySelector('.stage-nav-pill.active');
+      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      if (cur < 9) {
+        e.preventDefault();
+        scrollToStage(cur + 1);
+      }
+    } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
+      const activePill = document.querySelector('.stage-nav-pill.active');
+      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      if (cur > 0) {
+        e.preventDefault();
+        scrollToStage(cur - 1);
+      }
     } else if (e.code.startsWith('Digit')) {
       const num = parseInt(e.code.replace('Digit', ''), 10);
       if (num >= 1 && num <= 9) {
@@ -195,9 +227,16 @@ function initProjectModal() {
   const modal = document.getElementById('project-modal');
   const closeBtn = document.getElementById('modal-close-btn');
   const backdrop = document.getElementById('modal-backdrop');
+  const modalVideo = document.getElementById('modal-video-player');
   if (!modal) return;
 
-  const closeModal = () => modal.classList.remove('open');
+  const closeModal = () => {
+    modal.classList.remove('open');
+    if (modalVideo) {
+      modalVideo.pause();
+      modalVideo.src = '';
+    }
+  };
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
   if (backdrop) backdrop.addEventListener('click', closeModal);
 
@@ -205,28 +244,49 @@ function initProjectModal() {
     if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
   });
 
-  const infoBtns = document.querySelectorAll('.info-btn');
-  infoBtns.forEach((btn) => {
+  const openProjectModal = (pId) => {
+    const data = PROJECT_DATA[pId];
+    if (!data) return;
+
+    document.getElementById('modal-badge').textContent = data.badge;
+    document.getElementById('modal-title').textContent = data.title;
+    document.getElementById('modal-desc').textContent = data.desc;
+    const metaContainer = document.getElementById('modal-meta');
+    if (metaContainer) {
+      metaContainer.innerHTML = data.meta.map(m => `
+        <div class="meta-item">
+          <span class="meta-label">${m.label}</span>
+          <span class="meta-val">${m.val}</span>
+        </div>
+      `).join('');
+    }
+
+    if (modalVideo) {
+      const pidStr = String(pId);
+      const stageVideo = pidStr === '1' ? getVideos().video1 : getVideos().video2;
+      const vSrc = pidStr === '1' ? 'assets/videos/ir8kYNcLb8sn6EK.MP4' : 'assets/videos/mppRNz4EpVE8gnQ.MP4';
+      modalVideo.src = vSrc;
+      if (stageVideo && stageVideo.currentTime) {
+        modalVideo.currentTime = stageVideo.currentTime;
+      }
+      modalVideo.play().catch(() => {});
+    }
+
+    modal.classList.add('open');
+  };
+
+  const triggerBtns = document.querySelectorAll('.info-btn, .cinema-expand-btn');
+  triggerBtns.forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const pId = btn.dataset.project;
-      const data = PROJECT_DATA[pId];
-      if (!data) return;
-
-      document.getElementById('modal-badge').textContent = data.badge;
-      document.getElementById('modal-title').textContent = data.title;
-      document.getElementById('modal-desc').textContent = data.desc;
-      const metaContainer = document.getElementById('modal-meta');
-      if (metaContainer) {
-        metaContainer.innerHTML = data.meta.map(m => `
-          <div class="meta-item">
-            <span class="meta-label">${m.label}</span>
-            <span class="meta-val">${m.val}</span>
-          </div>
-        `).join('');
-      }
-      modal.classList.add('open');
+      openProjectModal(btn.dataset.project);
     });
+  });
+
+  window.addEventListener('open-project-modal', (e) => {
+    if (e.detail && e.detail.project) {
+      openProjectModal(e.detail.project);
+    }
   });
 
   // Интерактивная карта метро (вызывается кликом по схеме на стене станции)

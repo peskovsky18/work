@@ -20,58 +20,58 @@ import {
 } from './subwayMaterials.js';
 
 // =============================================================================
-// КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ ВПРАВО: ДВЕРИ -> СВЭГ -> МИНИ СВЭГ -> 03 -> 04 -> ДРУГАЯ СТОРОНА -> КОНТАКТЫ)
+// КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
 // =============================================================================
 const CAMERA_WAYPOINTS = [
-  // 0: Старт у дверей вагона под углом 30° вдоль салона поезда в сторону экранов
+  // 0: Старт у дверей вагона (вход на станции, взгляд вперед по центральному проходу)
   {
-    desktop: { pos: new THREE.Vector3(-3.765, 1.35, -1.25), target: new THREE.Vector3(-3.073, 1.38, 0.0) },
-    mobile:  { pos: new THREE.Vector3(-3.765, 1.35, -1.40), target: new THREE.Vector3(-3.073, 1.38, 0.0) }
+    desktop: { pos: new THREE.Vector3(-3.765, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(-3.765, 1.38, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
   },
-  // 1: Работа 1 «Свэг» (Screen 1)
+  // 1: Экран 1 («Свэг», видео 1, Стена A / слева)
   {
-    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.05), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.45), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
+    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.350), target: new THREE.Vector3(-2.675, 1.40, 0.016) }
   },
-  // 2: Работа 2 «Мини свэг» (Screen 2)
+  // 2: Экран 2 («Мини свэг», видео 2, Стена B / справа)
   {
-    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.05), target: new THREE.Vector3(-0.565, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.45), target: new THREE.Vector3(-0.565, 1.40, -0.016) }
+    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.034), target: new THREE.Vector3(-2.675, 1.40, -2.384) }
   },
-  // 3: Экран 03 (на 3-й работе поезд начинает разгон в тоннель)
+  // 3: Экран 3 (Проект 03, Стена A / слева)
   {
-    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.05), target: new THREE.Vector3(0.515, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.45), target: new THREE.Vector3(0.515, 1.40, -0.016) }
+    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.350), target: new THREE.Vector3(-0.565, 1.40, 0.016) }
   },
-  // 4: Экран 04 (крейсерский ход в тоннеле)
+  // 4: Экран 4 (Проект 04, Стена B / справа)
   {
-    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.05), target: new THREE.Vector3(2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.45), target: new THREE.Vector3(2.675, 1.40, -0.016) }
+    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.034), target: new THREE.Vector3(-0.565, 1.40, -2.384) }
   },
-  // 5: Экран 08 (разворот на противоположную сторону вагона)
+  // 5: Экран 5 (Проект 05, Стена A / слева)
   {
-    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.35), target: new THREE.Vector3(2.675, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -0.95), target: new THREE.Vector3(2.675, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.350), target: new THREE.Vector3(0.515, 1.40, 0.016) }
   },
-  // 6: Экран 07 (сторона B)
+  // 6: Экран 6 (Проект 06, Стена B / справа)
   {
-    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.35), target: new THREE.Vector3(0.515, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -0.95), target: new THREE.Vector3(0.515, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.034), target: new THREE.Vector3(0.515, 1.40, -2.384) }
   },
-  // 7: Экран 06 (сторона B)
+  // 7: Экран 7 (Проект 07, Стена A / слева)
   {
-    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.35), target: new THREE.Vector3(-0.565, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -0.95), target: new THREE.Vector3(-0.565, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, 0.016) },
+    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.350), target: new THREE.Vector3(2.675, 1.40, 0.016) }
   },
-  // 8: Экран 05 (сторона B)
+  // 8: Экран 8 (Проект 08, Стена B / справа)
   {
-    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.35), target: new THREE.Vector3(-2.675, 1.40, -2.384) },
-    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -0.95), target: new THREE.Vector3(-2.675, 1.40, -2.384) }
+    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, -2.384) },
+    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.034), target: new THREE.Vector3(2.675, 1.40, -2.384) }
   },
-  // 9: Контакты и прибытие на новую освещенную станцию
+  // 9: Прибытие на станцию и выход (Контакты)
   {
-    desktop: { pos: new THREE.Vector3(-3.765, 1.35, -1.15), target: new THREE.Vector3(-3.765, 1.38, 1.80) },
-    mobile:  { pos: new THREE.Vector3(-3.765, 1.35, -1.25), target: new THREE.Vector3(-3.765, 1.38, 1.80) }
+    desktop: { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) },
+    mobile:  { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) }
   }
 ];
 
@@ -89,7 +89,7 @@ let activeStage = 0;
 let isGlobalMuted = true;
 
 // Двери вагона
-let doorLeft, doorRight;
+let doorLeft, doorRight, doorLeftD2, doorRightD2;
 const DOOR_LEFT_OPEN_X = -2.915;
 const DOOR_LEFT_CLOSED_X = -3.465;
 const DOOR_RIGHT_OPEN_X = -4.615;
@@ -232,7 +232,7 @@ function setupSubwayLighting() {
   scene.add(screenLight1);
 
   screenLight2 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
-  screenLight2.position.set(-0.565, 1.40, -0.28);
+  screenLight2.position.set(-2.675, 1.40, -2.10);
   scene.add(screenLight2);
 
   windowPassingLight = new THREE.PointLight(0xf0f6ff, 0.6, 9.0, 1.2);
@@ -298,11 +298,12 @@ function setupStationEnvironment() {
   // 1.4 Аутентичные эмалированные таблички с названием станции («ПЕСКОВСКАЯ»)
   const signTex = getTrackWallSignTexture(THREE);
   const signGeom = new THREE.PlaneGeometry(2.20, 0.50);
+  signGeom.scale(-1, 1, 1); // Прямое незеркальное чтение букв при взгляде из вагона в сторону -Z
   const signMat = new THREE.MeshStandardMaterial({
     map: signTex,
     roughness: 0.18,
     metalness: 0.35,
-    side: THREE.FrontSide
+    side: THREE.DoubleSide
   });
 
   // Таблички размещены напротив окон поезда (по центру и по краям вагона)
@@ -693,7 +694,7 @@ function loadSubwayModel() {
                 emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
               });
             }
-          } else if (sIdx === 2) {
+          } else if (sIdx === 5) {
             screen2Mesh = child;
             if (videoTexture2) {
               child.material = new THREE.MeshStandardMaterial({
@@ -702,7 +703,11 @@ function loadSubwayModel() {
               });
             }
           } else {
-            const numStr = sIdx < 10 ? `0${sIdx}` : `${sIdx}`;
+            const stageNumberMap = {
+              1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8
+            };
+            const projNum = stageNumberMap[sIdx] || sIdx;
+            const numStr = projNum < 10 ? `0${projNum}` : `${projNum}`;
             const pTex = getPlaceholderScreenTexture(THREE, numStr, `ПРОЕКТ ${numStr}`);
             child.material = new THREE.MeshStandardMaterial({
               map: pTex, emissive: new THREE.Color(0xffffff), emissiveMap: pTex,
@@ -1015,8 +1020,8 @@ function loadSubwayModel() {
       }
 
       // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4) строго снаружи стен
-      const doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
-      const doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
+      doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
+      doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
       if (doorLeftD2 && doorRightD2) {
         doorLeftD2.position.set(4.065, 0.99, 0.054);
         doorRightD2.position.set(3.465, 0.99, 0.054);
@@ -1118,28 +1123,8 @@ function initScrollTriggers() {
       // 1. Позиция камеры
       camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
 
-      // Горизонтальный разворот камеры поперек салона на уровне глаз (через бок)
-      if (fromIdx === 4) {
-        // Плавный разворот со стороны A на сторону B (экран 04 -> экран 08)
-        const angle = easedT * Math.PI;
-        const radius = 1.034;
-        camTargetLookAt.set(
-          camTargetPos.x - Math.sin(angle) * radius,
-          1.40,
-          camTargetPos.z + Math.cos(angle) * radius
-        );
-      } else if (fromIdx === 8) {
-        // Разворот со стороны B к дверям выхода на станции (экран 05 -> выход)
-        const angle = Math.PI - easedT * Math.PI;
-        const radius = THREE.MathUtils.lerp(1.034, 2.95, easedT);
-        camTargetLookAt.set(
-          camTargetPos.x - Math.sin(angle) * radius,
-          THREE.MathUtils.lerp(1.40, wpTo.target.y, easedT),
-          camTargetPos.z + Math.cos(angle) * radius
-        );
-      } else {
-        camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
-      }
+      // Плавная интерполяция точки взгляда камеры по центральному проходу вперед
+      camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
 
       // Двери закрываются при начале скролла (0-8%) и открываются при прибытии в контакты (94-100%)
       if (p >= 0.94) {
@@ -1391,7 +1376,7 @@ function setupEventListeners() {
         toggleVideoPlay(video2);
       } else {
         const sIdx = screenMeshes.indexOf(hoveredScreen);
-        const stageMap = { 3: 3, 4: 4, 8: 5, 7: 6, 6: 7, 5: 8 };
+        const stageMap = { 1: 1, 5: 2, 2: 3, 6: 4, 3: 5, 7: 6, 4: 7, 8: 8 };
         if (stageMap[sIdx] !== undefined) {
           scrollToStage(stageMap[sIdx]);
         }
@@ -1548,6 +1533,11 @@ function animate() {
   if (doorLeft && doorRight) {
     doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
     doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
+  }
+  if (doorLeftD2 && doorRightD2) {
+    const d2Open = activeStage === 9 ? (1.0 - currentDoorCloseRatio) : 0.0;
+    doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, d2Open);
+    doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, d2Open);
   }
 
   // 2.2 Процедурное покачивание вагона и микровибрация при движении в тоннеле

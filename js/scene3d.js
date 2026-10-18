@@ -703,11 +703,11 @@ function loadSubwayModel() {
           return;
         }
 
-        // 6. Резиновые уплотнители створок и стекол
-        if (child.name.includes('WindowGasket') || child.name.includes('RubberEdge') || matName === 'Mat_Rubber_Black') {
+        // 6. Резиновые уплотнители створок, стекол и межвагонные сильфоны-гармошки
+        if (child.name.includes('WindowGasket') || child.name.includes('RubberEdge') || child.name.includes('Bellow') || child.name.includes('Gasket') || matName === 'Mat_Rubber_Black') {
           child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x1a1a1c),
-            roughness: 0.85,
+            color: new THREE.Color(0x18181b),
+            roughness: 0.88,
             metalness: 0.05
           });
           return;
@@ -853,8 +853,8 @@ function loadSubwayModel() {
           return;
         }
 
-        // 16. Потолочные светильники / призматические рассеиватели из фото
-        if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser')) {
+        // 16. Потолочные светильники, призматические рассеиватели и световые табло переходов
+        if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser') || child.name.includes('Sign_Indicator') || child.name.includes('Next_Car_Ceiling_Light')) {
           child.material = new THREE.MeshStandardMaterial({
             map: ceilingLightTex,
             emissive: new THREE.Color(0xfff8ee),
@@ -996,7 +996,7 @@ function initScrollTriggers() {
     trigger: '#scroll-story',
     start: 'top top',
     end: 'bottom bottom',
-    scrub: 1.0,
+    scrub: 1.8,
     onUpdate: (self) => {
       const p = Math.max(0.0, Math.min(1.0, self.progress));
 
@@ -1426,9 +1426,9 @@ function animate() {
     }
   }
 
-  // 1. Плавная интерполяция позиции камеры (lerp)
-  camCurrentPos.lerp(camTargetPos, 0.08);
-  camCurrentTarget.lerp(camTargetLookAt, 0.08);
+  // 1. Медленная, медитативная интерполяция позиции камеры (cinematic dolly lerp)
+  camCurrentPos.lerp(camTargetPos, 0.042);
+  camCurrentTarget.lerp(camTargetLookAt, 0.042);
 
   // 2. Демпфирование мышиного параллакса
   mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * 0.06;

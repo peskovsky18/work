@@ -535,11 +535,25 @@ body.dark-cinema-body {
   background: rgba(255, 255, 255, 0.12);
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
 }
 
-.heart-btn.liked svg {
-  fill: #ff2d55;
-  stroke: #ff2d55;
+.player-capsule .sound-toggle-btn {
+  background: rgba(255, 255, 255, 0.12);
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.player-capsule .sound-toggle-btn.sound-on {
+  background: rgba(255, 255, 255, 0.95);
+  color: #07080a;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.35);
+}
+
+.player-capsule .sound-toggle-btn.sound-on:hover {
+  background: #ffffff;
+  transform: scale(1.08);
 }
 
 /* Скруббер прогресса */

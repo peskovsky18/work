@@ -8,9 +8,40 @@ let audioCtx = null;
 let masterGain = null;
 let rumbleFilter = null;
 let clatterTimer = null;
+let isAudioMuted = true;
+
+export function setSubwayMuted(muted) {
+  isAudioMuted = !!muted;
+  if (!audioCtx) return;
+  if (isAudioMuted) {
+    if (masterGain) {
+      masterGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+    }
+    if (clatterTimer) {
+      clearTimeout(clatterTimer);
+      clatterTimer = null;
+    }
+    try {
+      if (audioCtx.state === 'running') {
+        audioCtx.suspend().catch(() => {});
+      }
+    } catch (_) {}
+  } else {
+    try {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+    } catch (_) {}
+  }
+}
 
 export function initSubwayAudio() {
-  if (audioCtx) return;
+  if (audioCtx) {
+    if (!isAudioMuted && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return;
+  }
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
@@ -38,28 +69,44 @@ export function initSubwayAudio() {
     rumbleFilter.Q.value = 2.0;
 
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.0;
+    masterGain.gain.value = isAudioMuted ? 0.0 : 0.15;
 
     whiteNoise.connect(rumbleFilter);
     rumbleFilter.connect(masterGain);
     masterGain.connect(audioCtx.destination);
 
     whiteNoise.start();
+
+    if (isAudioMuted && audioCtx.state === 'running') {
+      audioCtx.suspend().catch(() => {});
+    }
   } catch (e) {
     console.warn('Web Audio API недоступен:', e);
   }
 }
 
 export function updateSubwayAudio(speed, isMuted) {
+  if (isMuted !== undefined) {
+    isAudioMuted = !!isMuted;
+  }
   if (!audioCtx || !masterGain || !rumbleFilter) return;
 
-  if (audioCtx.state === 'suspended' && !isMuted) {
+  if (isAudioMuted) {
+    masterGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+    if (clatterTimer) {
+      clearTimeout(clatterTimer);
+      clatterTimer = null;
+    }
+    return;
+  }
+
+  if (audioCtx.state === 'suspended') {
     audioCtx.resume().catch(() => {});
   }
 
   const now = audioCtx.currentTime;
-  if (isMuted || speed < 0.02) {
-    // Плавное затухание звука поезда
+  if (speed < 0.02) {
+    // Плавное затухание звука поезда на остановке
     masterGain.gain.setTargetAtTime(0.0, now, 0.2);
     if (clatterTimer) {
       clearTimeout(clatterTimer);
@@ -116,7 +163,7 @@ function playWheelClick(timeOffset, vol) {
 
 // Двухтональный звуковой сигнал закрытия дверей (E5 -> C5) и пневматический выпуск воздуха
 export function playDoorChime() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
 
   [ { freq: 659.25, time: 0.0, dur: 0.24 }, { freq: 523.25, time: 0.25, dur: 0.35 } ].forEach(({ freq, time, dur }) => {
@@ -128,14 +175,14 @@ export function playDoorChime() {
     g.gain.linearRampToValueAtTime(0.09, now + time + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
     osc.connect(g);
-    g.connect(audioCtx.destination);
+    g.connect(masterGain);
     osc.start(now + time);
     osc.stop(now + time + dur);
   });
 
   // Пневматический звук "пш-ш" выпуска давления дверей
   setTimeout(() => {
-    if (!audioCtx || audioCtx.state !== 'running') return;
+    if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
     const pNow = audioCtx.currentTime;
     const bSize = Math.floor(audioCtx.sampleRate * 0.45);
     const nBuf = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
@@ -151,14 +198,14 @@ export function playDoorChime() {
     gain.gain.setValueAtTime(0.035, pNow);
     src.connect(filter);
     filter.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(masterGain);
     src.start(pNow);
   }, 550);
 }
 
 // Прибывающий мажорный аккорд на станции назначения (C5 -> E5 -> G5)
 export function playArrivalChime() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
   [523.25, 659.25, 783.99].forEach((freq, idx) => {
     const osc = audioCtx.createOscillator();
@@ -169,7 +216,7 @@ export function playArrivalChime() {
     g.gain.linearRampToValueAtTime(0.07, now + idx * 0.15 + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.15 + 0.55);
     osc.connect(g);
-    g.connect(audioCtx.destination);
+    g.connect(masterGain);
     osc.start(now + idx * 0.15);
     osc.stop(now + idx * 0.15 + 0.55);
   });
@@ -177,7 +224,7 @@ export function playArrivalChime() {
 
 // Звук скрежета колодок и экстренного торможения стоп-крана
 export function playBrakeScreech() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
 
   const osc1 = audioCtx.createOscillator();
@@ -203,7 +250,7 @@ export function playBrakeScreech() {
   osc1.connect(filter);
   osc2.connect(filter);
   filter.connect(g);
-  g.connect(audioCtx.destination);
+  g.connect(masterGain);
 
   osc1.start(now);
   osc2.start(now);
@@ -213,7 +260,7 @@ export function playBrakeScreech() {
 
 // Мягкий тактильный колокольчик включения звука
 export function playHapticChime() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const g = audioCtx.createGain();
@@ -226,7 +273,7 @@ export function playHapticChime() {
   g.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
 
   osc.connect(g);
-  g.connect(audioCtx.destination);
+  g.connect(masterGain);
 
   osc.start(now);
   osc.stop(now + 0.11);
@@ -234,7 +281,7 @@ export function playHapticChime() {
 
 // Резонансный станционный гонг отправления поезда со станции 1
 export function playStationDepartureGong() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
 
   [349.23, 698.46, 1046.5].forEach((freq, idx) => {
@@ -249,7 +296,7 @@ export function playStationDepartureGong() {
     g.gain.exponentialRampToValueAtTime(0.0001, now + 1.2 - idx * 0.2);
 
     osc.connect(g);
-    g.connect(audioCtx.destination);
+    g.connect(masterGain);
     osc.start(now);
     osc.stop(now + 1.25);
   });
@@ -257,7 +304,7 @@ export function playStationDepartureGong() {
 
 // Станционный перезвон информационного оповещения при прибытии на станцию 2
 export function playStationPAChime() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
   const notes = [
     { freq: 587.33, t: 0.0, dur: 0.32 }, // D5
@@ -277,7 +324,7 @@ export function playStationPAChime() {
     g.gain.exponentialRampToValueAtTime(0.0001, now + t + dur);
 
     osc.connect(g);
-    g.connect(audioCtx.destination);
+    g.connect(masterGain);
     osc.start(now + t);
     osc.stop(now + t + dur + 0.05);
   });
@@ -285,7 +332,7 @@ export function playStationPAChime() {
 
 // Микро-тактильный щелчок переключения станций (Apple Haptic Click)
 export function playNavTick() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const g = audioCtx.createGain();
@@ -298,7 +345,7 @@ export function playNavTick() {
   g.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
 
   osc.connect(g);
-  g.connect(audioCtx.destination);
+  g.connect(masterGain);
 
   osc.start(now);
   osc.stop(now + 0.035);
@@ -307,7 +354,7 @@ export function playNavTick() {
 // Проносящийся встречный поезд в тоннеле с эффектом Доплера и панорамированием
 let lastWhooshTime = 0;
 export function playPassingTrainWhoosh() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (isAudioMuted || !audioCtx || audioCtx.state !== 'running' || !masterGain) return;
   const now = audioCtx.currentTime;
   if (now - lastWhooshTime < 3.2) return;
   lastWhooshTime = now;
@@ -343,9 +390,9 @@ export function playPassingTrainWhoosh() {
     panner.pan.setValueAtTime(-0.85, now);
     panner.pan.linearRampToValueAtTime(0.85, now + 1.6);
     gain.connect(panner);
-    panner.connect(audioCtx.destination);
+    panner.connect(masterGain);
   } else {
-    gain.connect(audioCtx.destination);
+    gain.connect(masterGain);
   }
 
   src.start(now);

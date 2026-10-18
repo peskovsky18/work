@@ -3,7 +3,7 @@
  * Основная точка входа: UI логика и связка с 3D сценой
  */
 
-import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom } from './scene3d.js';
+import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom, getActiveStage } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -72,8 +72,7 @@ function initNavigation() {
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-        const activePill = document.querySelector('.stage-nav-pill.active');
-        const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+        const cur = getActiveStage();
         if (dx < 0 && cur < 9) {
           playNavTick();
           scrollToStage(cur + 1);
@@ -179,15 +178,13 @@ function initKeyboardShortcuts() {
       e.preventDefault();
       toggleGlobalSound();
     } else if (e.code === 'KeyF') {
-      const activePill = document.querySelector('.stage-nav-pill.active');
-      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      const cur = getActiveStage();
       if (cur === 1 || cur === 2) {
         e.preventDefault();
-        window.dispatchEvent(new CustomEvent('open-project-modal', { detail: { project: cur } }));
+        toggleScreenZoom();
       }
     } else if (e.code === 'Space') {
-      const activePill = document.querySelector('.stage-nav-pill.active');
-      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      const cur = getActiveStage();
       if (cur === 1 || cur === 2) {
         e.preventDefault();
         const v = cur === 1 ? getVideos().video1 : getVideos().video2;
@@ -197,16 +194,14 @@ function initKeyboardShortcuts() {
         }
       }
     } else if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
-      const activePill = document.querySelector('.stage-nav-pill.active');
-      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      const cur = getActiveStage();
       if (cur < 9) {
         e.preventDefault();
         playNavTick();
         scrollToStage(cur + 1);
       }
     } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
-      const activePill = document.querySelector('.stage-nav-pill.active');
-      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+      const cur = getActiveStage();
       if (cur > 0) {
         e.preventDefault();
         playNavTick();
@@ -461,8 +456,7 @@ function initCinemaIdleDim() {
     }
     if (idleTimer) clearTimeout(idleTimer);
 
-    const activePill = document.querySelector('.stage-nav-pill.active');
-    const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 0;
+    const cur = getActiveStage();
     if (cur === 1 || cur === 2) {
       idleTimer = setTimeout(() => {
         document.body.classList.add('cinema-dimmed');
@@ -696,8 +690,7 @@ function initShareButtons() {
   if (modalShareBtn) {
     modalShareBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const activePill = document.querySelector('.stage-nav-pill.active');
-      const cur = activePill ? parseInt(activePill.dataset.stage, 10) : 1;
+      const cur = getActiveStage() || 1;
       copyUrl(cur);
     });
   }

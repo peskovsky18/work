@@ -557,8 +557,10 @@ export function getNoLeanDecalTexture(THREE) {
 
   cachedNoLeanTexture = new THREE.CanvasTexture(canvas);
   cachedNoLeanTexture.colorSpace = THREE.SRGBColorSpace;
-  cachedNoLeanTexture.flipY = false;
   cachedNoLeanTexture.generateMipmaps = true;
+  cachedNoLeanTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  cachedNoLeanTexture.magFilter = THREE.LinearFilter;
+  cachedNoLeanTexture.anisotropy = 16;
 
   return cachedNoLeanTexture;
 }

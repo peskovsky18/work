@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime } from './subwayAudio.js';
 import {
   getPhotoWallTextures,
   getPhotoDoorTextures,
@@ -72,8 +72,10 @@ const DOOR_LEFT_OPEN_X = -2.915;
 const DOOR_LEFT_CLOSED_X = -3.465;
 const DOOR_RIGHT_OPEN_X = -4.615;
 const DOOR_RIGHT_CLOSED_X = -4.065;
-let targetDoorCloseRatio = 0.0; // 0.0 = открыты, 1.0 = закрыты
+let targetDoorCloseRatio = 0.0; // 0.0 = открыты, 1.0 = закрыты (Двери 1)
 let currentDoorCloseRatio = 0.0;
+let targetDoor2OpenRatio = 0.0;  // 0.0 = закрыты, 1.0 = открыты (Двери 2)
+let currentDoor2OpenRatio = 0.0;
 
 
 // Векторы интерполяции камеры
@@ -1132,11 +1134,26 @@ function initScrollTriggers() {
       // Плавная интерполяция точки взгляда камеры по центральному проходу вперед
       camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
 
-      // Двери закрываются при начале скролла (0-8%) и открываются при прибытии в контакты (94-100%)
-      if (p >= 0.94) {
-        targetDoorCloseRatio = Math.max(0.0, 1.0 - (p - 0.94) / 0.06);
+      // Двери 1 (Вход): закрываются при начале скролла (0-8%)
+      targetDoorCloseRatio = Math.min(Math.max(p / 0.08, 0.0), 1.0);
+
+      // Двери 2 (Выход к контактам): плавно открываются по мере приближения скролла к контактам (82% -> 98%)
+      if (p >= 0.82) {
+        const normP = Math.min(Math.max((p - 0.82) / 0.16, 0.0), 1.0);
+        // Плавная органичная кривая smoothstep
+        targetDoor2OpenRatio = normP * normP * (3.0 - 2.0 * normP);
       } else {
-        targetDoorCloseRatio = Math.min(Math.max(p / 0.08, 0.0), 1.0);
+        targetDoor2OpenRatio = 0.0;
+      }
+
+      // Звуковой сигнал прибытия на станцию при приближении к контактам
+      if (p >= 0.85 && !hasPlayedArrivalChime) {
+        hasPlayedArrivalChime = true;
+        if (!isGlobalMuted) {
+          playArrivalChime();
+        }
+      } else if (p < 0.78) {
+        hasPlayedArrivalChime = false;
       }
 
       // Поезд стоит на станции (0.0): нулевая нагрузка на GPU/CPU, стабильные 60 FPS
@@ -1608,10 +1625,10 @@ function animate() {
     doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
     doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
   }
+  currentDoor2OpenRatio += (targetDoor2OpenRatio - currentDoor2OpenRatio) * 0.08;
   if (doorLeftD2 && doorRightD2) {
-    const d2Open = (activeStage === 5) ? (1.0 - currentDoorCloseRatio) : 0.0;
-    doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, d2Open);
-    doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, d2Open);
+    doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, currentDoor2OpenRatio);
+    doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, currentDoor2OpenRatio);
   }
 
   // 2.2 Процедурное покачивание вагона и микровибрация при движении в тоннеле

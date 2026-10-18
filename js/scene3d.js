@@ -145,6 +145,9 @@ export function initSubwayScene() {
   // 4.1 Система тоннеля (Tunnel Run)
   setupTunnelSystem();
 
+  // 4.2 Атмосферные микрочастицы в лучах света вагона
+  setupDustParticles();
+
   // 5. Видеоэлементы и текстуры
   setupVideoTextures();
 
@@ -255,6 +258,31 @@ function setupTunnelSystem() {
   tunnelGroup.add(oppTrainGroup);
 
   scene.add(tunnelGroup);
+}
+
+// Атмосферные летающие микрочастицы (пылинки) в лучах освещения вагона
+let dustParticles, dustPositions;
+const DUST_COUNT = 160;
+
+function setupDustParticles() {
+  const geom = new THREE.BufferGeometry();
+  dustPositions = new Float32Array(DUST_COUNT * 3);
+  for (let i = 0; i < DUST_COUNT; i++) {
+    dustPositions[i * 3]     = (Math.random() - 0.5) * 8.2;
+    dustPositions[i * 3 + 1] = 0.35 + Math.random() * 1.9;
+    dustPositions[i * 3 + 2] = -0.15 - Math.random() * 2.1;
+  }
+  geom.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0xfff4d8,
+    size: 0.024,
+    transparent: true,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  dustParticles = new THREE.Points(geom, mat);
+  scene.add(dustParticles);
 }
 
 
@@ -766,7 +794,9 @@ function updateSoundButtonUI() {
     const label = btn.querySelector('.sound-btn-label');
     const icon = btn.querySelector('.sound-btn-icon');
     if (label) {
-      label.textContent = isGlobalMuted ? 'Без звука' : 'Звук вкл';
+      label.innerHTML = isGlobalMuted
+        ? 'Без звука'
+        : `<span class="audio-equalizer"><span class="eq-bar bar-1"></span><span class="eq-bar bar-2"></span><span class="eq-bar bar-3"></span></span> Звук вкл`;
     }
     if (icon) {
       icon.innerHTML = isGlobalMuted
@@ -961,6 +991,20 @@ function animate() {
     if (oppTrainGroup.position.x > 50.0) {
       oppTrainGroup.position.x = -130.0 - Math.random() * 80.0;
     }
+  }
+
+  // 2.5 Дрейф атмосферных микрочастиц в воздухе вагона
+  if (dustParticles && dustPositions) {
+    const posAttr = dustParticles.geometry.attributes.position;
+    const pArr = posAttr.array;
+    const airDraft = trainSpeed * 1.5 * dt;
+    for (let i = 0; i < DUST_COUNT; i++) {
+      const idx = i * 3;
+      pArr[idx + 1] += Math.sin(time * 1.6 + pArr[idx]) * 0.0006;
+      pArr[idx] -= airDraft;
+      if (pArr[idx] < -4.1) pArr[idx] += 8.2;
+    }
+    posAttr.needsUpdate = true;
   }
 
   // 3. Raycaster для определения наведения на экраны

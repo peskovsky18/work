@@ -210,22 +210,24 @@ let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
 function setupSubwayLighting() {
   // Теплый кинематографичный рассеянный свет (как в оригинальном интерьере на фото)
-  const ambient = new THREE.AmbientLight(0x282622, 1.25);
+  const ambient = new THREE.AmbientLight(0x282622, 1.35);
   scene.add(ambient);
 
   [-4.5, -2.5, -0.5, 1.5, 3.5, 5.0].forEach(px => {
-    const lamp = new THREE.PointLight(0xffeed6, 1.45, 6.5, 1.2);
+    const lamp = new THREE.PointLight(0xffeed6, 1.50, 7.0, 1.2);
     lamp.position.set(px, 2.15, -1.20);
     scene.add(lamp);
     ceilingLamps.push(lamp);
   });
 
-  station1Light = new THREE.PointLight(0x8ec3f8, 1.4, 8.0, 1.3);
-  station1Light.position.set(-3.765, 1.8, 1.5);
+  // Освещение платформы станции 1 снаружи открытых дверей и окон
+  station1Light = new THREE.PointLight(0xffeed6, 1.6, 12.0, 1.2);
+  station1Light.position.set(-3.765, 1.8, 1.8);
   scene.add(station1Light);
 
-  station2Light = new THREE.PointLight(0xffdfb0, 0.0, 12.0, 1.2);
-  station2Light.position.set(-3.765, 1.9, 1.6);
+  // Освещение платформы станции 2
+  station2Light = new THREE.PointLight(0xffdfb0, 1.4, 12.0, 1.2);
+  station2Light.position.set(-3.765, 1.9, -3.8);
   scene.add(station2Light);
 
   screenLight1 = new THREE.PointLight(0xffffff, 0.65, 3.0, 1.5);
@@ -236,68 +238,18 @@ function setupSubwayLighting() {
   screenLight2.position.set(-0.565, 1.40, -0.28);
   scene.add(screenLight2);
 
-  windowPassingLight = new THREE.PointLight(0xbedbff, 0.0, 8.0, 1.3);
+  windowPassingLight = new THREE.PointLight(0xffeed6, 0.4, 8.0, 1.3);
   windowPassingLight.position.set(1.595, 1.45, 0.65);
   scene.add(windowPassingLight);
 
-  windowPassingLight2 = new THREE.PointLight(0xbedbff, 0.0, 8.0, 1.3);
+  windowPassingLight2 = new THREE.PointLight(0xffeed6, 0.4, 8.0, 1.3);
   windowPassingLight2.position.set(1.595, 1.45, -1.85);
   scene.add(windowPassingLight2);
 }
 
 function setupTunnelSystem() {
+  // Тоннель и встречный поезд полностью отключены: поезд стоит на красиво освещенной станции (60 FPS без лагов)
   tunnelGroup = new THREE.Group();
-  const tMat = new THREE.MeshStandardMaterial({ color: 0x0c0e12, roughness: 0.92, metalness: 0.25 });
-  const geom = new THREE.CylinderGeometry(3.6, 3.6, 60, 32, 1, true, -Math.PI * 0.45, Math.PI * 0.90);
-  
-  const w1 = new THREE.Mesh(geom, tMat); w1.rotation.z = Math.PI * 0.5; w1.position.set(0, 1.2, 2.5); tunnelGroup.add(w1);
-  const w2 = new THREE.Mesh(geom, tMat); w2.rotation.z = -Math.PI * 0.5; w2.position.set(0, 1.2, -4.9); tunnelGroup.add(w2);
-
-  // Продольные кабели высокого напряжения по стенам тоннеля
-  const cableMat = new THREE.MeshStandardMaterial({ color: 0x111215, roughness: 0.95 });
-  const cableGeom = new THREE.CylinderGeometry(0.016, 0.016, 60, 8);
-  cableGeom.rotateZ(Math.PI * 0.5);
-  [-0.12, 0.0, 0.12].forEach(dy => {
-    const c1 = new THREE.Mesh(cableGeom, cableMat);
-    c1.position.set(0, 1.45 + dy, 1.02);
-    tunnelGroup.add(c1);
-    const c2 = new THREE.Mesh(cableGeom, cableMat);
-    c2.position.set(0, 1.45 + dy, -3.42);
-    tunnelGroup.add(c2);
-  });
-
-  // Проносящиеся сигнальные огни и световые полосы на обеих сторонах тоннеля
-  const colors = [0xe8f4ff, 0x22ee66, 0xff3322, 0xffaa11, 0xe8f4ff, 0xffaa11];
-  for (let i = 0; i < 16; i++) {
-    const col = colors[i % colors.length];
-    const isStrip = (i % 3 === 0);
-    const sideZ = (i % 2 === 0) ? 0.98 : -3.38;
-    const lGeom = isStrip ? new THREE.BoxGeometry(2.4, 0.05, 0.04) : new THREE.BoxGeometry(0.5, 0.08, 0.08);
-    const bMesh = new THREE.Mesh(lGeom, new THREE.MeshBasicMaterial({ color: col }));
-    bMesh.position.set(-28 + i * 3.8, 1.5 + (i % 3) * 0.25, sideZ);
-    const bLight = new THREE.PointLight(col, 0.75, 4.2, 1.8);
-    bLight.position.copy(bMesh.position);
-    tunnelLights.push({ mesh: bMesh, light: bLight, sideZ });
-    tunnelGroup.add(bMesh); tunnelGroup.add(bLight);
-  }
-
-  // Встречный поезд на соседнем пути в тоннеле (проносится в окнах)
-  oppTrainGroup = new THREE.Group();
-  const oppBodyMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.85, metalness: 0.6 });
-  const oppCar = new THREE.Mesh(new THREE.BoxGeometry(24, 2.7, 2.2), oppBodyMat);
-  oppCar.position.set(0, 1.45, 0);
-  oppTrainGroup.add(oppCar);
-
-  const oppWinMat = new THREE.MeshBasicMaterial({ color: 0xffdf88 });
-  const oppWinGeom = new THREE.BoxGeometry(1.2, 0.65, 0.04);
-  for (let wx = -9.0; wx <= 9.0; wx += 2.2) {
-    const wMesh = new THREE.Mesh(oppWinGeom, oppWinMat);
-    wMesh.position.set(wx, 1.5, -1.12);
-    oppTrainGroup.add(wMesh);
-  }
-  oppTrainGroup.position.set(-80, 0, 2.3);
-  tunnelGroup.add(oppTrainGroup);
-
   scene.add(tunnelGroup);
 }
 
@@ -694,17 +646,18 @@ function loadSubwayModel() {
 
         const matName = child.material ? child.material.name : '';
 
-        // 5. Стекла окон и дверей
+        // 5. Стекла окон и дверей: кристальная прозрачность с физичным френелем
         if (child.name.includes('Glass') || matName === 'Mat_Glass') {
           child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0x7aa5c2),
+            color: new THREE.Color(0x82b4d4),
             transparent: true,
-            opacity: 0.38,
-            roughness: 0.04,
-            metalness: 0.1,
-            reflectivity: 0.95,
+            opacity: 0.28,
+            roughness: 0.02,
+            metalness: 0.05,
+            reflectivity: 0.90,
             clearcoat: 1.0,
-            clearcoatRoughness: 0.08,
+            clearcoatRoughness: 0.04,
+            ior: 1.52,
             side: THREE.DoubleSide,
             depthWrite: false
           });
@@ -1031,12 +984,34 @@ function initScrollTriggers() {
       const toIdx = fromIdx + 1;
       const localT = scaledP - fromIdx;
       const easedT = localT * localT * (3 - 2 * localT);
-
       const wpFrom = getWaypoint(fromIdx);
       const wpTo = getWaypoint(toIdx);
 
+      // 1. Позиция камеры
       camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
-      camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
+
+      // Горизонтальный разворот камеры поперек салона на уровне глаз (через бок)
+      if (fromIdx === 4) {
+        // Плавный разворот со стороны A на сторону B (экран 04 -> экран 08)
+        const angle = easedT * Math.PI;
+        const radius = 1.034;
+        camTargetLookAt.set(
+          camTargetPos.x - Math.sin(angle) * radius,
+          1.40,
+          camTargetPos.z + Math.cos(angle) * radius
+        );
+      } else if (fromIdx === 8) {
+        // Разворот со стороны B к дверям выхода на станции (экран 05 -> выход)
+        const angle = Math.PI - easedT * Math.PI;
+        const radius = THREE.MathUtils.lerp(1.034, 2.95, easedT);
+        camTargetLookAt.set(
+          camTargetPos.x - Math.sin(angle) * radius,
+          THREE.MathUtils.lerp(1.40, wpTo.target.y, easedT),
+          camTargetPos.z + Math.cos(angle) * radius
+        );
+      } else {
+        camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
+      }
 
       // Звуковые сигналы отправления, закрытия дверей и прибытия на станцию
       if (p < 0.005) {
@@ -1068,23 +1043,15 @@ function initScrollTriggers() {
         targetDoorCloseRatio = Math.min(Math.max(p / 0.08, 0.0), 1.0);
       }
 
-      // Профиль скорости поезда (разгон на 3-й работе, торможение к контактам)
-      if (p < 0.22) {
-        trainSpeed = 0.0;
-      } else if (p < 0.35) {
-        trainSpeed = (p - 0.22) / 0.13;
-      } else if (p < 0.88) {
-        trainSpeed = 1.0;
-      } else {
-        trainSpeed = Math.max(0.0, 1.0 - (p - 0.88) / 0.08);
-      }
+      // Поезд стоит на станции (0.0): нулевая нагрузка на GPU/CPU, стабильные 60 FPS
+      trainSpeed = 0.0;
 
-      // Свет станции 1 затухает при отправлении, свет станции 2 разгорается при прибытии
-      if (station1Light) station1Light.intensity = Math.max(0.0, 1.4 * (1.0 - p / 0.18));
-      if (station2Light) station2Light.intensity = Math.max(0.0, 1.6 * ((p - 0.86) / 0.14));
+      // Теплое освещение платформы станции снаружи окон и дверей
+      if (station1Light) station1Light.intensity = Math.max(0.6, 1.6 * (1.0 - p * 0.5));
+      if (station2Light) station2Light.intensity = Math.max(0.6, 1.6 * (0.5 + p * 0.5));
       if (stationSignMesh) {
-        stationSignMesh.visible = (p >= 0.84);
-        stationSignMesh.material.emissiveIntensity = Math.max(0.0, 1.4 * ((p - 0.86) / 0.14));
+        stationSignMesh.visible = true;
+        stationSignMesh.material.emissiveIntensity = Math.max(0.8, 1.4 * p);
       }
 
       // Обновление светодиодного индикатора маршрута в шапке

@@ -1,0 +1,19 @@
+{
+  "name": "Александр Песковский — 2026",
+  "short_name": "Песковский",
+  "description": "Интерактивное кинематографичное 3D-путешествие в вагоне метро через авторские видеоработы Александра Песковского.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07080a",
+  "theme_color": "#07080a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2307080a'%3E%3Crect width='512' height='512' rx='112' fill='%230e1016'/%3E%3Cpath d='M96 128h320a32 32 0 0 1 32 32v192a32 32 0 0 1-32 32H96a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32zm48 48v48h48v-48h-48zm80 0v48h48v-48h-48zm80 0v48h48v-48h-48zm80 0v48h48v-48h-48z' fill='%23f5a623'/%3E%3Ccircle cx='160' cy='320' r='24' fill='%2338bdf8'/%3E%3Ccircle cx='352' cy='320' r='24' fill='%2338bdf8'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

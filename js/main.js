@@ -29,6 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 8. Автозатемнение интерфейса при просмотре видео
   initCinemaIdleDim();
+
+  // 9. Аудиовизуализатор волн в плеере
+  initWaveformVisualizers();
+
+  // 10. Регистрация Service Worker для PWA
+  initServiceWorker();
 });
 
 // =============================================================================
@@ -479,3 +485,94 @@ function initCinemaIdleDim() {
     window.addEventListener(evt, resetIdle, { passive: true });
   });
 }
+
+// =============================================================================
+// АУДИОВИЗУАЛИЗАТОР ПЛЕЕРА (APPLE-STYLE DYNAMIC WAVEFORM)
+// =============================================================================
+function initWaveformVisualizers() {
+  const c1 = document.getElementById('waveform-canvas-stage1');
+  const c2 = document.getElementById('waveform-canvas-stage2');
+  if (!c1 && !c2) return;
+
+  const ctx1 = c1 ? c1.getContext('2d') : null;
+  const ctx2 = c2 ? c2.getContext('2d') : null;
+
+  const BAR_COUNT = 7;
+  const bars1 = new Float32Array(BAR_COUNT).fill(2);
+  const bars2 = new Float32Array(BAR_COUNT).fill(2);
+
+  const drawBars = (ctx, canvas, bars, isPlaying, isMuted, t) => {
+    if (!ctx || !canvas) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const barW = 3;
+    const gap = 3;
+    const totalW = BAR_COUNT * barW + (BAR_COUNT - 1) * gap;
+    const startX = (w - totalW) / 2;
+
+    for (let i = 0; i < BAR_COUNT; i++) {
+      let targetH = 2;
+      if (isPlaying) {
+        const freq = 3.5 + i * 1.8;
+        const s = Math.sin(t * freq + i * 0.9);
+        const amp = isMuted ? 0.35 : 0.85;
+        targetH = 3 + (s * 0.5 + 0.5) * (h - 4) * amp;
+      }
+      bars[i] += (targetH - bars[i]) * 0.18;
+      const curH = Math.max(2, bars[i]);
+      const x = startX + i * (barW + gap);
+      const y = (h - curH) / 2;
+
+      const grad = ctx.createLinearGradient(0, y, 0, y + curH);
+      if (isPlaying && !isMuted) {
+        grad.addColorStop(0, '#f5a623');
+        grad.addColorStop(1, '#ffffff');
+      } else {
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0.25)');
+      }
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, barW, curH, 1.5);
+      } else {
+        ctx.rect(x, y, barW, curH);
+      }
+      ctx.fill();
+    }
+  };
+
+  const anim = () => {
+    requestAnimationFrame(anim);
+    const { video1, video2 } = getVideos();
+    const t = performance.now() * 0.003;
+
+    if (ctx1 && c1) {
+      const isPlay1 = video1 && !video1.paused;
+      const isMute1 = !video1 || video1.muted || video1.volume === 0;
+      drawBars(ctx1, c1, bars1, isPlay1, isMute1, t);
+    }
+    if (ctx2 && c2) {
+      const isPlay2 = video2 && !video2.paused;
+      const isMute2 = !video2 || video2.muted || video2.volume === 0;
+      drawBars(ctx2, c2, bars2, isPlay2, isMute2, t);
+    }
+  };
+
+  requestAnimationFrame(anim);
+}
+
+// =============================================================================
+// SERVICE WORKER & PWA ПОДДЕРЖКА
+// =============================================================================
+function initServiceWorker() {
+  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+}
+

@@ -231,3 +231,55 @@ export function playHapticChime() {
   osc.start(now);
   osc.stop(now + 0.11);
 }
+
+// Резонансный станционный гонг отправления поезда со станции 1
+export function playStationDepartureGong() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+
+  [349.23, 698.46, 1046.5].forEach((freq, idx) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+
+    const initialGain = 0.06 / (idx + 1);
+    g.gain.setValueAtTime(0.0, now);
+    g.gain.linearRampToValueAtTime(initialGain, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 1.2 - idx * 0.2);
+
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 1.25);
+  });
+}
+
+// Станционный перезвон информационного оповещения при прибытии на станцию 2
+export function playStationPAChime() {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+  const notes = [
+    { freq: 587.33, t: 0.0, dur: 0.32 }, // D5
+    { freq: 739.99, t: 0.18, dur: 0.32 }, // F#5
+    { freq: 880.00, t: 0.36, dur: 0.40 }, // A5
+    { freq: 1174.66, t: 0.54, dur: 0.65 } // D6
+  ];
+
+  notes.forEach(({ freq, t, dur }) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + t);
+
+    g.gain.setValueAtTime(0.0, now + t);
+    g.gain.linearRampToValueAtTime(0.05, now + t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + t + dur);
+
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(now + t);
+    osc.stop(now + t + dur + 0.05);
+  });
+}
+

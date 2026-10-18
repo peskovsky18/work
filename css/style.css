@@ -877,3 +877,79 @@ body.dark-cinema-body {
   color: #fff;
   font-weight: 600;
 }
+
+/* Интерактивная карта метро в модальном окне */
+.map-modal-sheet {
+  max-width: 600px;
+}
+
+.metro-map-route {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  margin-top: 18px;
+  padding-left: 8px;
+}
+
+.metro-map-route::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 24px;
+  left: 17px;
+  width: 4px;
+  background: linear-gradient(180deg, #38ef7d 0%, #f5a623 50%, #5ac8fa 80%, #ff3b30 100%);
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.map-station-node {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.map-station-node:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
+}
+
+.station-ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: #0d0f14;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.station-ring.ring-start { border-color: #38ef7d; }
+.station-ring.ring-video { border-color: #f5a623; }
+.station-ring.ring-tunnel { border-color: #5ac8fa; }
+.station-ring.ring-finish { border-color: #ff3b30; }
+
+.station-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.st-name {
+  font-size: 0.95rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+.st-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}

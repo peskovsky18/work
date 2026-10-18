@@ -989,9 +989,9 @@ function loadSubwayModel() {
           sourceDoor.children.forEach(c => {
             if (c.name.includes('Glass') || c.name.includes('WindowGasket') || c.name.includes('Handle')) {
               const clone = c.clone();
-              clone.position.set(0, 0, 0);
-              clone.rotation.set(0, 0, 0);
-              clone.scale.set(1, 1, 1);
+              clone.position.copy(c.position);
+              clone.rotation.copy(c.rotation);
+              clone.scale.copy(c.scale);
               targetDoor.add(clone);
             }
           });
@@ -1004,6 +1004,15 @@ function loadSubwayModel() {
       ensureDoorFittings(doorRightD3, doorRight);
       ensureDoorFittings(doorLeftD4, doorLeft);
       ensureDoorFittings(doorRightD4, doorRight);
+
+      // Строго фиксируем компактные физические габариты ручек (4.5см x 18см) и координаты на всех створках дверей
+      subwayModel.traverse((child) => {
+        if (child.name.includes('Handle') && child.name.includes('Photo')) {
+          const isLeft = child.name.includes('Left');
+          child.position.set(isLeft ? -0.3833 : 0.3833, -0.12, -0.45);
+          child.scale.set(0.075, 0.0909, 0.35);
+        }
+      });
 
       // Предупреждающая надпись трафаретом «НЕ ПРИСЛОНЯТЬСЯ» (чистый белый текст) строго в пределах стекла дверей
       const doorDecalTex = getNoLeanDecalTexture(THREE);

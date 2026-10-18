@@ -1022,3 +1022,18 @@ body.dark-cinema-body {
   background: #fff;
   color: #0d0f14;
 }
+
+/* Кинематографическая виньетка: углубляется в тоннеле, открывается на станциях */
+.cinematic-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(4, 5, 8, 0.45) 80%, rgba(2, 3, 5, 0.88) 100%);
+  opacity: 0.35;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.tunnel-speed-active .cinematic-vignette {
+  opacity: 0.82;
+}

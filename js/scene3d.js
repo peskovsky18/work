@@ -1039,6 +1039,17 @@ function animate() {
     if (windowPassingLight2) windowPassingLight2.intensity += (0.0 - windowPassingLight2.intensity) * 0.1;
   }
 
+  // 2.3b Кинематографическая виньетка в тоннеле
+  if (trainSpeed > 0.15) {
+    if (!document.body.classList.contains('tunnel-speed-active')) {
+      document.body.classList.add('tunnel-speed-active');
+    }
+  } else {
+    if (document.body.classList.contains('tunnel-speed-active')) {
+      document.body.classList.remove('tunnel-speed-active');
+    }
+  }
+
   // 2.4 Движение встречного поезда в тоннеле за окнами
   if (oppTrainGroup && trainSpeed > 0.25) {
     oppTrainGroup.position.x += (trainSpeed * 22.0 + 36.0) * dt;

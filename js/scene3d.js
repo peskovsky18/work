@@ -223,10 +223,14 @@ function setupSubwayLighting() {
   scene.add(rakingLightB);
   scene.add(rakingLightB.target);
 
-  // 4. Освещение платформы станции снаружи открытых дверей и окон (Сторона A)
+  // 4. Освещение платформы станции снаружи открытых дверей (Вход: X = -3.765, Выход: X = +3.765)
   station1Light = new THREE.PointLight(0xffffff, 2.8, 18.0, 1.1);
   station1Light.position.set(-3.765, 2.4, 2.2);
   scene.add(station1Light);
+
+  const stationExitLight = new THREE.PointLight(0xffffff, 2.8, 18.0, 1.1);
+  stationExitLight.position.set(3.765, 2.4, 2.2);
+  scene.add(stationExitLight);
 
   // 5. Освещение белой плиточной путевой стены станции снаружи окон (Сторона B)
   station2Light = new THREE.PointLight(0xf8faff, 2.6, 16.0, 1.0);
@@ -1081,15 +1085,24 @@ function setActiveStage(stageIndex) {
   // Управление звуком в зависимости от экрана
   syncAudioForActiveStage();
 
-  // Автоматический плавный запуск видео в фокусе при подходе камеры
+  // Автоматический запуск активного видео без звука при доезде камеры
   if (stageIndex === 1) {
     if (video1 && video1.paused) {
       video1.play().catch(() => {});
+    }
+    if (video2 && !video2.paused) {
+      video2.pause();
     }
   } else if (stageIndex === 2) {
     if (video2 && video2.paused) {
       video2.play().catch(() => {});
     }
+    if (video1 && !video1.paused) {
+      video1.pause();
+    }
+  } else {
+    if (video1 && !video1.paused) video1.pause();
+    if (video2 && !video2.paused) video2.pause();
   }
   updatePlayButtonsUI();
 

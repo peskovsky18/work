@@ -290,7 +290,7 @@ function setupStationEnvironment() {
   dracoLoader.setDecoderPath('./js/vendor/draco/');
   stationLoader.setDRACOLoader(dracoLoader);
 
-  stationLoader.load('assets/models/paris_station.glb', (gltf) => {
+  stationLoader.load('assets/models/paris_station.glb?v=20261030_2025', (gltf) => {
     const model = gltf.scene;
     model.traverse((child) => {
       if (!child.isMesh) return;
@@ -667,7 +667,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb',
+    'assets/models/subway.glb?v=20261030_2025',
     (gltf) => {
       subwayModel = gltf.scene;
 

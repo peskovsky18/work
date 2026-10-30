@@ -1,9 +1,13 @@
 /**
  * Режим свободной камеры (Free Roam Mode)
- * Позволяет свободно перемещаться по всей 3D-локации:
- * - Внутри вагона метро
- * - По платформе станции
- * - По эскалаторному тоннелю и верхнему входному вестибюлю
+ * Ограничен строго проработанными зонами сцены:
+ * - Внутри вагона метро (между экранами и сиденьями)
+ * - На платформе станции вдоль стены с постерами-мемами
+ * 
+ * Управление:
+ * - Только ходьба по земле на уровне глаз (WASD / стрелки), без полета вверх/вниз
+ * - Зажатая ЛКМ / тач-свайп справа для осмотра на 360 градусов
+ * - Виртуальный тач-джойстик слева для мобильных устройств
  */
 
 import * as THREE from 'three';
@@ -16,18 +20,20 @@ export class FreeRoamController {
 
     this.isActive = false;
 
+    // Фиксированная высота взгляда человека (1.38 м от пола)
+    this.EYE_HEIGHT = 1.38;
+
     // Кинематика камеры
-    this.position = new THREE.Vector3(-2.675, 1.40, -1.192);
+    this.position = new THREE.Vector3(-2.675, this.EYE_HEIGHT, -1.192);
     this.velocity = new THREE.Vector3();
     this.yaw = 0;
     this.pitch = 0;
     this.targetYaw = 0;
     this.targetPitch = 0;
 
-    // Параметры движения
-    this.walkSpeed = 3.6; // м/с
-    this.sprintSpeed = 7.5; // м/с
-    this.flySpeed = 3.2; // м/с
+    // Параметры ходьбы (только горизонтальная плоскость)
+    this.walkSpeed = 3.2; // м/с
+    this.sprintSpeed = 5.8; // м/с
     this.damping = 0.86;
 
     // Состояние клавиш
@@ -36,8 +42,6 @@ export class FreeRoamController {
       backward: false,
       left: false,
       right: false,
-      up: false,
-      down: false,
       sprint: false
     };
 
@@ -53,36 +57,11 @@ export class FreeRoamController {
     this.touchLookActive = false;
     this.touchLookLast = { x: 0, y: 0 };
 
-    // Пресеты телепортации
-    this.PRESETS = {
-      car: {
-        pos: new THREE.Vector3(-3.50, 1.40, -1.192),
-        yaw: -Math.PI / 2,
-        pitch: 0
-      },
-      platform: {
-        pos: new THREE.Vector3(-1.60, 1.35, 1.80),
-        yaw: 0,
-        pitch: -0.05
-      },
-      escalator: {
-        pos: new THREE.Vector3(-3.765, 1.35, 4.60),
-        yaw: Math.PI,
-        pitch: 0.40
-      },
-      vestibule: {
-        pos: new THREE.Vector3(-3.765, 8.65, 17.60),
-        yaw: 0,
-        pitch: -0.42
-      }
-    };
-
     this.createHUD();
     this.bindEvents();
   }
 
   createHUD() {
-    // Контейнер оверлея Free Roam
     this.hudElement = document.createElement('div');
     this.hudElement.id = 'free-roam-hud';
     this.hudElement.className = 'free-roam-hud';
@@ -90,42 +69,22 @@ export class FreeRoamController {
 
     this.hudElement.innerHTML = `
       <div class="free-roam-top-bar">
-        <div class="free-roam-badge">
-          <span class="free-roam-pulse"></span>
-          <span>FREE ROAM // 3D-ПРОГУЛКА</span>
-        </div>
-
-        <div class="free-roam-teleports">
-          <button type="button" class="free-roam-tp-btn" data-tp="car">🚃 Вагон</button>
-          <button type="button" class="free-roam-tp-btn" data-tp="platform">🚉 Платформа</button>
-          <button type="button" class="free-roam-tp-btn" data-tp="escalator">⚡ Эскалатор</button>
-          <button type="button" class="free-roam-tp-btn" data-tp="vestibule">🏛️ Вестибюль</button>
-        </div>
-
-        <button type="button" id="free-roam-close-btn" class="free-roam-close-btn" title="Выйти из свободного режима (ESC)">
-          <span>✕ Выход</span>
+        <div class="free-roam-top-spacer"></div>
+        <button type="button" id="free-roam-close-btn" class="free-roam-close-btn" title="Выйти к проектам (ESC)">
+          <span>✕ Выход к проектам (ESC)</span>
         </button>
       </div>
 
       <div class="free-roam-bottom-hints">
         <div class="free-roam-hint-item desktop-only">
-          <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Перемещение
-        </div>
-        <div class="free-roam-hint-item desktop-only">
-          <kbd>ЛКМ</kbd> Осмотр 360°
-        </div>
-        <div class="free-roam-hint-item desktop-only">
-          <kbd>Пробел</kbd> Вверх • <kbd>C</kbd> Вниз
-        </div>
-        <div class="free-roam-hint-item desktop-only">
-          <kbd>Shift</kbd> Ускорение
+          <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Ходьба • <kbd>ЛКМ</kbd> Обзор 360° • <kbd>Shift</kbd> Бег
         </div>
         <div class="free-roam-hint-item mobile-only">
           Джойстик слева — ходьба • Свайп справа — обзор 360°
         </div>
       </div>
 
-      <!-- Виртуальный тач-джойстик для мобильных -->
+      <!-- Виртуальный тач-джойстик для мобильных устройств -->
       <div id="free-roam-touch-zone" class="free-roam-touch-zone mobile-only">
         <div id="free-roam-joystick-base" class="free-roam-joystick-base">
           <div id="free-roam-joystick-knob" class="free-roam-joystick-knob"></div>
@@ -135,21 +94,14 @@ export class FreeRoamController {
 
     document.body.appendChild(this.hudElement);
 
-    // Обработчики кнопок HUD
+    // Обработчик закрытия
     this.hudElement.querySelector('#free-roam-close-btn').addEventListener('click', () => {
       this.toggle(false);
-    });
-
-    this.hudElement.querySelectorAll('.free-roam-tp-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const tpKey = e.currentTarget.dataset.tp;
-        this.teleportTo(tpKey);
-      });
     });
   }
 
   bindEvents() {
-    // Клавиатура
+    // Клавиатура (только WASD и стрелки, без Space / C / E / Q)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isActive) {
         this.toggle(false);
@@ -173,16 +125,6 @@ export class FreeRoamController {
         case 'KeyD':
         case 'ArrowRight':
           this.keys.right = true;
-          break;
-        case 'Space':
-        case 'KeyE':
-          this.keys.up = true;
-          e.preventDefault();
-          break;
-        case 'KeyC':
-        case 'KeyQ':
-          this.keys.down = true;
-          e.preventDefault();
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
@@ -210,14 +152,6 @@ export class FreeRoamController {
         case 'KeyD':
         case 'ArrowRight':
           this.keys.right = false;
-          break;
-        case 'Space':
-        case 'KeyE':
-          this.keys.up = false;
-          break;
-        case 'KeyC':
-        case 'KeyQ':
-          this.keys.down = false;
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
@@ -248,7 +182,8 @@ export class FreeRoamController {
       const sensitivity = 0.0028;
       this.targetYaw -= dx * sensitivity;
       this.targetPitch -= dy * sensitivity;
-      this.targetPitch = Math.max(-1.45, Math.min(1.45, this.targetPitch));
+      // Естественный угол обзора головы человека (до 48 градусов вверх и вниз)
+      this.targetPitch = Math.max(-0.85, Math.min(0.85, this.targetPitch));
     });
 
     window.addEventListener('mouseup', () => {
@@ -256,7 +191,7 @@ export class FreeRoamController {
       document.body.classList.remove('is-dragging');
     });
 
-    // Мобильный тач
+    // Мобильный тач-джойстик
     const touchZone = this.hudElement.querySelector('#free-roam-touch-zone');
     const knob = this.hudElement.querySelector('#free-roam-joystick-knob');
     const base = this.hudElement.querySelector('#free-roam-joystick-base');
@@ -304,7 +239,7 @@ export class FreeRoamController {
       touchZone.addEventListener('touchcancel', resetJoystick);
     }
 
-    // Свайп для осмотра на мобильных устройствах
+    // Свайп для свободного осмотра 360° на мобильных устройствах
     window.addEventListener('touchstart', (e) => {
       if (!this.isActive) return;
       if (e.target.closest('.free-roam-top-bar') || e.target.closest('#free-roam-touch-zone') || e.target.closest('.site-header')) return;
@@ -325,7 +260,7 @@ export class FreeRoamController {
       const sens = 0.0042;
       this.targetYaw -= dx * sens;
       this.targetPitch -= dy * sens;
-      this.targetPitch = Math.max(-1.45, Math.min(1.45, this.targetPitch));
+      this.targetPitch = Math.max(-0.85, Math.min(0.85, this.targetPitch));
     });
 
     window.addEventListener('touchend', () => {
@@ -342,14 +277,23 @@ export class FreeRoamController {
       document.body.classList.add('is-free-roam');
       this.hudElement.style.display = 'flex';
 
-      // Начинаем Free Roam с текущей позиции камеры
+      // Начинаем Free Roam с текущей позиции камеры, фиксируя уровень глаз
       this.position.copy(this.camera.position);
+      this.position.y = this.EYE_HEIGHT;
+
+      // Ограничиваем начальную позицию разрешенной зоной
+      this.position.z = Math.max(-1.40, Math.min(4.30, this.position.z));
+      if (this.position.z < 0.20) {
+        this.position.x = Math.max(-5.60, Math.min(4.00, this.position.x));
+      } else {
+        this.position.x = Math.max(-8.50, Math.min(5.50, this.position.x));
+      }
 
       // Вычисляем текущие углы взгляда камеры
       const dir = new THREE.Vector3();
       this.camera.getWorldDirection(dir);
       this.targetYaw = Math.atan2(-dir.x, -dir.z);
-      this.targetPitch = Math.asin(Math.max(-1, Math.min(1, dir.y)));
+      this.targetPitch = Math.asin(Math.max(-0.85, Math.min(0.85, dir.y)));
       this.yaw = this.targetYaw;
       this.pitch = this.targetPitch;
       this.velocity.set(0, 0, 0);
@@ -367,15 +311,6 @@ export class FreeRoamController {
     }
   }
 
-  teleportTo(key) {
-    const preset = this.PRESETS[key];
-    if (!preset) return;
-    this.position.copy(preset.pos);
-    this.targetYaw = preset.yaw;
-    this.targetPitch = preset.pitch;
-    this.velocity.set(0, 0, 0);
-  }
-
   update(dt) {
     if (!this.isActive) return;
 
@@ -383,7 +318,7 @@ export class FreeRoamController {
     this.yaw += (this.targetYaw - this.yaw) * 0.22;
     this.pitch += (this.targetPitch - this.pitch) * 0.22;
 
-    // Векторы направлений в горизонтальной плоскости
+    // Векторы направлений в горизонтальной плоскости XZ
     const forwardX = -Math.sin(this.yaw);
     const forwardZ = -Math.cos(this.yaw);
     const rightX = -forwardZ;
@@ -392,7 +327,7 @@ export class FreeRoamController {
     const currentSpeed = this.keys.sprint ? this.sprintSpeed : this.walkSpeed;
     const accel = new THREE.Vector3();
 
-    // Клавиатурное перемещение
+    // Клавиатурное перемещение по горизонтальной плоскости (WASD)
     if (this.keys.forward) {
       accel.x += forwardX * currentSpeed;
       accel.z += forwardZ * currentSpeed;
@@ -409,12 +344,6 @@ export class FreeRoamController {
       accel.x += rightX * currentSpeed;
       accel.z += rightZ * currentSpeed;
     }
-    if (this.keys.up) {
-      accel.y += this.flySpeed;
-    }
-    if (this.keys.down) {
-      accel.y -= this.flySpeed;
-    }
 
     // Мобильный тач-джойстик
     if (this.touchJoystickActive) {
@@ -426,19 +355,34 @@ export class FreeRoamController {
 
     // Интеграция скорости с затуханием (инерция)
     this.velocity.x += accel.x * dt * 8.0;
-    this.velocity.y += accel.y * dt * 8.0;
     this.velocity.z += accel.z * dt * 8.0;
+    this.velocity.y = 0; // Строго запрещен подъем и спуск
 
     this.velocity.x *= this.damping;
-    this.velocity.y *= this.damping;
     this.velocity.z *= this.damping;
 
-    this.position.addScaledVector(this.velocity, dt);
+    this.position.x += this.velocity.x * dt;
+    this.position.z += this.velocity.z * dt;
 
-    // Ограничительный объем сцены (Bounding Box станции и вагона)
-    this.position.x = Math.max(-17.5, Math.min(17.5, this.position.x));
-    this.position.y = Math.max(0.35, Math.min(9.40, this.position.y));
-    this.position.z = Math.max(-4.50, Math.min(19.20, this.position.z));
+    // =========================================================================
+    // ОГРАНИЧЕНИЯ ПЕРЕМЕЩЕНИЯ (ТОЛЬКО ПРОРАБОТАННЫЕ ЗОНЫ):
+    // 1. Внутри вагона: X [-5.60, 4.00], Z [-1.40, 0.20]
+    // 2. На платформе перед стеной с мемами: X [-8.50, 5.50], Z [0.20, 4.30]
+    // 3. Высота строго фиксирована на уровне глаз (1.38 м)
+    // =========================================================================
+    this.position.y = this.EYE_HEIGHT;
+
+    // Ограничение Z: от стены экранов вагона (-1.40) до стены платформы с мемами (4.30)
+    this.position.z = Math.max(-1.40, Math.min(4.30, this.position.z));
+
+    // Ограничение X в зависимости от текущей зоны:
+    if (this.position.z < 0.20) {
+      // Салон вагона метро
+      this.position.x = Math.max(-5.60, Math.min(4.00, this.position.x));
+    } else {
+      // Платформа станции вдоль стены с постерами-мемами
+      this.position.x = Math.max(-8.50, Math.min(5.50, this.position.x));
+    }
 
     // Применение позиции к камере
     this.camera.position.copy(this.position);

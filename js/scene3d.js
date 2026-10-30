@@ -279,51 +279,56 @@ function setupStationEnvironment() {
   const granitePBR = getPlatformGraniteTextures();
 
   // =========================================================================
-  // 1. СТОРОНА B: ПУТЕВАЯ СТЕНА ИЗ БЕЛОЙ ГЛАЗУРОВАННОЙ КЕРАМИЧЕСКОЙ ПЛИТКИ («КАБАНЧИК»)
+  // 1. АРОЧНЫЙ СВОД СТАНЦИИ И ЛАВОЧКИ ПАРИЖСКОГО МЕТРО («Voûte de Métro»)
   // =========================================================================
-  const trackWallZ = -3.25; // 85 см от стены вагона (окна на Z = -2.40)
-  const trackWallW = 54.0; // Простирается на 54м глубоко в оба тоннеля для непрерывности
-  const trackWallH = 3.20;
+  const trackWallW = 54.0;
+  const trackWallZ = -3.25;
 
-  // 1.1 Белоснежная глазурованная плитка с объемной 3D-фаской и зеркальным глянцем
-  const wallGeom = new THREE.PlaneGeometry(trackWallW, trackWallH, 1, 1);
-  const wallMat = new THREE.MeshPhysicalMaterial({
-    map: tilePBR.colorMap,
-    normalMap: tilePBR.normalMap,
-    normalScale: new THREE.Vector2(0.85, 0.85),
-    roughnessMap: tilePBR.roughnessMap,
-    roughness: 0.10,
-    metalness: 0.04,
-    clearcoat: 0.95,
-    clearcoatRoughness: 0.06,
-    reflectivity: 0.90,
-    side: THREE.FrontSide
-  });
-  const trackWallMesh = new THREE.Mesh(wallGeom, wallMat);
-  trackWallMesh.position.set(0, 1.45, trackWallZ);
-  stationEnvGroup.add(trackWallMesh);
+  // 1.1 Загрузка Blender GLTF модели арочного свода и парижских сидений
+  const stationLoader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('./js/vendor/draco/');
+  stationLoader.setDRACOLoader(dracoLoader);
 
-  // 1.2 Темный полированный гранитный цоколь путевой стены
-  const plinthGeom = new THREE.BoxGeometry(trackWallW, 0.40, 0.06);
-  const plinthMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x131519),
-    roughness: 0.30,
-    metalness: 0.40
+  stationLoader.load('assets/models/paris_station.glb', (gltf) => {
+    const model = gltf.scene;
+    model.traverse((child) => {
+      if (!child.isMesh) return;
+      if (child.name === 'Station_Vault_Arch') {
+        child.material = new THREE.MeshPhysicalMaterial({
+          map: tilePBR.colorMap,
+          normalMap: tilePBR.normalMap,
+          normalScale: new THREE.Vector2(0.85, 0.85),
+          roughnessMap: tilePBR.roughnessMap,
+          roughness: 0.10,
+          metalness: 0.04,
+          clearcoat: 0.95,
+          clearcoatRoughness: 0.05,
+          reflectivity: 0.85,
+          side: THREE.DoubleSide
+        });
+      } else if (child.name === 'Paris_Metro_Seats_Red') {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color(0xb91c1c),
+          roughness: 0.10,
+          metalness: 0.04,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.04,
+          reflectivity: 0.90,
+          side: THREE.DoubleSide
+        });
+      } else if (child.name === 'Paris_Metro_Seats_Frames') {
+        child.material = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(0x334155),
+          roughness: 0.24,
+          metalness: 0.92
+        });
+      }
+    });
+    stationEnvGroup.add(model);
+  }, undefined, (err) => {
+    console.error('Ошибка загрузки арочного свода paris_station.glb:', err);
   });
-  const plinthMesh = new THREE.Mesh(plinthGeom, plinthMat);
-  plinthMesh.position.set(0, 0.10, trackWallZ + 0.03);
-  stationEnvGroup.add(plinthMesh);
-
-  // 1.3 Карнизный ретро-пояс мозаики (вишнево-красный с золотистым кантом)
-  const mosaicGeom = new THREE.BoxGeometry(trackWallW, 0.16, 0.04);
-  const mosaicMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x981820),
-    roughness: 0.25,
-    metalness: 0.30
-  });
-  const mosaicMesh = new THREE.Mesh(mosaicGeom, mosaicMat);
-  mosaicMesh.position.set(0, 2.50, trackWallZ + 0.02);
-  stationEnvGroup.add(mosaicMesh);
 
   // 1.4 Аутентичные эмалированные таблички с названием станции («ПЕСКОВСКАЯ»)
   const signTex = getTrackWallSignTexture(THREE);
@@ -339,10 +344,10 @@ function setupStationEnvironment() {
     side: THREE.DoubleSide
   });
 
-  // Таблички размещены вдоль всей путевой стены станции
+  // Таблички размещены вдоль изогнутой путевой стены станции
   [-17.4, -13.0, -8.6, -4.2, 0.0, 4.2, 8.6, 13.0, 17.4].forEach(px => {
     const signMesh = new THREE.Mesh(signGeom, signMat);
-    signMesh.position.set(px, 1.45, trackWallZ + 0.02);
+    signMesh.position.set(px, 1.45, -3.05);
     stationEnvGroup.add(signMesh);
   });
 
@@ -426,9 +431,10 @@ function setupStationEnvironment() {
 
   [-19.4, -15.0, -10.6, -6.2, -1.8, 2.6, 7.0, 11.4, 15.8, 20.2].forEach(cx => {
     const colGroup = new THREE.Group();
-    // Основной ствол колонны (от Y = 0.0 до потолка Y = 3.45)
-    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.52, 3.45, 0.52), colMat);
-    shaft.position.set(0, 1.725, 0);
+    // Основной ствол колонны (от Y = 0.0 до свода Y = 4.45)
+    const colH = 4.45;
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.52, colH, 0.52), colMat);
+    shaft.position.set(0, colH / 2, 0);
     colGroup.add(shaft);
 
     // Стальной отбойник цоколя
@@ -436,35 +442,17 @@ function setupStationEnvironment() {
     baseCuff.position.set(0, 0.175, 0);
     colGroup.add(baseCuff);
 
-    // Капитель под кессонным потолком
+    // Капитель под сводчатым потолком
     const capital = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.12, 0.58), cuffMat);
-    capital.position.set(0, 3.39, 0);
+    capital.position.set(0, colH - 0.06, 0);
     colGroup.add(capital);
 
     colGroup.position.set(cx, 0.0, 2.60);
     stationEnvGroup.add(colGroup);
   });
 
-  // 2.5 Задняя стена вестибюля платформы с арочным порталом для эскалатора (X = -3.765)
-  const backWallMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x181a20),
-    roughness: 0.50,
-    metalness: 0.20
-  });
-
-  // Левая секция стены (X: от -23.0 до -5.85, ширина 17.15)
-  const wallLeftW = 17.15;
-  const backWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(wallLeftW, 3.4), backWallMat);
-  backWallLeft.rotation.y = Math.PI;
-  backWallLeft.position.set(-23.0 + wallLeftW / 2, 1.55, 4.80);
-  stationEnvGroup.add(backWallLeft);
-
-  // Правая секция стены (X: от -1.65 до +23.0, ширина 24.65)
-  const wallRightW = 24.65;
-  const backWallRight = new THREE.Mesh(new THREE.PlaneGeometry(wallRightW, 3.4), backWallMat);
-  backWallRight.rotation.y = Math.PI;
-  backWallRight.position.set(23.0 - wallRightW / 2, 1.55, 4.80);
-  stationEnvGroup.add(backWallRight);
+  // Задняя стена станции и арочный потолок теперь формируются единым
+  // архитектурным сводом Station_Vault_Arch из парижской плитки с синей затиркой.
 
   // 2.5.2 Торцевые порталы станции на краях X = -23.0 и X = +23.0 (вход поезда из тоннеля)
   const stationEndWallMat = new THREE.MeshStandardMaterial({
@@ -496,41 +484,8 @@ function setupStationEnvironment() {
   // Обрамление портала эскалатора (пилоны, притолока, паруса и архивольт)
   // монолитно создаются с субмиллиметровой точностью в createInstantEscalator (subwayExterior.js)
 
-  // 2.6 Аутентичные скамейки на платформе станции (натуральные деревянные рейки + чугунный каркас)
-  [-13.5, -7.8, 0.0, 4.8, 10.5].forEach(bx => {
-    const benchGroup = new THREE.Group();
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x151619, roughness: 0.4, metalness: 0.85 });
-    [-0.85, 0.85].forEach(lx => {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.50), legMat);
-      leg.position.set(lx, 0.22, 0);
-      benchGroup.add(leg);
-
-      const armrest = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.06), legMat);
-      armrest.position.set(lx, 0.52, -0.22);
-      benchGroup.add(armrest);
-    });
-
-    const woodMat = new THREE.MeshStandardMaterial({
-      color: 0xba7a44,
-      roughness: 0.38,
-      metalness: 0.05
-    });
-    // 4 рейки сиденья
-    for (let s = 0; s < 4; s++) {
-      const slat = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.028, 0.09), woodMat);
-      slat.position.set(0, 0.45, -0.15 + s * 0.11);
-      benchGroup.add(slat);
-    }
-    // 3 рейки спинки
-    for (let b = 0; b < 3; b++) {
-      const backSlat = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.09, 0.028), woodMat);
-      backSlat.position.set(0, 0.56 + b * 0.11, -0.23);
-      benchGroup.add(backSlat);
-    }
-
-    benchGroup.position.set(bx, 0.0, 2.35);
-    stationEnvGroup.add(benchGroup);
-  });
+  // Скамейки платформы заменены на аутентичные кресла Парижского метро Coquille/Motte (Paris_Metro_Seats_Red),
+  // установленные вдоль стены платформы под постерами-мемами.
 
   // 2.7 Светящиеся рекламные лайтбоксы-постеры на стене платформы (мемы пользователя)
   const texLoader = new THREE.TextureLoader();
@@ -619,7 +574,7 @@ function setupStationEnvironment() {
     glass.position.set(0, 0, -0.048);
     posterGroup.add(glass);
 
-    posterGroup.position.set(item.x, 1.65, 4.74);
+    posterGroup.position.set(item.x, 1.65, 4.70);
     stationEnvGroup.add(posterGroup);
   });
 

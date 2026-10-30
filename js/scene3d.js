@@ -12,8 +12,7 @@ import {
   getPhotoWallTextures,
   getPhotoDoorTextures,
   getPhotoFloorTextures,
-  getPhotoSeatYellowTextures,
-  getPhotoSeatOrangeTextures,
+  getFiberglassTextures,
   getPhotoVentGrilleTexture,
   getPhotoCeilingLightTexture,
   getStationTileTextures,
@@ -724,8 +723,7 @@ function loadSubwayModel() {
       const wallPBR = getPhotoWallTextures();
       const doorPBR = getPhotoDoorTextures();
       const floorPBR = getPhotoFloorTextures();
-      const seatYellowPBR = getPhotoSeatYellowTextures();
-      const seatOrangePBR = getPhotoSeatOrangeTextures();
+      const fiberNormTex = getFiberglassTextures();
       const ventGrilleTex = getPhotoVentGrilleTexture();
       const ceilingLightTex = getPhotoCeilingLightTexture();
       const tilePBR = getStationTileTextures();
@@ -995,34 +993,45 @@ function loadSubwayModel() {
           return;
         }
 
-        // 14. Желтые сиденья вагона: аутентичный стеклопластик / эргономичные ковши (PBR фототекстура)
-        if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
-          child.material = new THREE.MeshPhysicalMaterial({
-            map: seatYellowPBR.colorMap,
-            normalMap: seatYellowPBR.normalMap,
-            normalScale: new THREE.Vector2(0.85, 0.85),
-            roughnessMap: seatYellowPBR.roughnessMap,
+        // 13b. Металлические каркасы сидений и опорные кронштейны
+        if (child.name.includes('Titanium') || matName === 'Mat_Titanium_Frame' || child.name.includes('Seat_Frame')) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0x2d323e),
             roughness: 0.32,
-            metalness: 0.04,
-            clearcoat: 0.28,
-            clearcoatRoughness: 0.15,
-            side: THREE.DoubleSide
+            metalness: 0.88,
+            side: THREE.FrontSide
           });
           return;
         }
 
-        // 15. Оранжевые сиденья вагона: аутентичный стеклопластик / эргономичные ковши (PBR фототекстура)
+        // 14. Желтые сиденья вагона: аутентичный формованный стеклопластик (глубокий янтарный лак)
+        if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
+          child.material = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(0xfba804),
+            normalMap: fiberNormTex,
+            normalScale: new THREE.Vector2(0.20, 0.20),
+            roughness: 0.15,
+            metalness: 0.0,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.03,
+            reflectivity: 0.65,
+            side: THREE.FrontSide
+          });
+          return;
+        }
+
+        // 15. Оранжевые сиденья вагона: аутентичный формованный стеклопластик (глубокий терракотовый лак)
         if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
           child.material = new THREE.MeshPhysicalMaterial({
-            map: seatOrangePBR.colorMap,
-            normalMap: seatOrangePBR.normalMap,
-            normalScale: new THREE.Vector2(0.85, 0.85),
-            roughnessMap: seatOrangePBR.roughnessMap,
-            roughness: 0.32,
-            metalness: 0.04,
-            clearcoat: 0.28,
-            clearcoatRoughness: 0.15,
-            side: THREE.DoubleSide
+            color: new THREE.Color(0xe94d0a),
+            normalMap: fiberNormTex,
+            normalScale: new THREE.Vector2(0.20, 0.20),
+            roughness: 0.15,
+            metalness: 0.0,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.03,
+            reflectivity: 0.65,
+            side: THREE.FrontSide
           });
           return;
         }

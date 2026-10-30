@@ -447,20 +447,63 @@ function createSeatFabricPBR(type, palette) {
   return result;
 }
 
-export function getPhotoSeatYellowTextures() {
-  return {
-    colorMap: loadPBRTexture('assets/textures/pbr_seat_yellow_color.webp', 1, 1, true),
-    normalMap: loadPBRTexture('assets/textures/pbr_seat_yellow_normal.webp', 1, 1, false),
-    roughnessMap: loadPBRTexture('assets/textures/pbr_seat_yellow_roughness.webp', 1, 1, false)
+// =============================================================================
+// 2. СТЕКЛОПЛАСТИК СИДЕНИЙ ВАГОНА (RETRO MOLDED FIBERGLASS RESIN PBR)
+// =============================================================================
+export function getFiberglassTextures() {
+  if (textureCache.has('fiberglass_resin_norm')) return textureCache.get('fiberglass_resin_norm');
+
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Базовый цвет карты нормалей в tangent space: (128, 128, 255) строго перпендикулярно грани (Z = +1)
+  ctx.fillStyle = '#8080ff';
+  ctx.fillRect(0, 0, size, size);
+
+  // Тончайшая микроволокнистая текстура стекломата под слоем прозрачной смолы
+  ctx.lineWidth = 1.0;
+  let seed = 42891;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
   };
+  for (let i = 0; i < 400; i++) {
+    const x = rnd() * size;
+    const y = rnd() * size;
+    const len = 6 + rnd() * 16;
+    const angle = rnd() * Math.PI * 2;
+    const dx = Math.cos(angle) * len;
+    const dy = Math.sin(angle) * len;
+    const nx = Math.round(128 + Math.cos(angle) * 8);
+    const ny = Math.round(128 + Math.sin(angle) * 8);
+    ctx.strokeStyle = `rgb(${nx}, ${ny}, 255)`;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + dx, y + dy);
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4);
+  tex.generateMipmaps = true;
+  tex.anisotropy = 8;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  textureCache.set('fiberglass_resin_norm', tex);
+  return tex;
+}
+
+export function getPhotoSeatYellowTextures() {
+  return { normalMap: getFiberglassTextures() };
 }
 
 export function getPhotoSeatOrangeTextures() {
-  return {
-    colorMap: loadPBRTexture('assets/textures/pbr_seat_orange_color.webp', 1, 1, true),
-    normalMap: loadPBRTexture('assets/textures/pbr_seat_orange_normal.webp', 1, 1, false),
-    roughnessMap: loadPBRTexture('assets/textures/pbr_seat_orange_roughness.webp', 1, 1, false)
-  };
+  return { normalMap: getFiberglassTextures() };
 }
 
 // =============================================================================

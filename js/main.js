@@ -645,7 +645,7 @@ function initServiceWorker() {
 
     // В продакшне регистрируем Network-First Service Worker для плавной работы
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=20261030_1830').then((reg) => {
+      navigator.serviceWorker.register('./sw.js?v=20261030_2325').then((reg) => {
         // Принудительно проверяем наличие новой версии на сервере
         reg.update().catch(() => {});
       }).catch(() => {});

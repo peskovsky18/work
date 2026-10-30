@@ -895,7 +895,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261030_2230',
+    'assets/models/subway.glb?v=20261030_2325',
     (gltf) => {
       subwayModel = gltf.scene;
 

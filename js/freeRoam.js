@@ -283,11 +283,11 @@ export class FreeRoamController {
 
       // Безопасное проецирование стартовой точки в допустимую область
       if (this.position.z < 0.0) {
-        this.position.x = Math.max(-5.40, Math.min(4.30, this.position.x));
-        this.position.z = Math.max(-1.65, Math.min(-0.15, this.position.z));
+        this.position.x = Math.max(-5.35, Math.min(4.25, this.position.x));
+        this.position.z = Math.max(-1.65, Math.min(-0.25, this.position.z));
       } else {
-        this.position.x = Math.max(-8.30, Math.min(5.30, this.position.x));
-        this.position.z = Math.max(0.20, Math.min(4.30, this.position.z));
+        this.position.x = Math.max(-8.50, Math.min(5.50, this.position.x));
+        this.position.z = Math.max(0.30, Math.min(3.80, this.position.z));
       }
       this.resolveCollisions(this.position, null);
 
@@ -314,9 +314,9 @@ export class FreeRoamController {
   }
 
   isDoorway(x) {
-    // Дверной проем 1: центр -3.765 (створки открыты от -4.30 до -3.20)
-    // Дверной проем 2: центр 3.765 (створки открыты от 3.20 до 4.30)
-    return (x >= -4.25 && x <= -3.25) || (x >= 3.25 && x <= 4.25);
+    // Дверной проем 1: центр -3.765 (створки открыты от -4.18 до -3.35)
+    // Дверной проем 2: центр +3.765 (створки открыты от 3.35 до 4.18)
+    return (x >= -4.18 && x <= -3.35) || (x >= 3.35 && x <= 4.18);
   }
 
   resolveCollisions(pos, oldPos) {
@@ -325,85 +325,126 @@ export class FreeRoamController {
     const inDoorNow = this.isDoorway(pos.x);
     const inDoorOld = oldPos ? this.isDoorway(oldPos.x) : inDoorNow;
 
-    // 1. Из вагона на платформу (Z переходит через границу стены экранов -0.15)
-    if (oldPos && oldPos.z <= -0.15) {
-      if (pos.z > -0.15) {
-        if (!inDoorNow && !inDoorOld) {
-          pos.z = -0.15; // Упираемся в глухую стену с экранами/окнами
-          if (this.velocity.z > 0) this.velocity.z = 0;
-        } else {
-          // В створе дверей: удерживаем внутри проема
-          if (pos.x < 0) pos.x = Math.max(-4.20, Math.min(-3.30, pos.x));
-          else pos.x = Math.max(3.30, Math.min(4.20, pos.x));
-        }
-      }
-    }
+    // =========================================================================
+    // 1. СТРОГИЕ НЕПРОНИЦАЕМЫЕ СТЕНЫ ВАГОНА И ДВЕРНЫЕ ПОРТАЛЫ
+    // Вход и выход возможны ИСКЛЮЧИТЕЛЬНО через открытые двери!
+    // Стена вагона, окна и экраны непроницаемы для движения.
+    // =========================================================================
+    const CAR_WALL_Z = -0.22;       // Внутренняя плоскость стен вагона
+    const PLATFORM_WALL_Z = 0.22;   // Внешний борт кузова вагона со стороны платформы
 
-    // 2. С платформы в вагон (Z переходит через внешнюю стену поезда 0.20)
-    if (oldPos && oldPos.z >= 0.20) {
-      if (pos.z < 0.20) {
-        if (!inDoorNow && !inDoorOld) {
-          pos.z = 0.20; // Упираемся в кузов вагона снаружи
-          if (this.velocity.z < 0) this.velocity.z = 0;
-        } else {
-          // В створе дверей: удерживаем внутри проема
-          if (pos.x < 0) pos.x = Math.max(-4.20, Math.min(-3.30, pos.x));
-          else pos.x = Math.max(3.30, Math.min(4.20, pos.x));
+    if (oldPos) {
+      if (oldPos.z <= CAR_WALL_Z) {
+        // Движение из вагона в сторону платформы
+        if (pos.z > CAR_WALL_Z) {
+          if (!inDoorNow && !inDoorOld) {
+            pos.z = CAR_WALL_Z; // Упираемся в глухую стену с экранами/окнами
+            if (this.velocity.z > 0) this.velocity.z = 0;
+          } else {
+            // В створе дверей: удерживаем строго внутри проема
+            if (pos.x < 0) pos.x = Math.max(-4.15, Math.min(-3.38, pos.x));
+            else pos.x = Math.max(3.38, Math.min(4.15, pos.x));
+          }
         }
-      }
-    }
-
-    // 3. Внутри дверного коридора Z [-0.15, 0.20] (дверной косяк)
-    if (pos.z >= -0.15 && pos.z <= 0.20) {
-      if (pos.x < 0) {
-        pos.x = Math.max(-4.20, Math.min(-3.30, pos.x));
+      } else if (oldPos.z >= PLATFORM_WALL_Z) {
+        // Движение с платформы в сторону вагона
+        if (pos.z < PLATFORM_WALL_Z) {
+          if (!inDoorNow && !inDoorOld) {
+            pos.z = PLATFORM_WALL_Z; // Упираемся в глухой кузов вагона снаружи
+            if (this.velocity.z < 0) this.velocity.z = 0;
+          } else {
+            // В створе дверей: удерживаем строго внутри проема
+            if (pos.x < 0) pos.x = Math.max(-4.15, Math.min(-3.38, pos.x));
+            else pos.x = Math.max(3.38, Math.min(4.15, pos.x));
+          }
+        }
       } else {
-        pos.x = Math.max(3.30, Math.min(4.20, pos.x));
+        // Игрок уже внутри дверного коридора Z [-0.22, 0.22]
+        if (pos.x < 0) pos.x = Math.max(-4.15, Math.min(-3.38, pos.x));
+        else pos.x = Math.max(3.38, Math.min(4.15, pos.x));
+      }
+    } else {
+      // Инициализация/сброс: если вне дверей и в толще стены — выталкиваем в безопасную зону
+      if (pos.z > CAR_WALL_Z && pos.z < PLATFORM_WALL_Z) {
+        if (!inDoorNow) {
+          if (pos.z < 0.0) pos.z = CAR_WALL_Z;
+          else pos.z = PLATFORM_WALL_Z;
+        }
       }
     }
 
-    // 4. Препятствия на платформе: сиденья Парижского метро вдоль стены
-    if (pos.z >= 0.20) {
-      const seatGroups = [
-        { cx: -7.5, hw: 1.25 }, // под постером Муравей
-        { cx: -0.7, hw: 1.25 }, // под постером Обезьяна
-        { cx: 1.7, hw: 1.25 },  // под постером Дельфины
-        { cx: 4.7, hw: 1.25 },  // под постером Лев
+    // =========================================================================
+    // 2. ПРЕПЯТСТВИЯ НА ПЛАТФОРМЕ СТАНЦИИ
+    // - Вендинговый автомат Necta Melodia строго по центру (X = 0.0)
+    // - Ровно две скамейки Парижского метро: слева (X = -2.20) и справа (X = +2.20)
+    // - Колонны платформы (Z = 2.60)
+    // =========================================================================
+    if (pos.z >= PLATFORM_WALL_Z) {
+      const obstacles = [
+        // Вендинговый автомат между скамейками (X = 0.0, Z = 4.26, габариты 0.88 x 0.84м)
+        { minX: -0.52, maxX: 0.52, minZ: 3.76, maxZ: 4.60 },
+        // Левая скамейка Парижского метро (4 места, X = -2.20, Z = 4.25)
+        { minX: -3.15, maxX: -1.25, minZ: 3.82, maxZ: 4.60 },
+        // Правая скамейка Парижского метро (4 места, X = +2.20, Z = 4.25)
+        { minX: 1.25, maxX: 3.15, minZ: 3.82, maxZ: 4.60 }
       ];
-      for (const sg of seatGroups) {
-        const hw = sg.hw;
-        const hz = 0.30;
-        const bz = 4.35;
-        if (pos.x >= sg.cx - hw && pos.x <= sg.cx + hw && pos.z >= bz - hz && pos.z <= bz + hz) {
-          if (oldPos) {
-            const dxLeft = Math.abs(pos.x - (sg.cx - hw));
-            const dxRight = Math.abs((sg.cx + hw) - pos.x);
-            const dzFront = Math.abs(pos.z - (bz - hz));
-            const dzBack = Math.abs((bz + hz) - pos.z);
-            const minDist = Math.min(dxLeft, dxRight, dzFront, dzBack);
-            if (minDist === dzFront) { pos.z = bz - hz; if (this.velocity.z > 0) this.velocity.z = 0; }
-            else if (minDist === dzBack) { pos.z = bz + hz; if (this.velocity.z < 0) this.velocity.z = 0; }
-            else if (minDist === dxLeft) { pos.x = sg.cx - hw; if (this.velocity.x > 0) this.velocity.x = 0; }
-            else { pos.x = sg.cx + hw; if (this.velocity.x < 0) this.velocity.x = 0; }
+
+      for (const obs of obstacles) {
+        if (pos.x >= obs.minX && pos.x <= obs.maxX && pos.z >= obs.minZ && pos.z <= obs.maxZ) {
+          const dLeft = Math.abs(pos.x - obs.minX);
+          const dRight = Math.abs(obs.maxX - pos.x);
+          const dFront = Math.abs(pos.z - obs.minZ);
+          const dBack = Math.abs(obs.maxZ - pos.z);
+          const minD = Math.min(dLeft, dRight, dFront, dBack);
+
+          if (minD === dFront) {
+            pos.z = obs.minZ;
+            if (this.velocity.z > 0) this.velocity.z = 0;
+          } else if (minD === dBack) {
+            pos.z = obs.maxZ;
+            if (this.velocity.z < 0) this.velocity.z = 0;
+          } else if (minD === dLeft) {
+            pos.x = obs.minX;
+            if (this.velocity.x > 0) this.velocity.x = 0;
+          } else {
+            pos.x = obs.maxX;
+            if (this.velocity.x < 0) this.velocity.x = 0;
           }
         }
       }
+
+      // Архитектурные колонны платформы (Z = 2.60)
+      const columnXs = [-19.4, -15.0, -10.6, -6.2, -1.8, 2.6, 7.0, 11.4, 15.8, 20.2];
+      const colRadius = 0.38;
+      for (const cx of columnXs) {
+        const dx = pos.x - cx;
+        const dz = pos.z - 2.60;
+        const distSq = dx * dx + dz * dz;
+        if (distSq < colRadius * colRadius) {
+          const dist = Math.sqrt(distSq) || 0.001;
+          const push = colRadius - dist;
+          pos.x += (dx / dist) * push;
+          pos.z += (dz / dist) * push;
+        }
+      }
     }
 
-    // 5. Внешние габариты доступных зон
-    if (pos.z < 0.0) {
+    // =========================================================================
+    // 3. ВНЕШНИЕ ПЕРИМЕТРЫ ДОПУСТИМЫХ ЗОН
+    // =========================================================================
+    if (pos.z <= CAR_WALL_Z) {
       // Внутри вагона: торцевые межвагонные переборки и задний ряд сидений
-      const minX = -5.40;
-      const maxX = 4.30;
+      const minX = -5.35;
+      const maxX = 4.25;
       const minZ = -1.65;
       if (pos.x <= minX) { pos.x = minX; if (this.velocity.x < 0) this.velocity.x = 0; }
       if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
       if (pos.z <= minZ) { pos.z = minZ; if (this.velocity.z < 0) this.velocity.z = 0; }
-    } else {
-      // На платформе станции: свободный проход вдоль стены с постерами-мемами и парижскими креслами
-      const minX = -9.00;
-      const maxX = 6.00;
-      const maxZ = 4.10; // вплотную перед парижскими сиденьями
+    } else if (pos.z >= PLATFORM_WALL_Z) {
+      // На платформе станции
+      const minX = -8.80;
+      const maxX = 5.80;
+      const maxZ = 4.05; // Вплотную перед парижскими сиденьями и автоматом
       if (pos.x <= minX) { pos.x = minX; if (this.velocity.x < 0) this.velocity.x = 0; }
       if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
       if (pos.z >= maxZ) { pos.z = maxZ; if (this.velocity.z > 0) this.velocity.z = 0; }

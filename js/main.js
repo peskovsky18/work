@@ -86,6 +86,25 @@ function initNavigation() {
       }
     }
   }, { passive: true });
+
+  // Кнопка входа в вагон со стартового интро
+  const introExploreBtn = document.getElementById('intro-explore-btn');
+  if (introExploreBtn) {
+    introExploreBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      playNavTick();
+      scrollToStage(1);
+    });
+  }
+
+  // Кнопка быстрого пропуска спуска в прелоадере
+  const skipBtn = document.getElementById('preloader-skip-btn');
+  if (skipBtn) {
+    skipBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.skipDescent) window.skipDescent();
+    });
+  }
 }
 
 // =============================================================================

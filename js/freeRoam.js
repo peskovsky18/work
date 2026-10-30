@@ -362,24 +362,29 @@ export class FreeRoamController {
       }
     }
 
-    // 4. Препятствия на платформе: скамейки станции
+    // 4. Препятствия на платформе: сиденья Парижского метро вдоль стены
     if (pos.z >= 0.20) {
-      const benches = [-7.8, 0.0, 4.8];
-      for (const bx of benches) {
-        const hw = 1.05;
-        const hz = 0.32;
-        const bz = 2.35;
-        if (pos.x >= bx - hw && pos.x <= bx + hw && pos.z >= bz - hz && pos.z <= bz + hz) {
+      const seatGroups = [
+        { cx: -7.5, hw: 1.25 }, // под постером Муравей
+        { cx: -0.7, hw: 1.25 }, // под постером Обезьяна
+        { cx: 1.7, hw: 1.25 },  // под постером Дельфины
+        { cx: 4.7, hw: 1.25 },  // под постером Лев
+      ];
+      for (const sg of seatGroups) {
+        const hw = sg.hw;
+        const hz = 0.30;
+        const bz = 4.35;
+        if (pos.x >= sg.cx - hw && pos.x <= sg.cx + hw && pos.z >= bz - hz && pos.z <= bz + hz) {
           if (oldPos) {
-            const dxLeft = Math.abs(pos.x - (bx - hw));
-            const dxRight = Math.abs((bx + hw) - pos.x);
+            const dxLeft = Math.abs(pos.x - (sg.cx - hw));
+            const dxRight = Math.abs((sg.cx + hw) - pos.x);
             const dzFront = Math.abs(pos.z - (bz - hz));
             const dzBack = Math.abs((bz + hz) - pos.z);
             const minDist = Math.min(dxLeft, dxRight, dzFront, dzBack);
             if (minDist === dzFront) { pos.z = bz - hz; if (this.velocity.z > 0) this.velocity.z = 0; }
             else if (minDist === dzBack) { pos.z = bz + hz; if (this.velocity.z < 0) this.velocity.z = 0; }
-            else if (minDist === dxLeft) { pos.x = bx - hw; if (this.velocity.x > 0) this.velocity.x = 0; }
-            else { pos.x = bx + hw; if (this.velocity.x < 0) this.velocity.x = 0; }
+            else if (minDist === dxLeft) { pos.x = sg.cx - hw; if (this.velocity.x > 0) this.velocity.x = 0; }
+            else { pos.x = sg.cx + hw; if (this.velocity.x < 0) this.velocity.x = 0; }
           }
         }
       }
@@ -395,10 +400,10 @@ export class FreeRoamController {
       if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
       if (pos.z <= minZ) { pos.z = minZ; if (this.velocity.z < 0) this.velocity.z = 0; }
     } else {
-      // На платформе станции: ограничение вдоль стены с постерами-мемами
-      const minX = -8.30;
-      const maxX = 5.30;
-      const maxZ = 4.30;
+      // На платформе станции: свободный проход вдоль стены с постерами-мемами и парижскими креслами
+      const minX = -9.00;
+      const maxX = 6.00;
+      const maxZ = 4.10; // вплотную перед парижскими сиденьями
       if (pos.x <= minX) { pos.x = minX; if (this.velocity.x < 0) this.velocity.x = 0; }
       if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
       if (pos.z >= maxZ) { pos.z = maxZ; if (this.velocity.z > 0) this.velocity.z = 0; }

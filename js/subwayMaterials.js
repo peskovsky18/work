@@ -588,19 +588,20 @@ export function getStationTileTextures() {
 
   const width = 2048;
   const height = 1024;
-  const cols = 8;
-  const rows = 8;
+  const cols = 16; // Вдвое меньший размер плитки для изящной парижской эстетики
+  const rows = 16;
   const tileW = width / cols;
   const tileH = height / rows;
-  const bevel = 9;
-  const grout = 3.5;
+  const bevel = 5.0;
+  const grout = 2.4;
 
-  // 5.1 Color Map: сияющая белая глазурованная плитка
+  // 5.1 Color Map: сияющая белая глазурованная плитка с синей затиркой швов (Paris Metro Liège)
   const colorCanvas = document.createElement('canvas');
   colorCanvas.width = width;
   colorCanvas.height = height;
   const cctx = colorCanvas.getContext('2d');
-  cctx.fillStyle = '#b8c0cc'; // Аккуратная светло-серая затирка швов
+  // Насыщенная кобальтово-синяя затирка швов
+  cctx.fillStyle = '#1d4ed8';
   cctx.fillRect(0, 0, width, height);
 
   // 5.2 Normal Map: рельефные 3D-фаски плиток
@@ -611,12 +612,12 @@ export function getStationTileTextures() {
   nctx.fillStyle = 'rgb(128, 128, 255)';
   nctx.fillRect(0, 0, width, height);
 
-  // 5.3 Roughness Map: глянцевая глазурь (0.09) и матовые швы (0.75)
+  // 5.3 Roughness Map: глянцевая глазурь (0.08) и матовые швы (0.85)
   const roughCanvas = document.createElement('canvas');
   roughCanvas.width = width;
   roughCanvas.height = height;
   const rctx = roughCanvas.getContext('2d');
-  rctx.fillStyle = 'rgb(190, 190, 190)';
+  rctx.fillStyle = 'rgb(215, 215, 215)'; // матовые швы
   rctx.fillRect(0, 0, width, height);
 
   for (let r = 0; r < rows; r++) {
@@ -634,9 +635,9 @@ export function getStationTileTextures() {
       // Тело белой плитки с мягким светотеневым градиентом керамики
       const grad = cctx.createLinearGradient(tx, ty, tx + tw, ty + th);
       grad.addColorStop(0.0, '#ffffff');
-      grad.addColorStop(0.35, '#f9fbff');
-      grad.addColorStop(0.75, '#f3f6fb');
-      grad.addColorStop(1.0, '#eaf0f8');
+      grad.addColorStop(0.35, '#fbfcfe');
+      grad.addColorStop(0.75, '#f5f7fb');
+      grad.addColorStop(1.0, '#edf2f9');
       cctx.fillStyle = grad;
       cctx.fillRect(tx, ty, tw, th);
 
@@ -645,15 +646,15 @@ export function getStationTileTextures() {
       cctx.fillRect(tx, ty, tw, bevel * 0.75);
       cctx.fillRect(tx, ty, bevel * 0.75, th);
 
-      // Нижняя и правая теневые фаски (Ambient Shadow)
-      cctx.fillStyle = 'rgba(175, 190, 210, 0.45)';
+      // Нижняя и правая теневые фаски с синеватым отсветом шва
+      cctx.fillStyle = 'rgba(29, 78, 216, 0.28)';
       cctx.fillRect(tx, ty + th - bevel * 0.85, tw, bevel * 0.85);
       cctx.fillRect(tx + tw - bevel * 0.85, ty, bevel * 0.85, th);
 
       // Глянцевая глазурь
-      rctx.fillStyle = 'rgb(22, 22, 22)'; // 0.08 roughness (зеркальный глянец)
+      rctx.fillStyle = 'rgb(18, 18, 18)'; // 0.07 roughness (зеркальный глянец)
       rctx.fillRect(tx + bevel, ty + bevel, tw - bevel * 2, th - bevel * 2);
-      rctx.fillStyle = 'rgb(44, 44, 44)'; // 0.17 roughness на фаске
+      rctx.fillStyle = 'rgb(38, 38, 38)'; // 0.15 roughness на фаске
       rctx.fillRect(tx, ty, tw, bevel);
       rctx.fillRect(tx, ty + th - bevel, tw, bevel);
       rctx.fillRect(tx, ty, bevel, th);
@@ -674,10 +675,11 @@ export function getStationTileTextures() {
   }
 
   const result = {
-    colorMap: createHighResTexture(colorCanvas, 5, 2.2),
-    normalMap: createNormalTexture(normalCanvas, 5, 2.2),
-    roughnessMap: createNormalTexture(roughCanvas, 5, 2.2)
+    colorMap: createHighResTexture(colorCanvas, 8, 4),
+    normalMap: createNormalTexture(normalCanvas, 8, 4),
+    roughnessMap: createNormalTexture(roughCanvas, 8, 4)
   };
+
   textureCache.set('station_tiles_white_pbr', result);
   return result;
 }

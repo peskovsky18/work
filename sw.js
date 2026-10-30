@@ -4,7 +4,7 @@
  * Гарантирует мгновенное обновление сайта на всех мобильных и десктопных устройствах
  */
 
-const CACHE_NAME = 'subway-portfolio-v20261030_1935';
+const CACHE_NAME = 'subway-portfolio-v20261030_2010';
 
 self.addEventListener('install', (event) => {
   // Немедленно активируем новый Service Worker, не дожидаясь закрытия вкладок

@@ -1794,53 +1794,37 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
 // =============================================================================
 export function setupStationCeilingAndArchitecture(stationEnvGroup) {
   const ceilingW = 46.0;
-  const ceilingDepth = 5.38; // от Z = -0.60 (над путями) до Z = 4.78 (строго до задней стены станции Z = 4.80)
-  const ceilingZ = 2.09;
-  const ceilingY = 3.45;
+  // Сводчатый арочный потолок («Voûte de Métro») генерируется в Station_Vault_Arch,
+  // поэтому плоская плоскость старого потолка исключена для открытого обзора арки.
+  const ceilingY = 4.35;
 
-  const ceilingTex = getStationCeilingTexture();
-  ceilingTex.wrapS = THREE.RepeatWrapping;
-  ceilingTex.wrapT = THREE.RepeatWrapping;
-  ceilingTex.repeat.set(10, 2);
-
-  const ceilingMat = new THREE.MeshStandardMaterial({
-    map: ceilingTex,
-    roughness: 0.55,
-    metalness: 0.25,
-    side: THREE.DoubleSide
-  });
-
-  const ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(ceilingW, ceilingDepth), ceilingMat);
-  ceilingMesh.rotation.x = Math.PI / 2;
-  ceilingMesh.position.set(0, ceilingY, ceilingZ);
-  stationEnvGroup.add(ceilingMesh);
-
-  // Световые линии на потолке платформы (внутри Z от 0.0 до 4.6)
-  [0.8, 2.4, 4.0].forEach((lz) => {
+  // Элегантные продольные световые линии под арочным сводом станции
+  [1.0, 2.6].forEach((lz) => {
     const lightBar = new THREE.Mesh(
       new THREE.BoxGeometry(ceilingW - 2.0, 0.04, 0.16),
       new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        emissive: new THREE.Color(0xffeedd),
+        emissive: new THREE.Color(0xfff0dd),
         emissiveIntensity: 3.2,
         roughness: 0.10
       })
     );
-    lightBar.position.set(0, ceilingY - 0.02, lz);
+    lightBar.position.set(0, ceilingY, lz);
     stationEnvGroup.add(lightBar);
   });
 
-  // ОПТИМИЗАЦИЯ: 3 мягких источника на платформе вдоль всей длины состава
-  const platFill1 = new THREE.PointLight(0xffe8d2, 2.2, 22.0, 1.2);
-  platFill1.position.set(-10.0, ceilingY - 0.35, 2.4);
+  // Мягкое архитектурное заполняющее освещение станции под сводом (3000K Warm White)
+  const platFill1 = new THREE.PointLight(0xffe8d2, 2.4, 25.0, 1.1);
+  platFill1.position.set(-10.0, ceilingY - 0.40, 2.4);
   stationEnvGroup.add(platFill1);
 
-  const platFill2 = new THREE.PointLight(0xffe8d2, 2.2, 22.0, 1.2);
-  platFill2.position.set(0.0, ceilingY - 0.35, 2.4);
+  const platFill2 = new THREE.PointLight(0xffe8d2, 2.4, 25.0, 1.1);
+  platFill2.position.set(0.0, ceilingY - 0.40, 2.4);
   stationEnvGroup.add(platFill2);
 
-  const platFill3 = new THREE.PointLight(0xffe8d2, 2.2, 22.0, 1.2);
-  platFill3.position.set(10.0, ceilingY - 0.35, 2.4);
+  const platFill3 = new THREE.PointLight(0xffe8d2, 2.4, 25.0, 1.1);
+  platFill3.position.set(10.0, ceilingY - 0.40, 2.4);
+  stationEnvGroup.add(platFill3);
   stationEnvGroup.add(platFill3);
 
   // Навигационные световые табло

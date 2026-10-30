@@ -281,13 +281,15 @@ export class FreeRoamController {
       this.position.copy(this.camera.position);
       this.position.y = this.EYE_HEIGHT;
 
-      // Ограничиваем начальную позицию разрешенной зоной
-      this.position.z = Math.max(-1.40, Math.min(4.30, this.position.z));
-      if (this.position.z < 0.20) {
-        this.position.x = Math.max(-5.60, Math.min(4.00, this.position.x));
+      // Безопасное проецирование стартовой точки в допустимую область
+      if (this.position.z < 0.0) {
+        this.position.x = Math.max(-5.40, Math.min(4.30, this.position.x));
+        this.position.z = Math.max(-1.65, Math.min(-0.15, this.position.z));
       } else {
-        this.position.x = Math.max(-8.50, Math.min(5.50, this.position.x));
+        this.position.x = Math.max(-8.30, Math.min(5.30, this.position.x));
+        this.position.z = Math.max(0.20, Math.min(4.30, this.position.z));
       }
+      this.resolveCollisions(this.position, null);
 
       // Вычисляем текущие углы взгляда камеры
       const dir = new THREE.Vector3();
@@ -308,6 +310,98 @@ export class FreeRoamController {
 
     if (this.onToggleCallback) {
       this.onToggleCallback(this.isActive);
+    }
+  }
+
+  isDoorway(x) {
+    // Дверной проем 1: центр -3.765 (створки открыты от -4.30 до -3.20)
+    // Дверной проем 2: центр 3.765 (створки открыты от 3.20 до 4.30)
+    return (x >= -4.25 && x <= -3.25) || (x >= 3.25 && x <= 4.25);
+  }
+
+  resolveCollisions(pos, oldPos) {
+    pos.y = this.EYE_HEIGHT;
+
+    const inDoorNow = this.isDoorway(pos.x);
+    const inDoorOld = oldPos ? this.isDoorway(oldPos.x) : inDoorNow;
+
+    // 1. Из вагона на платформу (Z переходит через границу стены экранов -0.15)
+    if (oldPos && oldPos.z <= -0.15) {
+      if (pos.z > -0.15) {
+        if (!inDoorNow && !inDoorOld) {
+          pos.z = -0.15; // Упираемся в глухую стену с экранами/окнами
+          if (this.velocity.z > 0) this.velocity.z = 0;
+        } else {
+          // В створе дверей: удерживаем внутри проема
+          if (pos.x < 0) pos.x = Math.max(-4.20, Math.min(-3.30, pos.x));
+          else pos.x = Math.max(3.30, Math.min(4.20, pos.x));
+        }
+      }
+    }
+
+    // 2. С платформы в вагон (Z переходит через внешнюю стену поезда 0.20)
+    if (oldPos && oldPos.z >= 0.20) {
+      if (pos.z < 0.20) {
+        if (!inDoorNow && !inDoorOld) {
+          pos.z = 0.20; // Упираемся в кузов вагона снаружи
+          if (this.velocity.z < 0) this.velocity.z = 0;
+        } else {
+          // В створе дверей: удерживаем внутри проема
+          if (pos.x < 0) pos.x = Math.max(-4.20, Math.min(-3.30, pos.x));
+          else pos.x = Math.max(3.30, Math.min(4.20, pos.x));
+        }
+      }
+    }
+
+    // 3. Внутри дверного коридора Z [-0.15, 0.20] (дверной косяк)
+    if (pos.z >= -0.15 && pos.z <= 0.20) {
+      if (pos.x < 0) {
+        pos.x = Math.max(-4.20, Math.min(-3.30, pos.x));
+      } else {
+        pos.x = Math.max(3.30, Math.min(4.20, pos.x));
+      }
+    }
+
+    // 4. Препятствия на платформе: скамейки станции
+    if (pos.z >= 0.20) {
+      const benches = [-7.8, 0.0, 4.8];
+      for (const bx of benches) {
+        const hw = 1.05;
+        const hz = 0.32;
+        const bz = 2.35;
+        if (pos.x >= bx - hw && pos.x <= bx + hw && pos.z >= bz - hz && pos.z <= bz + hz) {
+          if (oldPos) {
+            const dxLeft = Math.abs(pos.x - (bx - hw));
+            const dxRight = Math.abs((bx + hw) - pos.x);
+            const dzFront = Math.abs(pos.z - (bz - hz));
+            const dzBack = Math.abs((bz + hz) - pos.z);
+            const minDist = Math.min(dxLeft, dxRight, dzFront, dzBack);
+            if (minDist === dzFront) { pos.z = bz - hz; if (this.velocity.z > 0) this.velocity.z = 0; }
+            else if (minDist === dzBack) { pos.z = bz + hz; if (this.velocity.z < 0) this.velocity.z = 0; }
+            else if (minDist === dxLeft) { pos.x = bx - hw; if (this.velocity.x > 0) this.velocity.x = 0; }
+            else { pos.x = bx + hw; if (this.velocity.x < 0) this.velocity.x = 0; }
+          }
+        }
+      }
+    }
+
+    // 5. Внешние габариты доступных зон
+    if (pos.z < 0.0) {
+      // Внутри вагона: торцевые межвагонные переборки и задний ряд сидений
+      const minX = -5.40;
+      const maxX = 4.30;
+      const minZ = -1.65;
+      if (pos.x <= minX) { pos.x = minX; if (this.velocity.x < 0) this.velocity.x = 0; }
+      if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
+      if (pos.z <= minZ) { pos.z = minZ; if (this.velocity.z < 0) this.velocity.z = 0; }
+    } else {
+      // На платформе станции: ограничение вдоль стены с постерами-мемами
+      const minX = -8.30;
+      const maxX = 5.30;
+      const maxZ = 4.30;
+      if (pos.x <= minX) { pos.x = minX; if (this.velocity.x < 0) this.velocity.x = 0; }
+      if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
+      if (pos.z >= maxZ) { pos.z = maxZ; if (this.velocity.z > 0) this.velocity.z = 0; }
     }
   }
 
@@ -361,28 +455,12 @@ export class FreeRoamController {
     this.velocity.x *= this.damping;
     this.velocity.z *= this.damping;
 
+    const oldPos = this.position.clone();
     this.position.x += this.velocity.x * dt;
     this.position.z += this.velocity.z * dt;
 
-    // =========================================================================
-    // ОГРАНИЧЕНИЯ ПЕРЕМЕЩЕНИЯ (ТОЛЬКО ПРОРАБОТАННЫЕ ЗОНЫ):
-    // 1. Внутри вагона: X [-5.60, 4.00], Z [-1.40, 0.20]
-    // 2. На платформе перед стеной с мемами: X [-8.50, 5.50], Z [0.20, 4.30]
-    // 3. Высота строго фиксирована на уровне глаз (1.38 м)
-    // =========================================================================
-    this.position.y = this.EYE_HEIGHT;
-
-    // Ограничение Z: от стены экранов вагона (-1.40) до стены платформы с мемами (4.30)
-    this.position.z = Math.max(-1.40, Math.min(4.30, this.position.z));
-
-    // Ограничение X в зависимости от текущей зоны:
-    if (this.position.z < 0.20) {
-      // Салон вагона метро
-      this.position.x = Math.max(-5.60, Math.min(4.00, this.position.x));
-    } else {
-      // Платформа станции вдоль стены с постерами-мемами
-      this.position.x = Math.max(-8.50, Math.min(5.50, this.position.x));
-    }
+    // Строгое физическое разрешение коллизий со стенами и препятствиями
+    this.resolveCollisions(this.position, oldPos);
 
     // Применение позиции к камере
     this.camera.position.copy(this.position);

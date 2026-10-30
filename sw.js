@@ -1,70 +1,55 @@
 /**
  * Александр Песковский — 2026
- * Service Worker для оффлайн-кэширования и мгновенной загрузки
+ * Service Worker: Автоматическая очистка устаревших кэшей и чистый Network-First
+ * Гарантирует мгновенное обновление сайта на всех мобильных и десктопных устройствах
  */
 
-const CACHE_NAME = 'subway-portfolio-v12';
-const CORE_ASSETS = [
-  './',
-  './index.html',
-  './css/style.css',
-  './js/main.js',
-  './js/scene3d.js',
-  './js/subwayExterior.js',
-  './js/subwayMaterials.js',
-  './js/subwayMap.js',
-  './js/subwayAudio.js',
-  './manifest.json'
-];
+const CACHE_NAME = 'subway-portfolio-v20261030_1740';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(CORE_ASSETS).catch((err) => {
-        console.warn('Частичное кэширование PWA:', err);
-      });
-    })
-  );
+  // Немедленно активируем новый Service Worker, не дожидаясь закрытия вкладок
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
+    // Полное удаление всех старых версий кэш-хранилищ
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => {
+          console.log('[SW] Удаление устаревшего кэша:', key);
+          return caches.delete(key);
+        })
       );
+    }).then(() => {
+      // Захватываем контроль над всеми открытыми клиентами
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
+// ПЕРЕХВАТ ЗАПРОСОВ: Строгий Network-First с обходом кэша для свежих деплоев
 self.addEventListener('fetch', (event) => {
-  // На localhost всегда идем напрямую в сеть без кэша
+  // На localhost всегда идем напрямую в сеть
   if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
     return;
   }
 
-  // Игнорируем внешние запросы и запросы видео диапазона (byte range)
+  // Игнорируем внешние запросы и видеопотоки (Range-запросы)
   if (!event.request.url.startsWith(self.location.origin) || event.request.headers.has('range')) {
     return;
   }
 
+  // Network-First: Всегда запрашиваем актуальный файл из сети с сервера
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
-        }
-        const toCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, toCache);
-        });
-        return response;
-      });
-    }).catch(() => {
-      return caches.match('./index.html');
-    })
+    fetch(event.request, { cache: 'no-cache' })
+      .then((networkResponse) => {
+        // Если ответ валидный, возвращаем его пользователю
+        return networkResponse;
+      })
+      .catch(() => {
+        // Только если сеть полностью отключена (оффлайн), пытаемся отдать из кэша
+        return caches.match(event.request);
+      })
   );
 });

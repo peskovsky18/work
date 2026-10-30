@@ -219,67 +219,236 @@ function getEscalatorTextures() {
   riserTex.wrapT = THREE.RepeatWrapping;
   riserTex.colorSpace = THREE.SRGBColorSpace;
 
-  // 2. Текстура панелей тоннеля Deep Tube (1024x512): белая эмаль со швами и заклепками
-  const archCvs = document.createElement('canvas');
-  archCvs.width = 1024;
-  archCvs.height = 512;
-  const actx = archCvs.getContext('2d');
-  actx.fillStyle = '#f3f6fa';
-  actx.fillRect(0, 0, 1024, 512);
+  // 2. ФОТОРЕАЛИСТИЧНЫЙ АРХИТЕКТУРНЫЙ КЕССОННЫЙ СВОД ТОННЕЛЯ (PBR 2048x1024)
+  // Крупные кассетные панели (1.9м x 1.47м) со скрытыми теневыми швами, заклепками и микроперфорацией
+  const archW = 2048;
+  const archH = 1024;
 
-  const pW = 128;
-  const pH = 128;
-  for (let py = 0; py < 512; py += pH) {
-    for (let px = 0; px < 1024; px += pW) {
-      const grad = actx.createLinearGradient(px, py, px + pW, py + pH);
-      grad.addColorStop(0.0, '#ffffff');
-      grad.addColorStop(0.4, '#f7f9fc');
-      grad.addColorStop(1.0, '#ebedf3');
-      actx.fillStyle = grad;
-      actx.fillRect(px + 1.5, py + 1.5, pW - 3, pH - 3);
+  // 2.1 Color Map
+  const archColorCvs = document.createElement('canvas');
+  archColorCvs.width = archW;
+  archColorCvs.height = archH;
+  const actx = archColorCvs.getContext('2d');
 
-      // Световой кант фаски
-      actx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-      actx.lineWidth = 1.5;
-      actx.beginPath();
-      actx.moveTo(px + 1.5, py + pH - 2);
-      actx.lineTo(px + 1.5, py + 1.5);
-      actx.lineTo(px + pW - 2, py + 1.5);
-      actx.stroke();
+  // Глубокий темный фон для теневых швов стыка (Reveal Shadow Gaps)
+  actx.fillStyle = '#111317';
+  actx.fillRect(0, 0, archW, archH);
 
-      // Теневой шов стыка
-      actx.strokeStyle = 'rgba(25, 30, 40, 0.22)';
-      actx.lineWidth = 1.5;
-      actx.beginPath();
-      actx.moveTo(px + 1.5, py + pH - 1.5);
-      actx.lineTo(px + pW - 1.5, py + pH - 1.5);
-      actx.lineTo(px + pW - 1.5, py + 1.5);
-      actx.stroke();
+  // 4 панели по длине (каждая 512px) и 3 панели по окружности (каждая ~341px)
+  const cols = 4;
+  const rows = 3;
+  const cellW = archW / cols; // 512px
+  const cellH = archH / rows; // 341.33px
+  const seamGap = 12; // 12px глубокий архитектурный теневой шов
+  const bevelW = 5;   // 5px световая фаска
 
-      // Аккуратные заклепки по углам
-      [
-        [px + 8, py + 8],
-        [px + pW - 8, py + 8],
-        [px + 8, py + pH - 8],
-        [px + pW - 8, py + pH - 8]
-      ].forEach(([rx, ry]) => {
-        actx.fillStyle = '#9ca3af';
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const px = c * cellW + seamGap / 2;
+      const py = r * cellH + seamGap / 2;
+      const pw = cellW - seamGap;
+      const ph = cellH - seamGap;
+
+      // Тело металлической анодированной кассеты (благородный титановый оттенок)
+      const pGrad = actx.createLinearGradient(px, py, px + pw, py + ph);
+      pGrad.addColorStop(0.0, '#e8ecf4');
+      pGrad.addColorStop(0.3, '#d8dee8');
+      pGrad.addColorStop(0.7, '#caced8');
+      pGrad.addColorStop(1.0, '#bcc4d0');
+      actx.fillStyle = pGrad;
+      actx.fillRect(px, py, pw, ph);
+
+      // Продольная тонкая микро-шлифовка сатинированного металла
+      actx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      for (let y = py; y < py + ph; y += 4) {
+        actx.fillRect(px, y, pw, 1.5);
+      }
+      actx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+      for (let y = py + 2; y < py + ph; y += 4) {
+        actx.fillRect(px, y, pw, 1.5);
+      }
+
+      // Верхняя и левая яркая световая фаска (Highlight Edge)
+      actx.fillStyle = '#ffffff';
+      actx.fillRect(px, py, pw, bevelW);
+      actx.fillRect(px, py, bevelW, ph);
+
+      // Нижняя и правая теневая кромка фаски
+      actx.fillStyle = 'rgba(20, 24, 32, 0.40)';
+      actx.fillRect(px, py + ph - bevelW, pw, bevelW);
+      actx.fillRect(px + pw - bevelW, py, bevelW, ph);
+
+      // Поле акустической микроперфорации в центре панели
+      const perfMarginX = 36;
+      const perfMarginY = 28;
+      const perfW = pw - perfMarginX * 2;
+      const perfH = ph - perfMarginY * 2;
+
+      actx.fillStyle = 'rgba(0, 0, 0, 0.035)';
+      actx.fillRect(px + perfMarginX, py + perfMarginY, perfW, perfH);
+
+      actx.fillStyle = 'rgba(30, 36, 48, 0.28)';
+      const dotStep = 16;
+      for (let dy = py + perfMarginY + 8; dy < py + perfMarginY + perfH - 6; dy += dotStep) {
+        for (let dx = px + perfMarginX + 8; dx < px + perfMarginX + perfW - 6; dx += dotStep) {
+          actx.fillRect(dx, dy, 2.5, 2.5);
+        }
+      }
+
+      // Высокодетализированные нержавеющие шестигранные болты с шайбами по 4 углам панели
+      const boltMargin = 22;
+      const boltCoords = [
+        [px + boltMargin, py + boltMargin],
+        [px + pw - boltMargin, py + boltMargin],
+        [px + boltMargin, py + ph - boltMargin],
+        [px + pw - boltMargin, py + ph - boltMargin]
+      ];
+
+      boltCoords.forEach(([bx, by]) => {
+        // Шайба
         actx.beginPath();
-        actx.arc(rx, ry, 2.0, 0, Math.PI * 2);
+        actx.arc(bx, by, 9, 0, Math.PI * 2);
+        actx.fillStyle = '#7a8290';
         actx.fill();
-        actx.fillStyle = '#ffffff';
+        actx.strokeStyle = '#4a505c';
+        actx.lineWidth = 1.5;
+        actx.stroke();
+
+        // Шестигранная головка болта
         actx.beginPath();
-        actx.arc(rx - 0.5, ry - 0.5, 0.8, 0, Math.PI * 2);
+        for (let i = 0; i < 6; i++) {
+          const ang = (i * Math.PI) / 3;
+          const hx = bx + 5.5 * Math.cos(ang);
+          const hy = by + 5.5 * Math.sin(ang);
+          if (i === 0) actx.moveTo(hx, hy);
+          else actx.lineTo(hx, hy);
+        }
+        actx.closePath();
+        actx.fillStyle = '#3a404c';
+        actx.fill();
+
+        // Световой блик на грани болта
+        actx.beginPath();
+        actx.arc(bx - 1.5, by - 1.5, 2.2, 0, Math.PI * 2);
+        actx.fillStyle = '#ffffff';
         actx.fill();
       });
     }
   }
 
-  const archTex = new THREE.CanvasTexture(archCvs);
-  archTex.wrapS = THREE.RepeatWrapping;
-  archTex.wrapT = THREE.RepeatWrapping;
-  archTex.repeat.set(6, 3);
-  archTex.colorSpace = THREE.SRGBColorSpace;
+  const archColorTex = new THREE.CanvasTexture(archColorCvs);
+  archColorTex.wrapS = THREE.RepeatWrapping;
+  archColorTex.wrapT = THREE.RepeatWrapping;
+  archColorTex.repeat.set(1, 2);
+  archColorTex.anisotropy = 16;
+  archColorTex.colorSpace = THREE.SRGBColorSpace;
+
+  // 2.2 Normal Map: рельефные фаски, глубокие швы и объемные шляпки болтов
+  const archNormCvs = document.createElement('canvas');
+  archNormCvs.width = archW;
+  archNormCvs.height = archH;
+  const nctx = archNormCvs.getContext('2d');
+  nctx.fillStyle = 'rgb(128, 128, 255)';
+  nctx.fillRect(0, 0, archW, archH);
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const px = c * cellW + seamGap / 2;
+      const py = r * cellH + seamGap / 2;
+      const pw = cellW - seamGap;
+      const ph = cellH - seamGap;
+
+      // Теневые швы: глубокое вдавливание
+      nctx.fillStyle = 'rgb(128, 128, 180)';
+      nctx.fillRect(c * cellW, r * cellH, cellW, seamGap / 2);
+      nctx.fillRect(c * cellW, r * cellH, seamGap / 2, cellH);
+
+      // Векторы скосов фасок
+      nctx.fillStyle = 'rgb(128, 55, 240)'; // скос вверх
+      nctx.fillRect(px, py, pw, bevelW);
+      nctx.fillStyle = 'rgb(128, 200, 240)'; // скос вниз
+      nctx.fillRect(px, py + ph - bevelW, pw, bevelW);
+      nctx.fillStyle = 'rgb(55, 128, 240)'; // скос влево
+      nctx.fillRect(px, py, bevelW, ph);
+      nctx.fillStyle = 'rgb(200, 128, 240)'; // скос вправо
+      nctx.fillRect(px + pw - bevelW, py, bevelW, ph);
+
+      // Плоский центр
+      nctx.fillStyle = 'rgb(128, 128, 255)';
+      nctx.fillRect(px + bevelW, py + bevelW, pw - bevelW * 2, ph - bevelW * 2);
+
+      // Объемные шляпки болтов
+      const boltMargin = 22;
+      [
+        [px + boltMargin, py + boltMargin],
+        [px + pw - boltMargin, py + boltMargin],
+        [px + boltMargin, py + ph - boltMargin],
+        [px + pw - boltMargin, py + ph - boltMargin]
+      ].forEach(([bx, by]) => {
+        nctx.fillStyle = 'rgb(128, 180, 255)';
+        nctx.beginPath();
+        nctx.arc(bx, by, 7, 0, Math.PI * 2);
+        nctx.fill();
+        nctx.fillStyle = 'rgb(80, 80, 240)';
+        nctx.beginPath();
+        nctx.arc(bx + 1, by + 1, 4, 0, Math.PI * 2);
+        nctx.fill();
+      });
+    }
+  }
+
+  const archNormalTex = new THREE.CanvasTexture(archNormCvs);
+  archNormalTex.wrapS = THREE.RepeatWrapping;
+  archNormalTex.wrapT = THREE.RepeatWrapping;
+  archNormalTex.repeat.set(1, 2);
+  archNormalTex.anisotropy = 16;
+
+  // 2.3 Roughness Map: зеркальный глянец болтов, сатинированный металл и матовая перфорация
+  const archRoughCvs = document.createElement('canvas');
+  archRoughCvs.width = archW;
+  archRoughCvs.height = archH;
+  const roctx = archRoughCvs.getContext('2d');
+  roctx.fillStyle = 'rgb(215, 215, 215)'; // швы матовые (0.84)
+  roctx.fillRect(0, 0, archW, archH);
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const px = c * cellW + seamGap / 2;
+      const py = r * cellH + seamGap / 2;
+      const pw = cellW - seamGap;
+      const ph = cellH - seamGap;
+
+      // Рамка панели: сатинированный металл (0.26)
+      roctx.fillStyle = 'rgb(66, 66, 66)';
+      roctx.fillRect(px, py, pw, ph);
+
+      // Перфорированный центр: бархатистый матовый (0.50)
+      const perfMarginX = 36;
+      const perfMarginY = 28;
+      roctx.fillStyle = 'rgb(128, 128, 128)';
+      roctx.fillRect(px + perfMarginX, py + perfMarginY, pw - perfMarginX * 2, ph - perfMarginY * 2);
+
+      // Болты: зеркальный хром (0.12)
+      const boltMargin = 22;
+      [
+        [px + boltMargin, py + boltMargin],
+        [px + pw - boltMargin, py + boltMargin],
+        [px + boltMargin, py + ph - boltMargin],
+        [px + pw - boltMargin, py + ph - boltMargin]
+      ].forEach(([bx, by]) => {
+        roctx.fillStyle = 'rgb(30, 30, 30)';
+        roctx.beginPath();
+        roctx.arc(bx, by, 8, 0, Math.PI * 2);
+        roctx.fill();
+      });
+    }
+  }
+
+  const archRoughTex = new THREE.CanvasTexture(archRoughCvs);
+  archRoughTex.wrapS = THREE.RepeatWrapping;
+  archRoughTex.wrapT = THREE.RepeatWrapping;
+  archRoughTex.repeat.set(1, 2);
+  archRoughTex.anisotropy = 16;
 
   // 3. Текстура сатинированной стали балюстрады (512x256)
   const steelCvs = document.createElement('canvas');
@@ -313,7 +482,15 @@ function getEscalatorTextures() {
   steelTex.repeat.set(4, 1);
   steelTex.colorSpace = THREE.SRGBColorSpace;
 
-  const bundle = { treadTex, riserTex, archTex, steelTex };
+  const bundle = {
+    treadTex,
+    riserTex,
+    archColorTex,
+    archNormalTex,
+    archRoughTex,
+    archTex: archColorTex,
+    steelTex
+  };
   escTextureCache.set('bundle', bundle);
   return bundle;
 }
@@ -380,7 +557,8 @@ export function createInstantEscalator(scene) {
       const p = profile[ip];
       verts.push(xc + p.x, cyBase + p.y, cz);
       norms.push(p.nx, p.ny, p.nz);
-      uvs.push(s * 8, ip / (numPts - 1));
+      // Масштабирование UV: 2 повтора по длине (8 кассетных панелей 1.9м) и 2 по периметру (6 панелей 1.47м)
+      uvs.push(s * 2.0, ip / (numPts - 1));
     }
   }
 
@@ -402,13 +580,103 @@ export function createInstantEscalator(scene) {
   archGeom.setIndex(indices);
 
   const archMat = new THREE.MeshStandardMaterial({
-    map: textures.archTex,
-    roughness: 0.12,
-    metalness: 0.08,
+    map: textures.archColorTex,
+    normalMap: textures.archNormalTex,
+    normalScale: new THREE.Vector2(1.25, 1.25),
+    roughnessMap: textures.archRoughTex,
+    roughness: 0.35,
+    metalness: 0.50,
     side: THREE.DoubleSide
   });
   const archMesh = new THREE.Mesh(archGeom, archMat);
   escGroup.add(archMesh);
+
+  // 1.1.2 Поперечные несущие шпангоуты тоннеля (Architectural Arch Ribs)
+  // Мощные металлические ребра жесткости каждые 2.7м с хромированными заклепками
+  const ribGeoms = [];
+  const boltGeoms = [];
+  const ribMat = new THREE.MeshStandardMaterial({
+    color: 0x1b1e25,
+    roughness: 0.30,
+    metalness: 0.85
+  });
+  const ribBoltMat = new THREE.MeshStandardMaterial({
+    color: 0xd8dde6,
+    roughness: 0.12,
+    metalness: 0.95
+  });
+
+  const ribSpacings = [0.12, 0.30, 0.48, 0.66, 0.84];
+  const archRibSegs = 28;
+
+  ribSpacings.forEach((s) => {
+    const cz = zTop - s * (zTop - zBot);
+    const cyBase = yTop - s * (yTop - yBot);
+
+    // Сводчатая часть шпангоута
+    for (let a = 0; a < archRibSegs; a++) {
+      const th1 = Math.PI - (a / archRibSegs) * Math.PI;
+      const th2 = Math.PI - ((a + 1) / archRibSegs) * Math.PI;
+      const midTh = (th1 + th2) / 2;
+      const segLen = (Math.PI / archRibSegs) * (R - 0.025);
+      const seg = new THREE.BoxGeometry(segLen * 1.05, 0.06, 0.14);
+      seg.rotateZ(midTh - Math.PI / 2);
+      seg.translate(xc + (R - 0.025) * Math.cos(midTh), cyBase + 1.15 + (R - 0.025) * Math.sin(midTh), cz);
+      ribGeoms.push(seg);
+
+      if (a % 3 === 0) {
+        const b = new THREE.CylinderGeometry(0.014, 0.014, 0.025, 8);
+        b.rotateZ(midTh - Math.PI / 2);
+        b.translate(xc + (R - 0.055) * Math.cos(midTh), cyBase + 1.15 + (R - 0.055) * Math.sin(midTh), cz);
+        boltGeoms.push(b);
+      }
+    }
+
+    // Вертикальные стойки шпангоута на левой и правой стенах
+    [-1, 1].forEach((side) => {
+      const px = xc + side * (R - 0.025);
+      const post = new THREE.BoxGeometry(0.06, 1.35, 0.14);
+      post.translate(px, cyBase + 0.475, cz);
+      ribGeoms.push(post);
+
+      [0.2, 0.6, 1.0].forEach((by) => {
+        const b = new THREE.CylinderGeometry(0.014, 0.014, 0.025, 8);
+        b.rotateZ(Math.PI / 2);
+        b.translate(px - side * 0.03, cyBase + by, cz);
+        boltGeoms.push(b);
+      });
+    });
+  });
+
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(ribGeoms), ribMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(boltGeoms), ribBoltMat));
+
+  // 1.1.3 Скрытая подсветка пяты свода (Architectural Springing Cove Lights)
+  // Непрерывные световые карнизы вдоль левой и правой стен, омывающие свод мягким теплым светом
+  const coveLightMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: new THREE.Color(0xfff0dd),
+    emissiveIntensity: 2.8,
+    roughness: 0.10
+  });
+  const coveHousingMat = new THREE.MeshStandardMaterial({
+    color: 0x16181e,
+    roughness: 0.45,
+    metalness: 0.80
+  });
+
+  [-1, 1].forEach((side) => {
+    const cx = xc + side * (R - 0.04);
+    const housingG = new THREE.BoxGeometry(0.08, 0.06, len + 0.20);
+    housingG.rotateX(-inclineAngle);
+    housingG.translate(cx, (yTop + yBot) / 2 + 1.15, (zTop + zBot) / 2);
+    escGroup.add(new THREE.Mesh(housingG, coveHousingMat));
+
+    const coveG = new THREE.BoxGeometry(0.04, 0.03, len + 0.20);
+    coveG.rotateX(-inclineAngle);
+    coveG.translate(cx, (yTop + yBot) / 2 + 1.18, (zTop + zBot) / 2);
+    escGroup.add(new THREE.Mesh(coveG, coveLightMat));
+  });
 
   // 1.2 Центральная непрерывная световая линия по коньку тоннеля (3000K Warm White)
   const lightGeom = new THREE.BoxGeometry(0.16, 0.04, len);

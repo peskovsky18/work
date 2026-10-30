@@ -516,7 +516,8 @@ function setupStationEnvironment() {
   // =========================================================================
   const platformW = 52.0; // Полностью перекрывает всю станцию (46м) и заходит в порталы
 
-  // 2.1 ЗОНА 1: Белая бордюрная плитка края платформы (Z in [0.00, 0.42], ширина 0.42м)
+  // 2.1 ЗОНА 1: Белая бордюрная плитка края платформы (Z in [0.055, 0.475], ширина 0.42м)
+  // Зазор безопасности между кузовом поезда (Z = 0.048м) и платформой составляет 7мм (исключает любое наложение и мерцание текстур)
   const whiteCurbPBR = getPlatformWhiteCurbTextures();
   const whiteCurbMat = new THREE.MeshStandardMaterial({
     map: whiteCurbPBR.colorMap,
@@ -528,26 +529,26 @@ function setupStationEnvironment() {
   });
   const whiteCurbGeom = new THREE.BoxGeometry(platformW, 0.12, 0.42);
   const whiteCurbMesh = new THREE.Mesh(whiteCurbGeom, whiteCurbMat);
-  whiteCurbMesh.position.set(0, -0.06, 0.21); // Верхняя грань строго на Y = 0.00
+  whiteCurbMesh.position.set(0, -0.06, 0.265); // Верхняя грань строго на Y = 0.00
   stationEnvGroup.add(whiteCurbMesh);
 
-  // 2.2 ЗОНА 2: Фактурная плитка для слепых (Bande podotactile, Z in [0.42, 0.84], ширина 0.42м)
-  // Рельефные объемные полусферические пупырышки с запеченными 3D-нормалями
+  // 2.2 ЗОНА 2: Фактурная желтая плитка для слепых (Bande podotactile, Z in [0.475, 0.895], ширина 0.42м)
+  // Рельефные объемные полусферические пупырышки с запеченными 3D-нормалями и контрастным сигнальным цветом
   const tactilePBR = getPlatformTactileTextures();
   const tactileMat = new THREE.MeshStandardMaterial({
     map: tactilePBR.colorMap,
     normalMap: tactilePBR.normalMap,
     normalScale: new THREE.Vector2(1.85, 1.85), // Ощутимый рельеф каждого пупырышка
     roughnessMap: tactilePBR.roughnessMap,
-    roughness: 0.58,
+    roughness: 0.52,
     metalness: 0.02
   });
   const tactileGeom = new THREE.BoxGeometry(platformW, 0.12, 0.42);
   const tactileMesh = new THREE.Mesh(tactileGeom, tactileMat);
-  tactileMesh.position.set(0, -0.06, 0.63); // Верхняя грань на Y = 0.00
+  tactileMesh.position.set(0, -0.06, 0.685); // Верхняя грань на Y = 0.00
   stationEnvGroup.add(tactileMesh);
 
-  // 2.3 ЗОНА 3: Темносерая плитка основного полотна станции (Z in [0.84, 4.80], ширина 3.96м)
+  // 2.3 ЗОНА 3: Темносерая плитка основного полотна станции (Z in [0.895, 4.80], ширина 3.905м)
   // Гранитные плиты 60x60см со швами и кварцевой крошкой
   const darkTilePBR = getPlatformDarkTileTextures();
   const darkTileMat = new THREE.MeshStandardMaterial({
@@ -558,12 +559,12 @@ function setupStationEnvironment() {
     roughness: 0.42,
     metalness: 0.12
   });
-  const darkTileGeom = new THREE.BoxGeometry(platformW, 0.12, 3.96);
+  const darkTileGeom = new THREE.BoxGeometry(platformW, 0.12, 3.905);
   const darkTileMesh = new THREE.Mesh(darkTileGeom, darkTileMat);
-  darkTileMesh.position.set(0, -0.06, 2.82); // Верхняя грань на Y = 0.00
+  darkTileMesh.position.set(0, -0.06, 2.8475); // Верхняя грань на Y = 0.00
   stationEnvGroup.add(darkTileMesh);
 
-  // 2.4 Вертикальный гранитный откос платформы в сторону путей (бордюр над балластом)
+  // 2.4 Вертикальный гранитный откос платформы в сторону путей (бордюр над балластом на Z = 0.055)
   const curbDropGeom = new THREE.PlaneGeometry(platformW, 0.42);
   const curbDropMat = new THREE.MeshStandardMaterial({
     color: 0x14161a,
@@ -571,7 +572,7 @@ function setupStationEnvironment() {
     metalness: 0.10
   });
   const curbDropMesh = new THREE.Mesh(curbDropGeom, curbDropMat);
-  curbDropMesh.position.set(0, -0.21, 0.00);
+  curbDropMesh.position.set(0, -0.21, 0.055);
   stationEnvGroup.add(curbDropMesh);
 
   // 2.3 Архитектурные колонны платформы (объединены в 2 меша для экономии 28 draw calls)
@@ -895,7 +896,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261030_2355',
+    'assets/models/subway.glb?v=20261031_0025',
     (gltf) => {
       subwayModel = gltf.scene;
 

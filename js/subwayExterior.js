@@ -1382,14 +1382,14 @@ export function setupSubwayExterior(scene, subwayModel) {
     geoms.push(g);
   };
 
-  // 1. Белая нижняя половина кузова (Y in [0.0, 0.94])
-  addBox(wallWhiteGeoms, -6.08, -4.405, 0.0, 0.94);
-  addBox(wallWhiteGeoms, -3.125, -2.18, 0.0, 0.94);
-  addBox(wallWhiteGeoms, -2.18, -1.06, 0.0, 0.94); // фартук под окном 1
-  addBox(wallWhiteGeoms, -1.06, 1.06, 0.0, 0.94);   // центральный простенок
-  addBox(wallWhiteGeoms, 1.06, 2.18, 0.0, 0.94);    // фартук под окном 2
-  addBox(wallWhiteGeoms, 2.18, 3.125, 0.0, 0.94);
-  addBox(wallWhiteGeoms, 4.405, 6.08, 0.0, 0.94);
+  // 1. Белая нижняя половина кузова (Y in [-0.04, 0.94], аккуратно опускается ниже уровня платформы на 4см)
+  addBox(wallWhiteGeoms, -6.08, -4.405, -0.04, 0.94);
+  addBox(wallWhiteGeoms, -3.125, -2.18, -0.04, 0.94);
+  addBox(wallWhiteGeoms, -2.18, -1.06, -0.04, 0.94); // фартук под окном 1
+  addBox(wallWhiteGeoms, -1.06, 1.06, -0.04, 0.94);   // центральный простенок
+  addBox(wallWhiteGeoms, 1.06, 2.18, -0.04, 0.94);    // фартук под окном 2
+  addBox(wallWhiteGeoms, 2.18, 3.125, -0.04, 0.94);
+  addBox(wallWhiteGeoms, 4.405, 6.08, -0.04, 0.94);
 
   // 2. Темный разделительный кант (Y in [0.94, 0.96])
   addBox(wallPinstripeGeoms, -6.08, -4.405, 0.94, 0.96, wallAZ, 0.026);
@@ -1632,6 +1632,31 @@ export function setupSubwayExterior(scene, subwayModel) {
     ));
   }
 
+  // D.2 Стальные дверные пороги (Sills / Seuils de porte)
+  // Моделируют аутентичный рифленый нержавеющий порог вагона, останавливающийся строго на Z = 0.048 (зазор до платформы 7мм)
+  const sillGeoms = [];
+  [-3.765, 3.765].forEach((doorX) => {
+    // Основная пластина порога
+    const sG = new THREE.BoxGeometry(1.24, 0.016, 0.048);
+    sG.translate(doorX, -0.008, 0.024);
+    sillGeoms.push(sG);
+
+    // Рифленые противоскользящие полосы
+    for (let rz = 0.008; rz <= 0.044; rz += 0.008) {
+      const ribG = new THREE.BoxGeometry(1.20, 0.002, 0.003);
+      ribG.translate(doorX, 0.001, rz);
+      sillGeoms.push(ribG);
+    }
+  });
+  if (sillGeoms.length > 0) {
+    const mergedSills = BufferGeometryUtils.mergeGeometries(sillGeoms);
+    mergedSills.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(
+      mergedSills,
+      new THREE.MeshStandardMaterial({ color: 0xb4bac5, roughness: 0.28, metalness: 0.92 })
+    ));
+  }
+
   // D. Торцы и межвагонные гармошки (пакетно объединенные)
   const endGeoms = [];
   const foldGeoms = [];
@@ -1859,11 +1884,11 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
   const leftDoorEdge = Math.min(doorOffsets[0], doorOffsets[2]) - doorHalfW;
   const rightDoorEdge = Math.max(doorOffsets[0], doorOffsets[2]) + doorHalfW;
 
-  addCoupledBox(bodyWhiteGeoms, minX, leftDoorEdge, 0.0, 0.94);
+  addCoupledBox(bodyWhiteGeoms, minX, leftDoorEdge, -0.04, 0.94);
   addCoupledBox(bodyPinstripeGeoms, minX, leftDoorEdge, 0.94, 0.96, wallAZ, 0.026);
   addCoupledBox(bodyBlueGeoms, minX, leftDoorEdge, 0.96, 2.06);
 
-  addCoupledBox(bodyWhiteGeoms, rightDoorEdge, maxX, 0.0, 0.94);
+  addCoupledBox(bodyWhiteGeoms, rightDoorEdge, maxX, -0.04, 0.94);
   addCoupledBox(bodyPinstripeGeoms, rightDoorEdge, maxX, 0.94, 0.96, wallAZ, 0.026);
   addCoupledBox(bodyBlueGeoms, rightDoorEdge, maxX, 0.96, 2.06);
 
@@ -1872,11 +1897,11 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
     const dLeft = Math.min(doorOffsets[i], doorOffsets[i + 1]);
     const dRight = Math.max(doorOffsets[i], doorOffsets[i + 1]);
 
-    addCoupledBox(bodyWhiteGeoms, dLeft + doorHalfW, wx - winW / 2, 0.0, 0.94);
+    addCoupledBox(bodyWhiteGeoms, dLeft + doorHalfW, wx - winW / 2, -0.04, 0.94);
     addCoupledBox(bodyPinstripeGeoms, dLeft + doorHalfW, wx - winW / 2, 0.94, 0.96, wallAZ, 0.026);
     addCoupledBox(bodyBlueGeoms, dLeft + doorHalfW, wx - winW / 2, 0.96, 2.06);
 
-    addCoupledBox(bodyWhiteGeoms, wx + winW / 2, dRight - doorHalfW, 0.0, 0.94);
+    addCoupledBox(bodyWhiteGeoms, wx + winW / 2, dRight - doorHalfW, -0.04, 0.94);
     addCoupledBox(bodyPinstripeGeoms, wx + winW / 2, dRight - doorHalfW, 0.94, 0.96, wallAZ, 0.026);
     addCoupledBox(bodyBlueGeoms, wx + winW / 2, dRight - doorHalfW, 0.96, 2.06);
   });

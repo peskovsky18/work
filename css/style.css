@@ -982,18 +982,32 @@ body.is-preloading #route-map-panel {
 }
 
 @media (max-width: 420px) {
-  .header-actions .apple-pill-btn span {
+  .header-actions .action-email-btn span {
     display: none;
   }
-  .header-actions .apple-pill-btn {
+  .header-actions .action-email-btn {
     width: 32px;
     height: 32px;
     padding: 0;
     justify-content: center;
     border-radius: 50%;
   }
-  .header-actions .apple-pill-btn .pill-icon {
+  .header-actions .action-email-btn .pill-icon {
     margin: 0;
+  }
+
+  .header-actions .action-insta-btn {
+    height: 32px;
+    padding: 0 11px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .header-actions .action-insta-btn span {
+    display: inline-block;
   }
 }
 

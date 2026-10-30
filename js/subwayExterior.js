@@ -60,12 +60,12 @@ export function getDestinationDisplayTexture() {
     ctx.shadowBlur = 12;
     ctx.fillStyle = '#ffaa33';
     ctx.font = 'bold 38px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
-    ctx.fillText('2026  •  АЛЕКСАНДР ПЕСКОВСКИЙ  •  ВЫСТАВКА', w / 2, h / 2 - 2);
+    ctx.fillText('АЛЕКСАНДР ПЕСКОВСКИЙ  •  ВЫСТАВКА', w / 2, h / 2 - 2);
 
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#fff4e0';
     ctx.font = 'bold 38px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
-    ctx.fillText('2026  •  АЛЕКСАНДР ПЕСКОВСКИЙ  •  ВЫСТАВКА', w / 2, h / 2 - 2);
+    ctx.fillText('АЛЕКСАНДР ПЕСКОВСКИЙ  •  ВЫСТАВКА', w / 2, h / 2 - 2);
   }, 1024, 128);
 }
 
@@ -139,7 +139,7 @@ export function getNavSignTexture() {
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
-    ctx.fillText('ПОЕЗД 2026 →', w - 50, h / 2 - 14);
+    ctx.fillText('ПОЕЗД →', w - 50, h / 2 - 14);
 
     ctx.fillStyle = '#f5a623';
     ctx.font = '20px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';

@@ -291,7 +291,7 @@ function initKeyboardShortcuts() {
 // =============================================================================
 const PROJECT_DATA = {
   1: {
-    badge: 'SHOT ON IPHONE • 2026',
+    badge: 'SHOT ON IPHONE',
     title: 'Свэг',
     desc: 'Режиссура, съемка и цветокоррекция. Экспериментальный визуальный стиль с аутентичным ритмом монтажа и динамичной операторской работой.',
     meta: [
@@ -302,7 +302,7 @@ const PROJECT_DATA = {
     ]
   },
   2: {
-    badge: 'SHOT ON IPHONE • 2026',
+    badge: 'SHOT ON IPHONE',
     title: 'Мини свэг',
     desc: 'Короткометражная визуальная зарисовка. Точная ритмика кадров, глубокие тени и акцент на деталях городской эстетики.',
     meta: [
@@ -313,7 +313,7 @@ const PROJECT_DATA = {
     ]
   },
   3: {
-    badge: 'POST-PRODUCTION • 2026',
+    badge: 'POST-PRODUCTION',
     title: 'Ночной тоннель',
     desc: 'Экспериментальный короткометражный фильм об ускорении времени в ночном мегаполисе. Ритмичный авторский саунд-дизайн, съемка на сверхчувствительную оптику с динамическим диапазоном Apple Log.',
     meta: [
@@ -324,7 +324,7 @@ const PROJECT_DATA = {
     ]
   },
   4: {
-    badge: 'COMMERCIAL / FASHION • 2026',
+    badge: 'COMMERCIAL / FASHION',
     title: 'Индустрия',
     desc: 'Визуальный манифест о симбиозе человека и индустриальных машин. Монохромная контрастная эстетика, глубокие тени и плотный клиповый ритм.',
     meta: [
@@ -335,7 +335,7 @@ const PROJECT_DATA = {
     ]
   },
   5: {
-    badge: 'MUSIC VIDEO • 2026',
+    badge: 'MUSIC VIDEO',
     title: 'Ритм',
     desc: 'Музыкальное видео с акцентом на кинетическую экспрессивную хореографию в замкнутом урбанистическом пространстве.',
     meta: [
@@ -347,7 +347,7 @@ const PROJECT_DATA = {
     isPlaceholder: true
   },
   6: {
-    badge: 'ART FILM • 2026',
+    badge: 'ART FILM',
     title: 'Светотень',
     desc: 'Архитектурный визуальный перформанс об игре света и геометрии ночного города. Медитативный темпоритм и макро-детализация фактур.',
     meta: [
@@ -359,7 +359,7 @@ const PROJECT_DATA = {
     isPlaceholder: true
   },
   7: {
-    badge: 'DOCUMENTARY • 2026',
+    badge: 'DOCUMENTARY',
     title: 'Лица',
     desc: 'Серия интимных документальных микро-портретов современных независимых авторов, художников и мейкеров.',
     meta: [
@@ -371,7 +371,7 @@ const PROJECT_DATA = {
     isPlaceholder: true
   },
   8: {
-    badge: '3D SPATIAL • 2026',
+    badge: '3D SPATIAL',
     title: 'Моушн',
     desc: 'Синтез кинематографической съемки, аналоговой оптики и трехмерных пространственных симуляций в реальном времени.',
     meta: [
@@ -610,7 +610,7 @@ function initServiceWorker() {
 
     // В продакшне регистрируем Network-First Service Worker для плавной работы
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=20261030_1740').then((reg) => {
+      navigator.serviceWorker.register('./sw.js?v=20261030_1830').then((reg) => {
         // Принудительно проверяем наличие новой версии на сервере
         reg.update().catch(() => {});
       }).catch(() => {});

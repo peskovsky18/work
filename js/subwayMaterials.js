@@ -685,58 +685,508 @@ export function getStationTileTextures() {
 }
 
 // =============================================================================
-// 6. ТЕРМООБРАБОТАННЫЙ ГРАНИТ ПЛАТФОРМЫ
+// 6. ПАРИЖСКАЯ ПЛАТФОРМА: 3-ЗОННЫЙ ФОТОРЕАЛИСТИЧНЫЙ PBR-ПОЛ (RATP STANDARDS)
+// 1. Белая плитка (бордюрный край платформы)
+// 2. Фактурная плитка для слепых (рельефные полусферические тактильные пупырышки)
+// 3. Темносерая плитка (основное полотно станции)
 // =============================================================================
-export function getPlatformGraniteTextures() {
-  if (textureCache.has('platform_granite_pbr')) return textureCache.get('platform_granite_pbr');
 
-  const size = 256;
+/**
+ * 6.1 Белая бордюрная плитка края платформы (0.42м вдоль поезда)
+ */
+export function getPlatformWhiteCurbTextures() {
+  if (textureCache.has('plat_white_curb_pbr')) return textureCache.get('plat_white_curb_pbr');
+
+  const width = 512;
+  const height = 512;
+
+  // 1. Color Map
   const colorCanvas = document.createElement('canvas');
-  colorCanvas.width = size;
-  colorCanvas.height = size;
+  colorCanvas.width = width;
+  colorCanvas.height = height;
   const cctx = colorCanvas.getContext('2d');
-  cctx.fillStyle = '#1c1f26';
-  cctx.fillRect(0, 0, size, size);
 
-  const imgData = cctx.getImageData(0, 0, size, size);
+  // Базовый цвет белого матового керамогранита платформы
+  cctx.fillStyle = '#f2f4f8';
+  cctx.fillRect(0, 0, width, height);
+
+  // 4 прямоугольные плитки по длине X (каждая 128px = 0.20м)
+  const cols = 4;
+  const tileW = width / cols;
+  const seamW = 4;
+
+  for (let c = 0; c < cols; c++) {
+    const x = c * tileW;
+    const grad = cctx.createLinearGradient(x, 0, x + tileW, 0);
+    grad.addColorStop(0.0, '#edf1f7');
+    grad.addColorStop(0.5, '#f6f8fb');
+    grad.addColorStop(1.0, '#e8ecf3');
+    cctx.fillStyle = grad;
+    cctx.fillRect(x + seamW / 2, 0, tileW - seamW, height);
+
+    // Световая фаска слева
+    cctx.fillStyle = '#ffffff';
+    cctx.fillRect(x + seamW / 2, 0, 2, height);
+
+    // Теневая фаска справа
+    cctx.fillStyle = 'rgba(180, 190, 205, 0.45)';
+    cctx.fillRect(x + tileW - seamW / 2 - 2, 0, 2, height);
+  }
+
+  // Межплиточные швы (затирка швов)
+  cctx.fillStyle = '#9aa5b5';
+  for (let c = 0; c <= cols; c++) {
+    const x = c * tileW;
+    cctx.fillRect(Math.max(0, x - seamW / 2), 0, seamW, height);
+  }
+
+  // Тонкая противоскользящая фактура камня
+  const imgData = cctx.getImageData(0, 0, width, height);
   const d = imgData.data;
-  let seed = 887766;
+  let seed = 123891;
   const rnd = () => {
     seed = (seed * 16807) % 2147483647;
     return (seed - 1) / 2147483646;
   };
-
   for (let i = 0; i < d.length; i += 4) {
-    const grain = (rnd() - 0.5) * 24;
+    const noise = (rnd() - 0.5) * 12;
+    d[i] = Math.max(0, Math.min(255, d[i] + noise));
+    d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + noise));
+    d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + noise));
+  }
+  cctx.putImageData(imgData, 0, 0);
+
+  // 2. Normal Map
+  const normCanvas = document.createElement('canvas');
+  normCanvas.width = width;
+  normCanvas.height = height;
+  const nctx = normCanvas.getContext('2d');
+  nctx.fillStyle = 'rgb(128, 128, 255)';
+  nctx.fillRect(0, 0, width, height);
+
+  for (let c = 0; c <= cols; c++) {
+    const x = c * tileW;
+    nctx.fillStyle = 'rgb(180, 128, 235)'; // шов с левым наклоном
+    nctx.fillRect(Math.max(0, x - seamW / 2), 0, seamW / 2, height);
+    nctx.fillStyle = 'rgb(75, 128, 235)';  // шов с правым наклоном
+    nctx.fillRect(Math.max(0, x), 0, seamW / 2, height);
+  }
+
+  // 3. Roughness Map (матовый противоскользящий керамогранит)
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = width;
+  roughCanvas.height = height;
+  const rctx = roughCanvas.getContext('2d');
+  rctx.fillStyle = '#60646c'; // roughness ~0.38
+  rctx.fillRect(0, 0, width, height);
+  rctx.fillStyle = '#b0b5be'; // швы шероховатые ~0.70
+  for (let c = 0; c <= cols; c++) {
+    rctx.fillRect(Math.max(0, c * tileW - seamW / 2), 0, seamW, height);
+  }
+
+  const result = {
+    colorMap: createHighResTexture(colorCanvas, 65, 1),
+    normalMap: createNormalTexture(normCanvas, 65, 1),
+    roughnessMap: createNormalTexture(roughCanvas, 65, 1)
+  };
+  textureCache.set('plat_white_curb_pbr', result);
+  return result;
+}
+
+/**
+ * 6.2 Фактурная тактильная плитка для слепых с рельефными полусферическими пупырышками
+ * (RATP NF P98-351 Bande d'éveil de vigilance podotactile)
+ */
+export function getPlatformTactileTextures() {
+  if (textureCache.has('plat_tactile_pbr')) return textureCache.get('plat_tactile_pbr');
+
+  const width = 512;
+  const height = 512;
+
+  // 1. Color Map
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = width;
+  colorCanvas.height = height;
+  const cctx = colorCanvas.getContext('2d');
+
+  // Аутентичный оттенок парижской тактильной плитки: теплый песочно-кремовый / светло-бежевый
+  cctx.fillStyle = '#e5dfd2';
+  cctx.fillRect(0, 0, width, height);
+
+  // Тонкий внешний контур стыков плит (42см x 42см)
+  cctx.strokeStyle = '#c4bcb0';
+  cctx.lineWidth = 3;
+  cctx.strokeRect(1, 1, width - 2, height - 2);
+
+  // 2. Normal Map (математический расчет сферических нормалей пупырышков)
+  const normCanvas = document.createElement('canvas');
+  normCanvas.width = width;
+  normCanvas.height = height;
+  const nctx = normCanvas.getContext('2d');
+  nctx.fillStyle = 'rgb(128, 128, 255)';
+  nctx.fillRect(0, 0, width, height);
+
+  // 3. Roughness Map
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = width;
+  roughCanvas.height = height;
+  const rctx = roughCanvas.getContext('2d');
+  rctx.fillStyle = '#a29c92'; // матовое полимерно-бетонное основание (roughness ~0.64)
+  rctx.fillRect(0, 0, width, height);
+
+  // Расчет решетки пупырышков в шахматном (quincunx) порядке
+  // 8 рядов по 8 пупырышков, шаг 64px, диаметр 28px (R = 14px)
+  const rows = 8;
+  const cols = 8;
+  const stepY = height / rows;
+  const stepX = width / cols;
+  const studR = 14;
+
+  const studs = [];
+  for (let r = 0; r < rows; r++) {
+    const isOdd = r % 2 === 1;
+    const xOffset = isOdd ? stepX / 2 : 0;
+    const cy = r * stepY + stepY / 2;
+
+    for (let c = (isOdd ? -1 : 0); c <= cols; c++) {
+      const cx = c * stepX + stepX / 2 + xOffset;
+      if (cx >= -studR && cx <= width + studR) {
+        studs.push({ cx, cy });
+      }
+    }
+  }
+
+  // Отрисовка цвета и мягких теней пупырышков
+  studs.forEach(({ cx, cy }) => {
+    // Мягкая контактная тень вокруг основания пупырышка
+    const shadowGrad = cctx.createRadialGradient(cx, cy, studR * 0.8, cx, cy, studR * 1.25);
+    shadowGrad.addColorStop(0.0, 'rgba(120, 110, 95, 0.35)');
+    shadowGrad.addColorStop(1.0, 'rgba(120, 110, 95, 0.0)');
+    cctx.fillStyle = shadowGrad;
+    cctx.beginPath();
+    cctx.arc(cx, cy, studR * 1.25, 0, Math.PI * 2);
+    cctx.fill();
+
+    // Тело пупырышка с градиентом верхнего света
+    const domeGrad = cctx.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, studR);
+    domeGrad.addColorStop(0.0, '#f8f4ec');
+    domeGrad.addColorStop(0.5, '#eee7da');
+    domeGrad.addColorStop(0.9, '#dbd3c2');
+    domeGrad.addColorStop(1.0, '#c7bea8');
+    cctx.fillStyle = domeGrad;
+    cctx.beginPath();
+    cctx.arc(cx, cy, studR, 0, Math.PI * 2);
+    cctx.fill();
+
+    // Блик на макушке
+    cctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    cctx.beginPath();
+    cctx.arc(cx - 3, cy - 3, 4, 0, Math.PI * 2);
+    cctx.fill();
+  });
+
+  // Запекание математических 3D-нормалей полусфер в Normal Map
+  const normImg = nctx.getImageData(0, 0, width, height);
+  const nd = normImg.data;
+
+  const roughImg = rctx.getImageData(0, 0, width, height);
+  const rd = roughImg.data;
+
+  studs.forEach(({ cx, cy }) => {
+    const minX = Math.max(0, Math.floor(cx - studR));
+    const maxX = Math.min(width - 1, Math.ceil(cx + studR));
+    const minY = Math.max(0, Math.floor(cy - studR));
+    const maxY = Math.min(height - 1, Math.ceil(cy + studR));
+
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const distSq = dx * dx + dy * dy;
+        if (distSq <= studR * studR) {
+          const rNorm = Math.sqrt(distSq) / studR;
+          // Полусферическая нормаль
+          const nx = (-dx / studR) * 0.92;
+          const ny = (-dy / studR) * 0.92;
+          const nz = Math.sqrt(Math.max(0, 1.0 - nx * nx - ny * ny));
+
+          const idx = (y * width + x) * 4;
+          nd[idx] = Math.round(128 + nx * 127);
+          nd[idx + 1] = Math.round(128 + ny * 127);
+          nd[idx + 2] = Math.round(nz * 255);
+
+          // Гладкая вершина пупырышка (полировка обувью пассажиров)
+          rd[idx] = Math.round(75 + (1 - rNorm) * 35);
+        }
+      }
+    }
+  });
+
+  nctx.putImageData(normImg, 0, 0);
+  rctx.putImageData(roughImg, 0, 0);
+
+  const result = {
+    colorMap: createHighResTexture(colorCanvas, 124, 1),
+    normalMap: createNormalTexture(normCanvas, 124, 1),
+    roughnessMap: createNormalTexture(roughCanvas, 124, 1)
+  };
+  textureCache.set('plat_tactile_pbr', result);
+  return result;
+}
+
+/**
+ * 6.3 Темносерая плитка основного полотна платформы
+ * (RATP dalles de granit/asphalte gris foncé)
+ */
+export function getPlatformDarkTileTextures() {
+  if (textureCache.has('plat_dark_tile_pbr')) return textureCache.get('plat_dark_tile_pbr');
+
+  const width = 512;
+  const height = 512;
+
+  // 1. Color Map
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = width;
+  colorCanvas.height = height;
+  const cctx = colorCanvas.getContext('2d');
+
+  // Темносерый глубокий графит
+  cctx.fillStyle = '#1c1f26';
+  cctx.fillRect(0, 0, width, height);
+
+  // Сетка плит 2x2 (каждая 256px = 0.60м x 0.60м)
+  const cols = 2;
+  const rows = 2;
+  const cellW = width / cols;
+  const cellH = height / rows;
+  const seamW = 4;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const px = c * cellW + seamW / 2;
+      const py = r * cellH + seamW / 2;
+      const pw = cellW - seamW;
+      const ph = cellH - seamW;
+
+      const pGrad = cctx.createLinearGradient(px, py, px + pw, py + ph);
+      pGrad.addColorStop(0.0, '#262932');
+      pGrad.addColorStop(0.5, '#1e2128');
+      pGrad.addColorStop(1.0, '#191b22');
+      cctx.fillStyle = pGrad;
+      cctx.fillRect(px, py, pw, ph);
+
+      // Световой кант плиты
+      cctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      cctx.fillRect(px, py, pw, 2);
+      cctx.fillRect(px, py, 2, ph);
+
+      // Теневой кант
+      cctx.fillStyle = 'rgba(0, 0, 0, 0.40)';
+      cctx.fillRect(px, py + ph - 2, pw, 2);
+      cctx.fillRect(px + pw - 2, py, 2, ph);
+    }
+  }
+
+  // Межплиточные швы
+  cctx.fillStyle = '#0f1115';
+  for (let c = 0; c <= cols; c++) {
+    cctx.fillRect(Math.max(0, c * cellW - seamW / 2), 0, seamW, height);
+  }
+  for (let r = 0; r <= rows; r++) {
+    cctx.fillRect(0, Math.max(0, r * cellH - seamW / 2), width, seamW);
+  }
+
+  // Вкрапления кварцевой крошки
+  const imgData = cctx.getImageData(0, 0, width, height);
+  const d = imgData.data;
+  let seed = 445566;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+  for (let i = 0; i < d.length; i += 4) {
+    const grain = (rnd() - 0.5) * 22;
     d[i] = Math.max(0, Math.min(255, d[i] + grain));
     d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + grain + 2));
     d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + grain + 4));
   }
   cctx.putImageData(imgData, 0, 0);
 
-  const normalCanvas = document.createElement('canvas');
-  normalCanvas.width = size;
-  normalCanvas.height = size;
-  const nctx = normalCanvas.getContext('2d');
+  // 2. Normal Map
+  const normCanvas = document.createElement('canvas');
+  normCanvas.width = width;
+  normCanvas.height = height;
+  const nctx = normCanvas.getContext('2d');
   nctx.fillStyle = 'rgb(128, 128, 255)';
-  nctx.fillRect(0, 0, size, size);
+  nctx.fillRect(0, 0, width, height);
 
-  const nData = nctx.getImageData(0, 0, size, size);
-  const nd = nData.data;
-  seed = 667788;
-  for (let i = 0; i < nd.length; i += 4) {
-    const nx = (rnd() - 0.5) * 20;
-    const ny = (rnd() - 0.5) * 20;
-    nd[i] = Math.max(0, Math.min(255, 128 + nx));
-    nd[i + 1] = Math.max(0, Math.min(255, 128 + ny));
-    nd[i + 2] = 250;
+  for (let c = 0; c <= cols; c++) {
+    const x = c * cellW;
+    nctx.fillStyle = 'rgb(175, 128, 240)';
+    nctx.fillRect(Math.max(0, x - seamW / 2), 0, seamW / 2, height);
+    nctx.fillStyle = 'rgb(80, 128, 240)';
+    nctx.fillRect(Math.max(0, x), 0, seamW / 2, height);
   }
-  nctx.putImageData(nData, 0, 0);
+  for (let r = 0; r <= rows; r++) {
+    const y = r * cellH;
+    nctx.fillStyle = 'rgb(128, 175, 240)';
+    nctx.fillRect(0, Math.max(0, y - seamW / 2), width, seamW / 2);
+    nctx.fillStyle = 'rgb(128, 80, 240)';
+    nctx.fillRect(0, Math.max(0, y), width, seamW / 2);
+  }
+
+  // 3. Roughness Map
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = width;
+  roughCanvas.height = height;
+  const rctx = roughCanvas.getContext('2d');
+  rctx.fillStyle = '#6b707c'; // roughness ~0.42
+  rctx.fillRect(0, 0, width, height);
+  rctx.fillStyle = '#b8bec8'; // швы roughness ~0.75
+  for (let c = 0; c <= cols; c++) rctx.fillRect(Math.max(0, c * cellW - seamW / 2), 0, seamW, height);
+  for (let r = 0; r <= rows; r++) rctx.fillRect(0, Math.max(0, r * cellH - seamW / 2), width, seamW);
 
   const result = {
-    colorMap: createHighResTexture(colorCanvas, 12, 5),
-    normalMap: createNormalTexture(normalCanvas, 12, 5)
+    colorMap: createHighResTexture(colorCanvas, 43, 3.3),
+    normalMap: createNormalTexture(normCanvas, 43, 3.3),
+    roughnessMap: createNormalTexture(roughCanvas, 43, 3.3)
   };
-  textureCache.set('platform_granite_pbr', result);
+  textureCache.set('plat_dark_tile_pbr', result);
   return result;
+}
+
+// =============================================================================
+// 7. ЛИВРЕЯ И ЭМБЛЕМЫ ПОЕЗДА МЕТРО ALSTOM / ÎLE-DE-FRANCE MOBILITÉS (LINE 18)
+// =============================================================================
+
+/**
+ * 7.1 Круглый значок Линии 18 («18» в бирюзово-голубом круге с белой окантовкой)
+ */
+export function getAlstomLine18BadgeTexture() {
+  if (textureCache.has('line18_badge_tex')) return textureCache.get('line18_badge_tex');
+
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, size, size);
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = 220;
+
+  // Внешняя белая эмалированная кайма
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // Внутренний круг парижской линии метро: бирюзово-голубой (#26a5dc)
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 18, 0, Math.PI * 2);
+  const grad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+  grad.addColorStop(0.0, '#32b4ec');
+  grad.addColorStop(0.5, '#26a5dc');
+  grad.addColorStop(1.0, '#1b8bc0');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Тонкий внутренний световой блик
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 20, Math.PI * 1.1, Math.PI * 1.9);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  // Чистый белый крупный шрифт номера линии «18»
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 210px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
+  ctx.fillText('18', cx, cy + 6);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.generateMipmaps = true;
+  tex.anisotropy = 8;
+  textureCache.set('line18_badge_tex', tex);
+  return tex;
+}
+
+/**
+ * 7.2 Фирменный логотип Île-de-France Mobilités + Alstom
+ */
+export function getAlstomBrandingTexture() {
+  if (textureCache.has('alstom_branding_tex')) return textureCache.get('alstom_branding_tex');
+
+  const width = 1024;
+  const height = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, width, height);
+
+  // Фирменный силуэт бегущего человека (Île-de-France Mobilités)
+  const iconX = 64;
+  const iconY = 48;
+  const iconSize = 160;
+
+  // Закругленный квадрат
+  ctx.beginPath();
+  ctx.roundRect(iconX, iconY, iconSize, iconSize, 28);
+  ctx.fillStyle = '#26a5dc';
+  ctx.fill();
+
+  // Белая фигурка человека
+  ctx.fillStyle = '#ffffff';
+  // Голова
+  ctx.beginPath();
+  ctx.arc(iconX + 80, iconY + 44, 18, 0, Math.PI * 2);
+  ctx.fill();
+  // Торс и ноги
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(iconX + 80, iconY + 68);
+  ctx.lineTo(iconX + 74, iconY + 108);
+  ctx.lineTo(iconX + 54, iconY + 138); // левая нога
+  ctx.moveTo(iconX + 74, iconY + 108);
+  ctx.lineTo(iconX + 104, iconY + 138); // правая нога
+  // Руки в динамичном беге
+  ctx.moveTo(iconX + 50, iconY + 86);
+  ctx.lineTo(iconX + 80, iconY + 78);
+  ctx.lineTo(iconX + 108, iconY + 96);
+  ctx.stroke();
+
+  // Текстовая надпись «Île-de-France Mobilités»
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#1c2432';
+  ctx.font = 'bold 58px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
+  ctx.fillText('ÎledeFrance', iconX + iconSize + 36, iconY + 16);
+
+  ctx.fillStyle = '#26a5dc';
+  ctx.font = '52px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+  ctx.fillText('mobilités', iconX + iconSize + 36, iconY + 82);
+
+  // Технический номер состава и марка
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'bold 24px -apple-system, monospace';
+  ctx.fillText('ALSTOM METROPOLIS  •  VOITURE M.8018', iconX + iconSize + 38, iconY + 146);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.generateMipmaps = true;
+  tex.anisotropy = 8;
+  textureCache.set('alstom_branding_tex', tex);
+  return tex;
+}
+
+export function getPlatformGraniteTextures() {
+  return getPlatformDarkTileTextures();
 }

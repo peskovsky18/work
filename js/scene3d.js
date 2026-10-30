@@ -20,6 +20,7 @@ import {
   getPlatformGraniteTextures
 } from './subwayMaterials.js';
 import { setupSubwayExterior, setupStationCeilingAndArchitecture, createInstantEscalator } from './subwayExterior.js';
+import { FreeRoamController } from './freeRoam.js';
 import * as BufferGeometryUtils from './vendor/utils/BufferGeometryUtils.js';
 
 // =============================================================================
@@ -60,6 +61,7 @@ const CAMERA_WAYPOINTS = [
 
 // Глобальное состояние
 let scene, camera, renderer, clock;
+let freeRoamController = null;
 let subwayModel;
 const screenMeshes = [];
 let screen1Mesh, screen2Mesh, screen3Mesh, screen4Mesh, platformMapMesh;
@@ -171,6 +173,10 @@ export function initSubwayScene() {
     getScene: () => scene,
     getState: () => ({ isDescentActive, isEscalatorLoaded, isSubwayLoaded, camPos: camera?.position, camTarget: camCurrentTarget })
   };
+
+  // 3.1 Инициализация контроллера режима Free Roam (свободная 3D-прогулка)
+  freeRoamController = new FreeRoamController(camera, renderer.domElement, onFreeRoamToggled);
+  window.__FREE_ROAM__ = freeRoamController;
 
   // 4. Мгновенное создание высокополигонального эскалатора (0 мс задержки, спуск начинается сразу)
   escalatorGroup = createInstantEscalator(scene);
@@ -989,41 +995,33 @@ function loadSubwayModel() {
           return;
         }
 
-        // 14. Желтые сиденья вагона: аутентичная объемная жаккардовая ткань с картой затенения AO
+        // 14. Желтые сиденья вагона: аутентичный стеклопластик / эргономичные ковши (PBR фототекстура)
         if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
           child.material = new THREE.MeshPhysicalMaterial({
             map: seatYellowPBR.colorMap,
             normalMap: seatYellowPBR.normalMap,
-            normalScale: new THREE.Vector2(1.25, 1.25),
+            normalScale: new THREE.Vector2(0.85, 0.85),
             roughnessMap: seatYellowPBR.roughnessMap,
-            roughness: 0.72,
-            metalness: 0.02,
-            aoMap: seatYellowPBR.aoMap,
-            aoMapIntensity: 1.15,
-            sheen: 0.95,
-            sheenRoughness: 0.35,
-            sheenColor: new THREE.Color(0xffc566),
-            clearcoat: 0.04,
+            roughness: 0.32,
+            metalness: 0.04,
+            clearcoat: 0.28,
+            clearcoatRoughness: 0.15,
             side: THREE.DoubleSide
           });
           return;
         }
 
-        // 15. Оранжевые сиденья вагона: аутентичная объемная терракотовая ткань с картой затенения AO
+        // 15. Оранжевые сиденья вагона: аутентичный стеклопластик / эргономичные ковши (PBR фототекстура)
         if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
           child.material = new THREE.MeshPhysicalMaterial({
             map: seatOrangePBR.colorMap,
             normalMap: seatOrangePBR.normalMap,
-            normalScale: new THREE.Vector2(1.25, 1.25),
+            normalScale: new THREE.Vector2(0.85, 0.85),
             roughnessMap: seatOrangePBR.roughnessMap,
-            roughness: 0.72,
-            metalness: 0.02,
-            aoMap: seatOrangePBR.aoMap,
-            aoMapIntensity: 1.15,
-            sheen: 0.95,
-            sheenRoughness: 0.35,
-            sheenColor: new THREE.Color(0xff8c4a),
-            clearcoat: 0.04,
+            roughness: 0.32,
+            metalness: 0.04,
+            clearcoat: 0.28,
+            clearcoatRoughness: 0.15,
             side: THREE.DoubleSide
           });
           return;
@@ -1752,9 +1750,11 @@ function animate() {
   }
 
   // =========================================================================
-  // ИНТЕРАКТИВНЫЙ СПУСК НА ЭСКАЛАТОРЕ (ПРЕЛОАДЕР) ИЛИ ШТАТНАЯ КАМЕРА ВАГОНА
+  // РЕЖИМ СВОБОДНОЙ КАМЕРЫ (FREE ROAM) ИЛИ СПУСК НА ЭСКАЛАТОРЕ / ШТАТНЫЙ СКРОЛЛ
   // =========================================================================
-  if (isDescentActive) {
+  if (freeRoamController && freeRoamController.isActive) {
+    freeRoamController.update(dt);
+  } else if (isDescentActive) {
     if (isEscalatorLoaded) {
       const elapsed = performance.now() - descentStartTime;
       const rawP = Math.min(1.0, elapsed / DESCENT_DURATION);
@@ -2065,3 +2065,58 @@ export function skipDescent() {
   initScrollTriggers();
 }
 window.skipDescent = skipDescent;
+
+// =============================================================================
+// ОБРАБОТЧИКИ И ЭКСПОРТ РЕЖИМА FREE ROAM
+// =============================================================================
+function onFreeRoamToggled(isActive) {
+  const storyTab = document.getElementById('mode-story-tab');
+  const freeRoamTab = document.getElementById('mode-freeroam-tab');
+
+  if (isActive) {
+    if (storyTab) storyTab.classList.remove('is-active');
+    if (freeRoamTab) freeRoamTab.classList.add('is-active');
+
+    // Если прелоадер или спуск был активен, мгновенно завершаем его
+    if (isDescentActive) {
+      isDescentActive = false;
+      const preloader = document.getElementById('scene-preloader');
+      if (preloader) {
+        preloader.style.opacity = '0';
+        preloader.style.display = 'none';
+        preloader.classList.add('fade-out');
+      }
+      document.body.classList.remove('is-preloading');
+      stopEscalatorAudio(0.3);
+      if (video1 && video1.paused) {
+        video1.play().catch(() => {});
+      }
+    }
+
+    if (escalatorGroup) {
+      escalatorGroup.visible = true;
+    }
+  } else {
+    if (storyTab) storyTab.classList.add('is-active');
+    if (freeRoamTab) freeRoamTab.classList.remove('is-active');
+
+    // Плавный возврат камеры к точке текущего этапа скролла
+    const isMob = window.innerWidth < 768;
+    const wp = CAMERA_WAYPOINTS[activeStage] ? CAMERA_WAYPOINTS[activeStage][isMob ? 'mobile' : 'desktop'] : CAMERA_WAYPOINTS[0].desktop;
+    camCurrentPos.copy(camera.position);
+    camTargetPos.copy(wp.pos);
+    camCurrentTarget.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(4));
+    camTargetLookAt.copy(wp.target);
+  }
+}
+
+export function toggleFreeRoam(forceState) {
+  if (freeRoamController) {
+    freeRoamController.toggle(forceState);
+  }
+}
+
+export function isFreeRoamActive() {
+  return freeRoamController ? freeRoamController.isActive : false;
+}
+window.toggleFreeRoam = toggleFreeRoam;

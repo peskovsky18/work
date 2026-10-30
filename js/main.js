@@ -3,7 +3,7 @@
  * Основная точка входа: UI логика и связка с 3D сценой
  */
 
-import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom, getActiveStage } from './scene3d.js';
+import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom, getActiveStage, toggleFreeRoam, isFreeRoamActive } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
 
 function startApp() {
@@ -12,6 +12,9 @@ function startApp() {
 
   // 2. Инициализация навигации по этапам
   initNavigation();
+
+  // 2.1 Инициализация переключения режимов (Проекты / Free Roam)
+  initFreeRoamNavigation();
 
   // 3. Инициализация контролов плеера для обоих экранов
   initPlayerControls();
@@ -61,9 +64,10 @@ function initNavigation() {
     });
   });
 
-  // Горизонтальные свайпы на смартфонах для быстрого переключения этапов
+  // Горизонтальные свайпы на смартфонах для быстрого переключения этапов (только в сюжетном режиме)
   let touchStartX = 0, touchStartY = 0;
   window.addEventListener('touchstart', (e) => {
+    if (document.body.classList.contains('is-free-roam')) return;
     if (e.touches.length === 1) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
@@ -71,6 +75,7 @@ function initNavigation() {
   }, { passive: true });
 
   window.addEventListener('touchend', (e) => {
+    if (document.body.classList.contains('is-free-roam')) return;
     if (e.changedTouches.length === 1) {
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
@@ -103,6 +108,30 @@ function initNavigation() {
     skipBtn.addEventListener('click', (e) => {
       e.preventDefault();
       if (window.skipDescent) window.skipDescent();
+    });
+  }
+}
+
+// =============================================================================
+// НАВИГАЦИЯ МЕЖДУ РЕЖИМАМИ (ПРОЕКТЫ / FREE ROAM)
+// =============================================================================
+function initFreeRoamNavigation() {
+  const storyTab = document.getElementById('mode-story-tab');
+  const freeRoamTab = document.getElementById('mode-freeroam-tab');
+
+  if (storyTab) {
+    storyTab.addEventListener('click', (e) => {
+      e.preventDefault();
+      playNavTick();
+      toggleFreeRoam(false);
+    });
+  }
+
+  if (freeRoamTab) {
+    freeRoamTab.addEventListener('click', (e) => {
+      e.preventDefault();
+      playNavTick();
+      toggleFreeRoam(true);
     });
   }
 }

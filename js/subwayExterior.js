@@ -941,10 +941,11 @@ export function createInstantEscalator(scene) {
   });
 
   // Правый монолитный блок стены (от X = -1.64 до контура свода и конька X = xc)
+  // Поднят до Y = 4.95, полностью смыкаясь с арочным сводом станции и исключая любые дыры в крыше
   const rightShape = new THREE.Shape();
   rightShape.moveTo(-1.64, 0.00);
-  rightShape.lineTo(-1.64, 3.45);
-  rightShape.lineTo(xc, 3.45);
+  rightShape.lineTo(-1.64, 4.95);
+  rightShape.lineTo(xc, 4.95);
   rightShape.lineTo(xc, 1.15 + R);
   rightShape.absarc(xc, 1.15, R, Math.PI / 2, 0, true);
   rightShape.lineTo(xc + R, 0.00);
@@ -955,18 +956,49 @@ export function createInstantEscalator(scene) {
   escGroup.add(new THREE.Mesh(rightBulkheadGeom, portalSurroundMat));
 
   // Левый монолитный блок стены (от X = -5.86 до контура свода и конька X = xc)
+  // Поднят до Y = 4.95, полностью смыкаясь с арочным сводом станции
   const leftShape = new THREE.Shape();
   leftShape.moveTo(-5.86, 0.00);
   leftShape.lineTo(xc - R, 0.00);
   leftShape.lineTo(xc - R, 1.15);
   leftShape.absarc(xc, 1.15, R, Math.PI, Math.PI / 2, true);
-  leftShape.lineTo(xc, 3.45);
-  leftShape.lineTo(-5.86, 3.45);
+  leftShape.lineTo(xc, 4.95);
+  leftShape.lineTo(-5.86, 4.95);
   leftShape.closePath();
 
   const leftBulkheadGeom = new THREE.ExtrudeGeometry(leftShape, { depth: 0.18, bevelEnabled: false });
   leftBulkheadGeom.translate(0, 0, 4.65);
   escGroup.add(new THREE.Mesh(leftBulkheadGeom, portalSurroundMat));
+
+  // 1.5.3 Архитектурный потолочный свод и козырек над выходом с эскалатора (закрывает крышу при спуске)
+  const canopyCeilingGeom = new THREE.BoxGeometry(4.30, 0.22, 1.70);
+  const canopyCeiling = new THREE.Mesh(canopyCeilingGeom, portalSurroundMat);
+  canopyCeiling.position.set(xc, 3.85, 4.05);
+  escGroup.add(canopyCeiling);
+
+  // Светильники нижнего свода вестибюля над эскалаторной площадкой
+  [-1.0, 1.0].forEach(lx => {
+    const spot = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.12, 0.04, 16),
+      new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: new THREE.Color(0xfff5ea),
+        emissiveIntensity: 3.5
+      })
+    );
+    spot.position.set(xc + lx, 3.73, 4.05);
+    escGroup.add(spot);
+  });
+
+  // 1.5.4 Верхний свод и крыша вестибюля на верхней площадке эскалатора (Z = 18.00)
+  const upperCeilingGeom = new THREE.BoxGeometry(4.60, 0.25, 3.50);
+  const upperCeiling = new THREE.Mesh(upperCeilingGeom, portalSurroundMat);
+  upperCeiling.position.set(xc, yTop + 1.15 + R + 0.10, zTop + 1.25);
+  escGroup.add(upperCeiling);
+
+  const upperBackWall = new THREE.Mesh(new THREE.PlaneGeometry(4.60, 4.50), portalSurroundMat);
+  upperBackWall.position.set(xc, yTop + 1.80, zTop + 2.80);
+  escGroup.add(upperBackWall);
 
   // Архивольт: декоративный радиусный наличник по своду портала
   const archivoltMat = new THREE.MeshStandardMaterial({ color: 0x242832, roughness: 0.25, metalness: 0.70 });

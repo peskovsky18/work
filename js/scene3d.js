@@ -309,7 +309,7 @@ function setupStationEnvironment() {
   dracoLoader.setDecoderPath('./js/vendor/draco/');
   stationLoader.setDRACOLoader(dracoLoader);
 
-  stationLoader.load('assets/models/paris_station.glb?v=20261030_2115', (gltf) => {
+  stationLoader.load('assets/models/paris_station.glb?v=20261030_2135', (gltf) => {
     const model = gltf.scene;
     model.traverse((child) => {
       if (!child.isMesh) return;
@@ -558,18 +558,18 @@ function setupStationEnvironment() {
 
   // Архитектурный вертикальный профиль арочного свода станции (Y -> Z)
   const ARCH_PROFILE = [
-    [0.000, 4.800],
-    [0.620, 4.674],
-    [0.990, 4.548],
-    [1.300, 4.423],
-    [1.575, 4.297],
-    [1.826, 4.171],
-    [2.058, 4.045],
-    [2.274, 3.920],
-    [2.477, 3.794],
-    [2.668, 3.668],
-    [2.848, 3.542],
-    [3.018, 3.416]
+    [0.000, 4.820],
+    [0.300, 4.812],
+    [0.730, 4.801],
+    [1.200, 4.782],
+    [1.650, 4.750],
+    [2.060, 4.711],
+    [2.460, 4.664],
+    [2.850, 4.598],
+    [3.200, 4.500],
+    [3.510, 4.378],
+    [3.780, 4.234],
+    [4.030, 4.049]
   ];
 
   function getArchWallZ(y) {
@@ -602,19 +602,19 @@ function setupStationEnvironment() {
   }
 
   // 4 мема от пользователя, сгармонизированные с двумя скамейками и вендинговым автоматом:
-  // - Постер 2 (Обезьяна) расположен строго над левой скамейкой (X = -2.2)
-  // - Постер 3 (Дельфины) расположен строго над правой скамейкой (X = +2.2)
-  // - Между ними (X = 0.0) стоит фотореалистичный вендинговый автомат Necta Melodia
-  // - Постеры 1 (Муравей) и 4 (Лев) завершают композицию на левом и правом крыле
+  // - Постер 2 (Обезьяна) строго над левой скамейкой (X = -0.55), НИКАКИХ наложений на эскалатор (он заканчивается на X = -1.65)
+  // - Постер 3 (Дельфины) строго над правой скамейкой (X = +2.85)
+  // - Между ними (X = 1.15) стоит вендинговый автомат Necta Melodia
+  // - Постеры 1 (Муравей, X = -7.5) и 4 (Лев, X = +5.2) на боковых крыльях платформы
   const memePosters = [
-    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.48, x: -5.8, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
-    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.48, x: -2.2, neon: 0xffaa00 },   // 2. Задумавшаяся обезьяна (теплый янтарь — над левой скамейкой)
-    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.36, x: 2.2, neon: 0x00ffd0 }, // 3. Рыбак и дельфины (морской бирюзовый — над правой скамейкой)
-    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.48, x: 5.2, neon: 0xff6644 }      // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
+    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.48, x: -7.5, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
+    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.48, x: -0.55, neon: 0xffaa00 },  // 2. Задумавшаяся обезьяна (над левой скамейкой, свободна от эскалатора!)
+    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.36, x: 2.85, neon: 0x00ffd0 }, // 3. Рыбак и дельфины (над правой скамейкой)
+    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.48, x: 5.2, neon: 0xff6644 }       // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
   ];
 
   const posterCenterY = 1.65;
-  const posterCenterZ = getArchWallZ(posterCenterY); // ~4.259
+  const posterCenterZ = getArchWallZ(posterCenterY); // ~4.750
 
   memePosters.forEach((item) => {
     const posterGroup = new THREE.Group();

@@ -16,7 +16,10 @@ import {
   getPhotoVentGrilleTexture,
   getPhotoCeilingLightTexture,
   getStationTileTextures,
-  getPlatformGraniteTextures
+  getPlatformGraniteTextures,
+  getPlatformWhiteCurbTextures,
+  getPlatformTactileTextures,
+  getPlatformDarkTileTextures
 } from './subwayMaterials.js';
 import { setupSubwayExterior, setupStationCeilingAndArchitecture, createInstantEscalator } from './subwayExterior.js';
 import { FreeRoamController } from './freeRoam.js';
@@ -508,31 +511,68 @@ function setupStationEnvironment() {
   stationEnvGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(sleeperGeoms), sleeperMat));
 
   // =========================================================================
-  // 2. СТОРОНА A: СОВРЕМЕННАЯ ПЛАТФОРМА С НЕОНОВЫМИ ПОЛОСАМИ
+  // 2. СТОРОНА A: АУТЕНТИЧНЫЙ 3-ЗОННЫЙ ПОЛ ПЛАТФОРМЫ ПАРИЖСКОГО МЕТРО
+  // (Белая плитка -> Фактурная плитка для слепых с пупырышками -> Темносерая плитка)
   // =========================================================================
-  const platformW = 46.0;
+  const platformW = 52.0; // Полностью перекрывает всю станцию (46м) и заходит в порталы
 
-  // 2.1 Сплошной гранитный пол платформы (без швов и тайловых артефактов)
-  const platFloorGeom = new THREE.BoxGeometry(platformW, 0.15, 4.80);
-  const platFloorMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x1a1d24),
-    roughness: 0.45,
-    metalness: 0.20
+  // 2.1 ЗОНА 1: Белая бордюрная плитка края платформы (Z in [0.00, 0.42], ширина 0.42м)
+  const whiteCurbPBR = getPlatformWhiteCurbTextures();
+  const whiteCurbMat = new THREE.MeshStandardMaterial({
+    map: whiteCurbPBR.colorMap,
+    normalMap: whiteCurbPBR.normalMap,
+    normalScale: new THREE.Vector2(0.95, 0.95),
+    roughnessMap: whiteCurbPBR.roughnessMap,
+    roughness: 0.38,
+    metalness: 0.04
   });
-  const platFloor = new THREE.Mesh(platFloorGeom, platFloorMat);
-  platFloor.position.set(0, -0.08, 2.40);
-  stationEnvGroup.add(platFloor);
+  const whiteCurbGeom = new THREE.BoxGeometry(platformW, 0.12, 0.42);
+  const whiteCurbMesh = new THREE.Mesh(whiteCurbGeom, whiteCurbMat);
+  whiteCurbMesh.position.set(0, -0.06, 0.21); // Верхняя грань строго на Y = 0.00
+  stationEnvGroup.add(whiteCurbMesh);
 
-  // 2.2 Желтая тактильная линия безопасности вдоль края платформы
-  const safeLineGeom = new THREE.BoxGeometry(platformW, 0.012, 0.16);
-  const safeLineMat = new THREE.MeshStandardMaterial({
-    color: 0xf5a623,
-    roughness: 0.50,
+  // 2.2 ЗОНА 2: Фактурная плитка для слепых (Bande podotactile, Z in [0.42, 0.84], ширина 0.42м)
+  // Рельефные объемные полусферические пупырышки с запеченными 3D-нормалями
+  const tactilePBR = getPlatformTactileTextures();
+  const tactileMat = new THREE.MeshStandardMaterial({
+    map: tactilePBR.colorMap,
+    normalMap: tactilePBR.normalMap,
+    normalScale: new THREE.Vector2(1.85, 1.85), // Ощутимый рельеф каждого пупырышка
+    roughnessMap: tactilePBR.roughnessMap,
+    roughness: 0.58,
+    metalness: 0.02
+  });
+  const tactileGeom = new THREE.BoxGeometry(platformW, 0.12, 0.42);
+  const tactileMesh = new THREE.Mesh(tactileGeom, tactileMat);
+  tactileMesh.position.set(0, -0.06, 0.63); // Верхняя грань на Y = 0.00
+  stationEnvGroup.add(tactileMesh);
+
+  // 2.3 ЗОНА 3: Темносерая плитка основного полотна станции (Z in [0.84, 4.80], ширина 3.96м)
+  // Гранитные плиты 60x60см со швами и кварцевой крошкой
+  const darkTilePBR = getPlatformDarkTileTextures();
+  const darkTileMat = new THREE.MeshStandardMaterial({
+    map: darkTilePBR.colorMap,
+    normalMap: darkTilePBR.normalMap,
+    normalScale: new THREE.Vector2(0.95, 0.95),
+    roughnessMap: darkTilePBR.roughnessMap,
+    roughness: 0.42,
+    metalness: 0.12
+  });
+  const darkTileGeom = new THREE.BoxGeometry(platformW, 0.12, 3.96);
+  const darkTileMesh = new THREE.Mesh(darkTileGeom, darkTileMat);
+  darkTileMesh.position.set(0, -0.06, 2.82); // Верхняя грань на Y = 0.00
+  stationEnvGroup.add(darkTileMesh);
+
+  // 2.4 Вертикальный гранитный откос платформы в сторону путей (бордюр над балластом)
+  const curbDropGeom = new THREE.PlaneGeometry(platformW, 0.42);
+  const curbDropMat = new THREE.MeshStandardMaterial({
+    color: 0x14161a,
+    roughness: 0.88,
     metalness: 0.10
   });
-  const safeLine = new THREE.Mesh(safeLineGeom, safeLineMat);
-  safeLine.position.set(0, 0.002, 0.22);
-  stationEnvGroup.add(safeLine);
+  const curbDropMesh = new THREE.Mesh(curbDropGeom, curbDropMat);
+  curbDropMesh.position.set(0, -0.21, 0.00);
+  stationEnvGroup.add(curbDropMesh);
 
   // 2.3 Архитектурные колонны платформы (объединены в 2 меша для экономии 28 draw calls)
   const colMat = new THREE.MeshStandardMaterial({
@@ -1327,21 +1367,104 @@ function loadSubwayModel() {
         doorObj.add(decalMesh);
       };
 
+      // Аутентичная внешняя двухцветная обшивка дверей Alstom Line 18 (белый низ + синий верх)
+      // Используем FrontSide: снаружи видна ливрея Alstom, изнутри салон видит только благородную сатинированную сталь!
+      const doorExtWhiteMat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(0xf4f6fa),
+        roughness: 0.22,
+        metalness: 0.08,
+        clearcoat: 0.80,
+        clearcoatRoughness: 0.06,
+        side: THREE.FrontSide
+      });
+      const doorExtBlueMat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(0x2ca0e6),
+        roughness: 0.20,
+        metalness: 0.12,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.06,
+        side: THREE.FrontSide
+      });
+      const doorExtPinMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0x141822),
+        roughness: 0.35,
+        metalness: 0.80,
+        side: THREE.FrontSide
+      });
+
+      const attachDoorExteriorSkin = (doorObj, isSideB = false) => {
+        if (!doorObj) return;
+        const sx = Math.abs(doorObj.scale.x) || 1;
+        const sy = Math.abs(doorObj.scale.y) || 1;
+        const sz = Math.abs(doorObj.scale.z) || 1;
+        const invScale = new THREE.Vector3(1 / sx, 1 / sy, 1 / sz);
+
+        // Для створок Стороны A наружная грань (в сторону платформы +Z) находится при Z > 0 (rotY = 0)
+        // Для створок Стороны B наружная грань (в сторону путевой стены -Z) находится при Z < 0 (rotY = Math.PI)
+        const zPos = isSideB ? -0.021 : 0.021;
+        const rotY = isSideB ? Math.PI : 0;
+        const skinGroup = new THREE.Group();
+
+        // 1. Нижняя белая панель створки (от Y = 0 до Y = 0.94m в мире, в двери от -0.99 до -0.05)
+        const whitePanel = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.94), doorExtWhiteMat);
+        whitePanel.position.set(0, -0.52, zPos);
+        whitePanel.rotation.y = rotY;
+        skinGroup.add(whitePanel);
+
+        // 2. Разделительный кант (Y = 0.94 - 0.96m, в двери от -0.05 до -0.03)
+        const pinPanel = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.02), doorExtPinMat);
+        pinPanel.position.set(0, -0.04, zPos);
+        pinPanel.rotation.y = rotY;
+        skinGroup.add(pinPanel);
+
+        // 3. Верхние голубые планки вокруг стекла двери (стекло 0.27m x 0.88m по центру)
+        const blueL = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.02), doorExtBlueMat);
+        blueL.position.set(-0.225, 0.48, zPos);
+        blueL.rotation.y = rotY;
+        skinGroup.add(blueL);
+
+        const blueR = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.02), doorExtBlueMat);
+        blueR.position.set(0.225, 0.48, zPos);
+        blueR.rotation.y = rotY;
+        skinGroup.add(blueR);
+
+        const blueTop = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.16), doorExtBlueMat);
+        blueTop.position.set(0, 0.91, zPos);
+        blueTop.rotation.y = rotY;
+        skinGroup.add(blueTop);
+
+        const blueBot = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.06), doorExtBlueMat);
+        blueBot.position.set(0, 0.00, zPos);
+        blueBot.rotation.y = rotY;
+        skinGroup.add(blueBot);
+
+        skinGroup.scale.copy(invScale);
+        doorObj.add(skinGroup);
+      };
+
       // Двери 1 (Вход, Wall A)
       attachDoorDecal(doorLeft);
       attachDoorDecal(doorRight);
+      attachDoorExteriorSkin(doorLeft, false);
+      attachDoorExteriorSkin(doorRight, false);
 
       // Двери 2 (Выход, Wall A)
       attachDoorDecal(doorLeftD2);
       attachDoorDecal(doorRightD2);
+      attachDoorExteriorSkin(doorLeftD2, false);
+      attachDoorExteriorSkin(doorRightD2, false);
 
       // Двери 3 (Сторона B)
       attachDoorDecal(doorLeftD3);
       attachDoorDecal(doorRightD3);
+      attachDoorExteriorSkin(doorLeftD3, true);
+      attachDoorExteriorSkin(doorRightD3, true);
 
       // Двери 4 (Сторона B)
       attachDoorDecal(doorLeftD4);
       attachDoorDecal(doorRightD4);
+      attachDoorExteriorSkin(doorLeftD4, true);
+      attachDoorExteriorSkin(doorRightD4, true);
 
       scene.add(subwayModel);
       isSubwayLoaded = true;
@@ -2055,18 +2178,6 @@ function animate() {
     mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * 0.06;
     mouseOffsetDamped.y += (mouseOffset.y - mouseOffsetDamped.y) * 0.06;
 
-    // 2.1 Пневматическое движение створок дверей
-    currentDoorCloseRatio += (targetDoorCloseRatio - currentDoorCloseRatio) * 0.08;
-    if (doorLeft && doorRight) {
-      doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
-      doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
-    }
-    currentDoor2OpenRatio += (targetDoor2OpenRatio - currentDoor2OpenRatio) * 0.08;
-    if (doorLeftD2 && doorRightD2) {
-      doorLeftD2.position.x = THREE.MathUtils.lerp(4.070, 4.680, currentDoor2OpenRatio);
-      doorRightD2.position.x = THREE.MathUtils.lerp(3.460, 2.850, currentDoor2OpenRatio);
-    }
-
     // Строго заскриптованное кинематографичное движение камеры по скроллу + тонкий параллакс взгляда
     camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
     camera.lookAt(
@@ -2074,6 +2185,18 @@ function animate() {
       camCurrentTarget.y + mouseOffsetDamped.y,
       camCurrentTarget.z
     );
+  }
+
+  // 2.1 Пневматическое движение створок дверей (работает как в скролле, так и в Free Roam)
+  currentDoorCloseRatio += (targetDoorCloseRatio - currentDoorCloseRatio) * 0.08;
+  if (doorLeft && doorRight) {
+    doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
+    doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
+  }
+  currentDoor2OpenRatio += (targetDoor2OpenRatio - currentDoor2OpenRatio) * 0.08;
+  if (doorLeftD2 && doorRightD2) {
+    doorLeftD2.position.x = THREE.MathUtils.lerp(4.070, 4.680, currentDoor2OpenRatio);
+    doorRightD2.position.x = THREE.MathUtils.lerp(3.460, 2.850, currentDoor2OpenRatio);
   }
 
   // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
@@ -2267,6 +2390,7 @@ export function skipDescent() {
   initScrollTriggers();
 }
 window.skipDescent = skipDescent;
+window.setDoorCloseRatio = (r) => { targetDoorCloseRatio = r; currentDoorCloseRatio = r; };
 
 // =============================================================================
 // ОБРАБОТЧИКИ И ЭКСПОРТ РЕЖИМА FREE ROAM

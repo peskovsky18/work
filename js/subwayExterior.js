@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import * as BufferGeometryUtils from './vendor/utils/BufferGeometryUtils.js';
+import { getAlstomLine18BadgeTexture, getAlstomBrandingTexture } from './subwayMaterials.js';
 
 // Кэш сгенерированных текстур
 const extTextureCache = new Map();
@@ -1226,13 +1227,38 @@ export function setupSubwayExterior(scene, subwayModel) {
   const exteriorGroup = new THREE.Group();
   exteriorGroup.name = 'Subway_Car_Exterior';
 
-  const carPaintMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(0xc2c7d0),
+  // 1. Аутентичные материалы ливреи Alstom / Île-de-France Mobilités (Line 18)
+  const alstomBlueMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(0x2ca0e6), // Насыщенный парижский бирюзово-голубой
     roughness: 0.20,
-    metalness: 0.92,
+    metalness: 0.12,
     clearcoat: 0.85,
-    clearcoatRoughness: 0.08,
+    clearcoatRoughness: 0.06,
     reflectivity: 0.88,
+    side: THREE.DoubleSide
+  });
+
+  const alstomWhiteMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(0xf4f6fa), // Чистый сатинированный ледниково-белый лак
+    roughness: 0.22,
+    metalness: 0.08,
+    clearcoat: 0.80,
+    clearcoatRoughness: 0.06,
+    reflectivity: 0.85,
+    side: THREE.DoubleSide
+  });
+
+  const pinstripeMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0x141822), // Тонкий контрастный антрацитовый кант
+    roughness: 0.35,
+    metalness: 0.80,
+    side: THREE.DoubleSide
+  });
+
+  const anthraciteTrimMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0x161820), // Матовый антрацит окантовок и карнизов
+    roughness: 0.45,
+    metalness: 0.85,
     side: THREE.DoubleSide
   });
 
@@ -1242,13 +1268,6 @@ export function setupSubwayExterior(scene, subwayModel) {
     metalness: 0.85,
     clearcoat: 0.60,
     clearcoatRoughness: 0.12,
-    side: THREE.DoubleSide
-  });
-
-  const liveryRedMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0xd81c24),
-    roughness: 0.15,
-    metalness: 0.10,
     side: THREE.DoubleSide
   });
 
@@ -1266,6 +1285,25 @@ export function setupSubwayExterior(scene, subwayModel) {
     roughness: 0.04,
     metalness: 0.12,
     depthWrite: false,
+    side: THREE.DoubleSide
+  });
+
+  // Эмблемы Линии 18 и логотипы Île-de-France Mobilités
+  const badgeTex = getAlstomLine18BadgeTexture();
+  const badgeMat = new THREE.MeshStandardMaterial({
+    map: badgeTex,
+    transparent: true,
+    roughness: 0.20,
+    metalness: 0.10,
+    side: THREE.DoubleSide
+  });
+
+  const brandingTex = getAlstomBrandingTexture();
+  const brandingMat = new THREE.MeshStandardMaterial({
+    map: brandingTex,
+    transparent: true,
+    roughness: 0.25,
+    metalness: 0.10,
     side: THREE.DoubleSide
   });
 
@@ -1349,41 +1387,84 @@ export function setupSubwayExterior(scene, subwayModel) {
     ));
   }
 
-  // B. Внешний борт (Сторона A) — пакетное объединение секций в единый меш
+  // B. Внешний борт (Сторона A) — Аутентичная двухцветная ливрея Alstom Line 18
   const wallAZ = 0.036;
-  const wallPaintGeoms = [];
-  const wallRedGeoms = [];
-  const addWallSection = (x1, x2, y1, y2, isRed = false) => {
+  const wallWhiteGeoms = [];
+  const wallPinstripeGeoms = [];
+  const wallBlueGeoms = [];
+  const wallTrimGeoms = [];
+
+  const addBox = (geoms, x1, x2, y1, y2, z = wallAZ, d = 0.024) => {
     const w = x2 - x1;
     const h = y2 - y1;
-    const g = new THREE.BoxGeometry(w, h, 0.024);
-    g.translate((x1 + x2) / 2, (y1 + y2) / 2, wallAZ);
-    if (isRed) wallRedGeoms.push(g);
-    else wallPaintGeoms.push(g);
+    const g = new THREE.BoxGeometry(w, h, d);
+    g.translate((x1 + x2) / 2, (y1 + y2) / 2, z);
+    geoms.push(g);
   };
 
-  addWallSection(-6.08, 6.08, 2.14, 2.28);
-  addWallSection(-6.08, 6.08, 2.06, 2.14, true);
-  addWallSection(-6.08, -4.405, 0.0, 2.06);
-  addWallSection(-3.125, -2.18, 0.0, 2.06);
-  addWallSection(-1.06, 1.06, 0.0, 2.06);
-  addWallSection(2.18, 3.125, 0.0, 2.06);
-  addWallSection(4.405, 6.08, 0.0, 2.06);
-  addWallSection(-2.18, -1.06, 0.0, 0.95);
-  addWallSection(1.06, 2.18, 0.0, 0.95);
-  addWallSection(-2.18, -1.06, 1.78, 2.06);
-  addWallSection(1.06, 2.18, 1.78, 2.06);
+  // 1. Белая нижняя половина кузова (Y in [0.0, 0.94])
+  addBox(wallWhiteGeoms, -6.08, -4.405, 0.0, 0.94);
+  addBox(wallWhiteGeoms, -3.125, -2.18, 0.0, 0.94);
+  addBox(wallWhiteGeoms, -2.18, -1.06, 0.0, 0.94); // фартук под окном 1
+  addBox(wallWhiteGeoms, -1.06, 1.06, 0.0, 0.94);   // центральный простенок
+  addBox(wallWhiteGeoms, 1.06, 2.18, 0.0, 0.94);    // фартук под окном 2
+  addBox(wallWhiteGeoms, 2.18, 3.125, 0.0, 0.94);
+  addBox(wallWhiteGeoms, 4.405, 6.08, 0.0, 0.94);
 
-  if (wallPaintGeoms.length > 0) {
-    const mergedWP = BufferGeometryUtils.mergeGeometries(wallPaintGeoms);
-    mergedWP.clearGroups();
-    exteriorGroup.add(new THREE.Mesh(mergedWP, carPaintMat));
+  // 2. Темный разделительный кант (Y in [0.94, 0.96])
+  addBox(wallPinstripeGeoms, -6.08, -4.405, 0.94, 0.96, wallAZ, 0.026);
+  addBox(wallPinstripeGeoms, -3.125, -2.18, 0.94, 0.96, wallAZ, 0.026);
+  addBox(wallPinstripeGeoms, -2.18, -1.06, 0.94, 0.96, wallAZ, 0.026);
+  addBox(wallPinstripeGeoms, -1.06, 1.06, 0.94, 0.96, wallAZ, 0.026);
+  addBox(wallPinstripeGeoms, 1.06, 2.18, 0.94, 0.96, wallAZ, 0.026);
+  addBox(wallPinstripeGeoms, 2.18, 3.125, 0.94, 0.96, wallAZ, 0.026);
+  addBox(wallPinstripeGeoms, 4.405, 6.08, 0.94, 0.96, wallAZ, 0.026);
+
+  // 3. Бирюзово-голубой верхний пояс окон и порталов (Y in [0.96, 2.22])
+  addBox(wallBlueGeoms, -6.08, -4.405, 0.96, 2.06);
+  addBox(wallBlueGeoms, -3.125, -2.18, 0.96, 2.06);
+  addBox(wallBlueGeoms, -1.06, 1.06, 0.96, 2.06);
+  addBox(wallBlueGeoms, 2.18, 3.125, 0.96, 2.06);
+  addBox(wallBlueGeoms, 4.405, 6.08, 0.96, 2.06);
+  addBox(wallBlueGeoms, -2.18, -1.06, 1.78, 2.06); // над окном 1
+  addBox(wallBlueGeoms, 1.06, 2.18, 1.78, 2.06);   // над окном 2
+  addBox(wallBlueGeoms, -6.08, 6.08, 2.06, 2.22);  // верхняя полоса над всеми дверями и окнами
+
+  // 4. Карнизный темный молдинг стыка с крышей (Y in [2.22, 2.28])
+  addBox(wallTrimGeoms, -6.08, 6.08, 2.22, 2.28, wallAZ, 0.028);
+
+  if (wallWhiteGeoms.length > 0) {
+    const mergedWhite = BufferGeometryUtils.mergeGeometries(wallWhiteGeoms);
+    mergedWhite.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedWhite, alstomWhiteMat));
   }
-  if (wallRedGeoms.length > 0) {
-    const mergedWR = BufferGeometryUtils.mergeGeometries(wallRedGeoms);
-    mergedWR.clearGroups();
-    exteriorGroup.add(new THREE.Mesh(mergedWR, liveryRedMat));
+  if (wallPinstripeGeoms.length > 0) {
+    const mergedPin = BufferGeometryUtils.mergeGeometries(wallPinstripeGeoms);
+    mergedPin.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedPin, pinstripeMat));
   }
+  if (wallBlueGeoms.length > 0) {
+    const mergedBlue = BufferGeometryUtils.mergeGeometries(wallBlueGeoms);
+    mergedBlue.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedBlue, alstomBlueMat));
+  }
+  if (wallTrimGeoms.length > 0) {
+    const mergedTrim = BufferGeometryUtils.mergeGeometries(wallTrimGeoms);
+    mergedTrim.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedTrim, anthraciteTrimMat));
+  }
+
+  // Фирменные эмблемы Линии 18 и брендинг на Стороне A
+  [-2.65, 2.65].forEach((bx) => {
+    const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), badgeMat);
+    bMesh.position.set(bx, 1.48, wallAZ + 0.014);
+    exteriorGroup.add(bMesh);
+  });
+  [-1.62, 1.62].forEach((bx) => {
+    const brMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.30), brandingMat);
+    brMesh.position.set(bx, 0.50, wallAZ + 0.014);
+    exteriorGroup.add(brMesh);
+  });
 
   // Внешние стекла с тонкой полой резиновой окантовкой по периметру (объединенные меши)
   const extGasketGeoms = [];
@@ -1454,41 +1535,78 @@ export function setupSubwayExterior(scene, subwayModel) {
   mergedDest.clearGroups();
   exteriorGroup.add(new THREE.Mesh(mergedDest, destMat));
 
-  // C. Внешний борт (Сторона B) — с аутентичными оконными проемами и дверными порталами
+  // C. Внешний борт (Сторона B) — с аутентичной двухцветной ливреей и прозрачными окнами
   const wallBZ = minZ; // -2.435
-  const wallBPaintGeoms = [];
-  const wallBRedGeoms = [];
-  const addWallBSection = (x1, x2, y1, y2, isRed = false) => {
-    const w = x2 - x1;
-    const h = y2 - y1;
-    const g = new THREE.BoxGeometry(w, h, 0.024);
-    g.translate((x1 + x2) / 2, (y1 + y2) / 2, wallBZ);
-    if (isRed) wallBRedGeoms.push(g);
-    else wallBPaintGeoms.push(g);
-  };
+  const wallBWhiteGeoms = [];
+  const wallBPinstripeGeoms = [];
+  const wallBBlueGeoms = [];
+  const wallBTrimGeoms = [];
 
-  addWallBSection(-6.08, 6.08, 2.14, 2.28);
-  addWallBSection(-6.08, 6.08, 2.06, 2.14, true);
-  addWallBSection(-6.08, -4.405, 0.0, 2.06);
-  addWallBSection(-3.125, -2.18, 0.0, 2.06);
-  addWallBSection(-1.06, 1.06, 0.0, 2.06);
-  addWallBSection(2.18, 3.125, 0.0, 2.06);
-  addWallBSection(4.405, 6.08, 0.0, 2.06);
-  addWallBSection(-2.18, -1.06, 0.0, 0.95);
-  addWallBSection(1.06, 2.18, 0.0, 0.95);
-  addWallBSection(-2.18, -1.06, 1.78, 2.06);
-  addWallBSection(1.06, 2.18, 1.78, 2.06);
+  // 1. Белая нижняя часть кузова
+  addBox(wallBWhiteGeoms, -6.08, -4.405, 0.0, 0.94, wallBZ);
+  addBox(wallBWhiteGeoms, -3.125, -2.18, 0.0, 0.94, wallBZ);
+  addBox(wallBWhiteGeoms, -2.18, -1.06, 0.0, 0.94, wallBZ);
+  addBox(wallBWhiteGeoms, -1.06, 1.06, 0.0, 0.94, wallBZ);
+  addBox(wallBWhiteGeoms, 1.06, 2.18, 0.0, 0.94, wallBZ);
+  addBox(wallBWhiteGeoms, 2.18, 3.125, 0.0, 0.94, wallBZ);
+  addBox(wallBWhiteGeoms, 4.405, 6.08, 0.0, 0.94, wallBZ);
 
-  if (wallBPaintGeoms.length > 0) {
-    const mergedWPB = BufferGeometryUtils.mergeGeometries(wallBPaintGeoms);
-    mergedWPB.clearGroups();
-    exteriorGroup.add(new THREE.Mesh(mergedWPB, carPaintMat));
+  // 2. Темный разделительный кант
+  addBox(wallBPinstripeGeoms, -6.08, -4.405, 0.94, 0.96, wallBZ, 0.026);
+  addBox(wallBPinstripeGeoms, -3.125, -2.18, 0.94, 0.96, wallBZ, 0.026);
+  addBox(wallBPinstripeGeoms, -2.18, -1.06, 0.94, 0.96, wallBZ, 0.026);
+  addBox(wallBPinstripeGeoms, -1.06, 1.06, 0.94, 0.96, wallBZ, 0.026);
+  addBox(wallBPinstripeGeoms, 1.06, 2.18, 0.94, 0.96, wallBZ, 0.026);
+  addBox(wallBPinstripeGeoms, 2.18, 3.125, 0.94, 0.96, wallBZ, 0.026);
+  addBox(wallBPinstripeGeoms, 4.405, 6.08, 0.94, 0.96, wallBZ, 0.026);
+
+  // 3. Бирюзово-голубой верхний пояс
+  addBox(wallBBlueGeoms, -6.08, -4.405, 0.96, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, -3.125, -2.18, 0.96, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, -1.06, 1.06, 0.96, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, 2.18, 3.125, 0.96, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, 4.405, 6.08, 0.96, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, -2.18, -1.06, 1.78, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, 1.06, 2.18, 1.78, 2.06, wallBZ);
+  addBox(wallBBlueGeoms, -6.08, 6.08, 2.06, 2.22, wallBZ);
+
+  // 4. Карнизный темный молдинг
+  addBox(wallBTrimGeoms, -6.08, 6.08, 2.22, 2.28, wallBZ, 0.028);
+
+  if (wallBWhiteGeoms.length > 0) {
+    const mergedWhiteB = BufferGeometryUtils.mergeGeometries(wallBWhiteGeoms);
+    mergedWhiteB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedWhiteB, alstomWhiteMat));
   }
-  if (wallBRedGeoms.length > 0) {
-    const mergedWRB = BufferGeometryUtils.mergeGeometries(wallBRedGeoms);
-    mergedWRB.clearGroups();
-    exteriorGroup.add(new THREE.Mesh(mergedWRB, liveryRedMat));
+  if (wallBPinstripeGeoms.length > 0) {
+    const mergedPinB = BufferGeometryUtils.mergeGeometries(wallBPinstripeGeoms);
+    mergedPinB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedPinB, pinstripeMat));
   }
+  if (wallBBlueGeoms.length > 0) {
+    const mergedBlueB = BufferGeometryUtils.mergeGeometries(wallBBlueGeoms);
+    mergedBlueB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedBlueB, alstomBlueMat));
+  }
+  if (wallBTrimGeoms.length > 0) {
+    const mergedTrimB = BufferGeometryUtils.mergeGeometries(wallBTrimGeoms);
+    mergedTrimB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedTrimB, anthraciteTrimMat));
+  }
+
+  // Фирменные эмблемы Линии 18 и брендинг на Стороне B
+  [-2.65, 2.65].forEach((bx) => {
+    const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), badgeMat);
+    bMesh.rotation.y = Math.PI;
+    bMesh.position.set(bx, 1.48, wallBZ - 0.014);
+    exteriorGroup.add(bMesh);
+  });
+  [-1.62, 1.62].forEach((bx) => {
+    const brMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.30), brandingMat);
+    brMesh.rotation.y = Math.PI;
+    brMesh.position.set(bx, 0.50, wallBZ - 0.014);
+    exteriorGroup.add(brMesh);
+  });
 
   // Внешние стекла и резиновые уплотнители окон на Стороне B (смотрят на путевую стену станции с плиткой)
   const extGasketBGeoms = [];
@@ -1620,13 +1738,20 @@ export function setupSubwayExterior(scene, subwayModel) {
   // G. ПРИЦЕПНЫЕ ВАГОНЫ СОСТАВА МЕТРО (Второй вагон впереди X = +15.89 и хвостовой вагон X = -15.89)
   // Состав из 3 вагонов длиной 49.0м полностью перекрывает всю станцию (46м) и уходит в тоннели на обоих концах.
   // Пустые рельсы исключены на 100%!
+  // G. ПРИЦЕПНЫЕ ВАГОНЫ СОСТАВА МЕТРО (Второй вагон впереди X = +15.89 и хвостовой вагон X = -15.89)
+  // Состав из 3 вагонов длиной 49.0м полностью перекрывает всю станцию (46м) и уходит в тоннели на обоих концах.
+  // Пустые рельсы исключены на 100%!
   const coupledMats = {
-    carPaintMat,
+    alstomBlueMat,
+    alstomWhiteMat,
+    pinstripeMat,
+    anthraciteTrimMat,
     roofMat,
-    liveryRedMat,
     rubberMat,
     extGlassMat,
-    destMat
+    destMat,
+    badgeMat,
+    brandingMat
   };
   createCoupledCar(15.89, 1, exteriorGroup, coupledMats);
   createCoupledCar(-15.89, -1, exteriorGroup, coupledMats);
@@ -1641,12 +1766,16 @@ export function setupSubwayExterior(scene, subwayModel) {
  */
 function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
   const {
-    carPaintMat,
+    alstomBlueMat,
+    alstomWhiteMat,
+    pinstripeMat,
+    anthraciteTrimMat,
     roofMat,
-    liveryRedMat,
     rubberMat,
     extGlassMat,
-    destMat
+    destMat,
+    badgeMat,
+    brandingMat
   } = materials;
 
   const halfL = 8.61; // Длина вагона 17.22м — заходит глубоко в тоннельный портал X = ±23.0
@@ -1725,33 +1854,43 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
     exteriorGroup.add(hvac);
   });
 
-  // 2. Металлические панели кузова (Сторона A — платформа)
-  const bodyWallGeoms = [];
-  const addWall = (x1, x2, y1, y2) => {
+  // 2. Аутентичные секции кузова Alstom Line 18 (Сторона A и B)
+  const bodyWhiteGeoms = [];
+  const bodyPinstripeGeoms = [];
+  const bodyBlueGeoms = [];
+  const bodyTrimGeoms = [];
+
+  const addCoupledBox = (geoms, x1, x2, y1, y2, z = wallAZ, d = 0.024) => {
     const w = x2 - x1;
     const h = y2 - y1;
-    const g = new THREE.BoxGeometry(w, h, 0.024);
-    g.translate(xCenter + (x1 + x2) / 2, (y1 + y2) / 2, wallAZ);
-    bodyWallGeoms.push(g);
+    const g = new THREE.BoxGeometry(w, h, d);
+    g.translate(xCenter + (x1 + x2) / 2, (y1 + y2) / 2, z);
+    geoms.push(g);
   };
 
-  // Верхняя полоса кузова над дверями
-  addWall(minX, maxX, 2.14, 2.28);
-
-  // 3 набора закрытых двухстворчатых дверей вдоль вагона
   const doorOffsets = dir > 0 ? [-5.0, 0.0, 5.0] : [5.0, 0.0, -5.0];
   const doorHalfW = 0.53;
 
+  // 3 набора закрытых двухстворчатых дверей вдоль вагона (двухцветные Alstom)
   doorOffsets.forEach((doorX) => {
     [-0.275, 0.275].forEach((leafOffset) => {
-      const leafG = new THREE.BoxGeometry(doorHalfW, 2.04, 0.028);
-      leafG.translate(xCenter + doorX + leafOffset, 1.02, wallAZ - 0.005);
-      bodyWallGeoms.push(leafG);
+      // Нижняя часть створки: белая
+      const lWhite = new THREE.BoxGeometry(doorHalfW, 0.94, 0.028);
+      lWhite.translate(xCenter + doorX + leafOffset, 0.47, wallAZ - 0.005);
+      bodyWhiteGeoms.push(lWhite);
+
+      // Кант на двери
+      const lPin = new THREE.BoxGeometry(doorHalfW, 0.02, 0.030);
+      lPin.translate(xCenter + doorX + leafOffset, 0.95, wallAZ - 0.005);
+      bodyPinstripeGeoms.push(lPin);
+
+      // Верхняя часть створки: бирюзово-голубая
+      const lBlue = new THREE.BoxGeometry(doorHalfW, 1.08, 0.028);
+      lBlue.translate(xCenter + doorX + leafOffset, 1.50, wallAZ - 0.005);
+      bodyBlueGeoms.push(lBlue);
     });
   });
 
-  // Простенки между дверями и окнами
-  // Окна расположены между дверьми:
   const winOffsets = [
     (doorOffsets[0] + doorOffsets[1]) / 2,
     (doorOffsets[1] + doorOffsets[2]) / 2
@@ -1759,59 +1898,97 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
   const winW = 1.20;
   const winH = 0.81;
 
-  // Стены ниже и выше окон
+  // Стены под окнами (белые) и над окнами (голубые)
   winOffsets.forEach((wx) => {
-    addWall(wx - winW / 2, wx + winW / 2, 0.0, 0.95);
-    addWall(wx - winW / 2, wx + winW / 2, 1.78, 2.06);
+    addCoupledBox(bodyWhiteGeoms, wx - winW / 2, wx + winW / 2, 0.0, 0.94);
+    addCoupledBox(bodyPinstripeGeoms, wx - winW / 2, wx + winW / 2, 0.94, 0.96, wallAZ, 0.026);
+    addCoupledBox(bodyBlueGeoms, wx - winW / 2, wx + winW / 2, 1.78, 2.06);
   });
 
-  // Глухие участки между дверьми и окнами
-  addWall(minX, Math.min(doorOffsets[0], doorOffsets[2]) - doorHalfW, 0.0, 2.06);
-  addWall(Math.max(doorOffsets[0], doorOffsets[2]) + doorHalfW, maxX, 0.0, 2.06);
+  // Глухие торцевые участки кузова
+  const leftDoorEdge = Math.min(doorOffsets[0], doorOffsets[2]) - doorHalfW;
+  const rightDoorEdge = Math.max(doorOffsets[0], doorOffsets[2]) + doorHalfW;
 
-  // Перемычки между окнами и соседними дверями
+  addCoupledBox(bodyWhiteGeoms, minX, leftDoorEdge, 0.0, 0.94);
+  addCoupledBox(bodyPinstripeGeoms, minX, leftDoorEdge, 0.94, 0.96, wallAZ, 0.026);
+  addCoupledBox(bodyBlueGeoms, minX, leftDoorEdge, 0.96, 2.06);
+
+  addCoupledBox(bodyWhiteGeoms, rightDoorEdge, maxX, 0.0, 0.94);
+  addCoupledBox(bodyPinstripeGeoms, rightDoorEdge, maxX, 0.94, 0.96, wallAZ, 0.026);
+  addCoupledBox(bodyBlueGeoms, rightDoorEdge, maxX, 0.96, 2.06);
+
+  // Простенки между дверьми и окнами
   winOffsets.forEach((wx, i) => {
     const dLeft = Math.min(doorOffsets[i], doorOffsets[i + 1]);
     const dRight = Math.max(doorOffsets[i], doorOffsets[i + 1]);
-    addWall(dLeft + doorHalfW, wx - winW / 2, 0.0, 2.06);
-    addWall(wx + winW / 2, dRight - doorHalfW, 0.0, 2.06);
+
+    addCoupledBox(bodyWhiteGeoms, dLeft + doorHalfW, wx - winW / 2, 0.0, 0.94);
+    addCoupledBox(bodyPinstripeGeoms, dLeft + doorHalfW, wx - winW / 2, 0.94, 0.96, wallAZ, 0.026);
+    addCoupledBox(bodyBlueGeoms, dLeft + doorHalfW, wx - winW / 2, 0.96, 2.06);
+
+    addCoupledBox(bodyWhiteGeoms, wx + winW / 2, dRight - doorHalfW, 0.0, 0.94);
+    addCoupledBox(bodyPinstripeGeoms, wx + winW / 2, dRight - doorHalfW, 0.94, 0.96, wallAZ, 0.026);
+    addCoupledBox(bodyBlueGeoms, wx + winW / 2, dRight - doorHalfW, 0.96, 2.06);
   });
 
-  // Сторона B (путевая стена) — сплошной борт
-  const wallBG = new THREE.BoxGeometry(maxX - minX, 2.28, 0.024);
-  wallBG.translate(xCenter, 1.14, minZ);
-  bodyWallGeoms.push(wallBG);
+  // Верхний сплошной пояс над всеми дверьми и окнами
+  addCoupledBox(bodyBlueGeoms, minX, maxX, 2.06, 2.22);
+  addCoupledBox(bodyTrimGeoms, minX, maxX, 2.22, 2.28, wallAZ, 0.028);
+
+  // Сторона B (путевая стена) — сплошной двухцветный борт
+  addCoupledBox(bodyWhiteGeoms, minX, maxX, 0.0, 0.94, minZ);
+  addCoupledBox(bodyPinstripeGeoms, minX, maxX, 0.94, 0.96, minZ, 0.026);
+  addCoupledBox(bodyBlueGeoms, minX, maxX, 0.96, 2.22, minZ);
+  addCoupledBox(bodyTrimGeoms, minX, maxX, 2.22, 2.28, minZ, 0.028);
 
   // Внутренний торец вагона у межвагонного перехода (стыковка с гармошкой)
   const innerEndX = xCenter - dir * halfL;
   const endPostGeom = new THREE.BoxGeometry(0.04, 2.28, (maxZ - minZ - 0.90) / 2);
   const endPost1 = endPostGeom.clone();
   endPost1.translate(innerEndX, 1.14, maxZ - (maxZ - minZ - 0.90) / 4);
-  bodyWallGeoms.push(endPost1);
+  bodyTrimGeoms.push(endPost1);
 
   const endPost2 = endPostGeom.clone();
   endPost2.translate(innerEndX, 1.14, minZ + (maxZ - minZ - 0.90) / 4);
-  bodyWallGeoms.push(endPost2);
+  bodyTrimGeoms.push(endPost2);
 
   // Внешний торец вагона (глухой торец, заходящий в глубину тоннеля X = ±24.5)
   const outerEndX = xCenter + dir * halfL;
   const outerEndCapG = new THREE.BoxGeometry(0.04, 2.28, maxZ - minZ);
   outerEndCapG.translate(outerEndX, 1.14, centerZ);
-  bodyWallGeoms.push(outerEndCapG);
+  bodyTrimGeoms.push(outerEndCapG);
 
-  exteriorGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(bodyWallGeoms), carPaintMat));
+  if (bodyWhiteGeoms.length > 0) {
+    const m = BufferGeometryUtils.mergeGeometries(bodyWhiteGeoms);
+    m.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(m, alstomWhiteMat));
+  }
+  if (bodyPinstripeGeoms.length > 0) {
+    const m = BufferGeometryUtils.mergeGeometries(bodyPinstripeGeoms);
+    m.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(m, pinstripeMat));
+  }
+  if (bodyBlueGeoms.length > 0) {
+    const m = BufferGeometryUtils.mergeGeometries(bodyBlueGeoms);
+    m.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(m, alstomBlueMat));
+  }
+  if (bodyTrimGeoms.length > 0) {
+    const m = BufferGeometryUtils.mergeGeometries(bodyTrimGeoms);
+    m.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(m, anthraciteTrimMat));
+  }
 
-  // Красная сигнальная полоса ливреи (Y = 2.06 - 2.14) на обоих бортах
-  const liveryGeoms = [];
-  const livA = new THREE.BoxGeometry(maxX - minX, 0.08, 0.026);
-  livA.translate(xCenter, 2.10, wallAZ + 0.002);
-  liveryGeoms.push(livA);
+  // Фирменные круглые эмблемы Линии 18 и брендинг на прицепном вагоне
+  winOffsets.forEach((wx) => {
+    const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), badgeMat);
+    bMesh.position.set(xCenter + wx, 1.55, wallAZ + 0.014);
+    exteriorGroup.add(bMesh);
 
-  const livB = new THREE.BoxGeometry(maxX - minX, 0.08, 0.026);
-  livB.translate(xCenter, 2.10, minZ - 0.002);
-  liveryGeoms.push(livB);
-
-  exteriorGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(liveryGeoms), liveryRedMat));
+    const brMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.30), brandingMat);
+    brMesh.position.set(xCenter + wx, 0.50, wallAZ + 0.014);
+    exteriorGroup.add(brMesh);
+  });
 
   // Окна, резиновые уплотнители и хромированные ручки дверей
   const gasketGeoms = [];

@@ -72,10 +72,10 @@ let isGlobalMuted = true;
 
 // Двери вагона
 let doorLeft, doorRight, doorLeftD2, doorRightD2;
-const DOOR_LEFT_OPEN_X = -2.915;
-const DOOR_LEFT_CLOSED_X = -3.465;
-const DOOR_RIGHT_OPEN_X = -4.615;
-const DOOR_RIGHT_CLOSED_X = -4.065;
+const DOOR_LEFT_OPEN_X = -2.850;
+const DOOR_LEFT_CLOSED_X = -3.460;
+const DOOR_RIGHT_OPEN_X = -4.680;
+const DOOR_RIGHT_CLOSED_X = -4.070;
 let targetDoorCloseRatio = 0.0; // 0.0 = открыты, 1.0 = закрыты (Двери 1)
 let currentDoorCloseRatio = 0.0;
 let targetDoor2OpenRatio = 0.0;  // 0.0 = закрыты, 1.0 = открыты (Двери 2)
@@ -855,7 +855,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261030_2025',
+    'assets/models/subway.glb?v=20261030_2230',
     (gltf) => {
       subwayModel = gltf.scene;
 
@@ -1242,23 +1242,29 @@ function loadSubwayModel() {
       doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
       doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
       if (doorLeftD2 && doorRightD2) {
-        doorLeftD2.position.set(4.065, 0.99, 0.026);
-        doorRightD2.position.set(3.465, 0.99, 0.026);
+        doorLeftD2.position.set(4.070, 0.99, 0.026);
+        doorRightD2.position.set(3.460, 0.99, 0.026);
       }
 
       const doorLeftD3 = subwayModel.getObjectByName('Door_Left_Photo_D3');
       const doorRightD3 = subwayModel.getObjectByName('Door_Right_Photo_D3');
       if (doorLeftD3 && doorRightD3) {
-        doorLeftD3.position.set(-3.465, 0.99, -2.426);
-        doorRightD3.position.set(-4.065, 0.99, -2.426);
+        doorLeftD3.position.set(-3.460, 0.99, -2.426);
+        doorRightD3.position.set(-4.070, 0.99, -2.426);
       }
 
       const doorLeftD4 = subwayModel.getObjectByName('Door_Left_Photo_D4');
       const doorRightD4 = subwayModel.getObjectByName('Door_Right_Photo_D4');
       if (doorLeftD4 && doorRightD4) {
-        doorLeftD4.position.set(4.065, 0.99, -2.426);
-        doorRightD4.position.set(3.465, 0.99, -2.426);
+        doorLeftD4.position.set(4.070, 0.99, -2.426);
+        doorRightD4.position.set(3.460, 0.99, -2.426);
       }
+
+      // Задаем выверенную ширину створок (0.635м) для герметичного притвора без щелей к косякам
+      [doorLeft, doorRight, doorLeftD2, doorRightD2, doorLeftD3, doorRightD3, doorLeftD4, doorRightD4].forEach((dObj) => {
+        if (!dObj) return;
+        dObj.scale.set(0.635, 1.98, 0.038);
+      });
 
       // Гарантируем наличие и точное позиционирование стекол, ручек и уплотнителей для всех створок (Двери 2, 3, 4)
       const ensureDoorFittings = (targetDoor, sourceDoor) => {
@@ -2057,8 +2063,8 @@ function animate() {
     }
     currentDoor2OpenRatio += (targetDoor2OpenRatio - currentDoor2OpenRatio) * 0.08;
     if (doorLeftD2 && doorRightD2) {
-      doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, currentDoor2OpenRatio);
-      doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, currentDoor2OpenRatio);
+      doorLeftD2.position.x = THREE.MathUtils.lerp(4.070, 4.680, currentDoor2OpenRatio);
+      doorRightD2.position.x = THREE.MathUtils.lerp(3.460, 2.850, currentDoor2OpenRatio);
     }
 
     // Строго заскриптованное кинематографичное движение камеры по скроллу + тонкий параллакс взгляда

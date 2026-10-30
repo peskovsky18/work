@@ -1577,33 +1577,39 @@ function setupEventListeners() {
       if (hit === platformMapMesh) {
         window.dispatchEvent(new CustomEvent('open-map-modal'));
       } else {
-        const sIdx = screenMeshes.indexOf(hit);
-        const stageMap = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 1, 6: 2, 7: 3, 8: 4 };
-        const targetStage = stageMap[sIdx] || Math.max(1, Math.min(activeStage, 4));
-        zoomToScreen(targetStage);
+        if (isZoomedToScreen) {
+          resetScreenZoom();
+        } else {
+          const sIdx = screenMeshes.indexOf(hit);
+          const stageMap = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 1, 6: 2, 7: 3, 8: 4 };
+          const targetStage = stageMap[sIdx] || Math.max(1, Math.min(activeStage, 4));
+          zoomToScreen(targetStage);
+        }
       }
+    } else if (isZoomedToScreen) {
+      resetScreenZoom();
     }
   };
 
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по элементам интерфейса
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, #vf-exit-btn')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
     handleScreenInteract(e.clientX, e.clientY);
   });
 
   // Ресайз окна
   window.addEventListener('resize', onWindowResize, { passive: true });
 
-  // Двойной клик для приближения к экрану (Director's Viewfinder / Inspector)
+  // Двойной клик для приближения к экрану
   window.addEventListener('dblclick', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, #vf-exit-btn')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
     toggleScreenZoom();
   });
 
   // Двойной тап для мобильных устройств
   let lastTouchEndTime = 0;
   window.addEventListener('touchend', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal, #vf-exit-btn')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
     const now = performance.now();
     if (now - lastTouchEndTime < 350 && now - lastTouchEndTime > 50) {
       toggleScreenZoom();
@@ -1613,14 +1619,12 @@ function setupEventListeners() {
     }
   }, { passive: true });
 
-  // Клик по бейджу видоискателя для быстрого выхода
-  const vfExitBtn = document.getElementById('vf-exit-btn');
-  if (vfExitBtn) {
-    vfExitBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
+  // Клавиша Escape для выхода из зума
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isZoomedToScreen) {
       resetScreenZoom();
-    });
-  }
+    }
+  });
 }
 
 let isZoomedToScreen = false;
@@ -1630,6 +1634,9 @@ export function zoomToScreen(stage) {
   const targetStage = Math.max(1, Math.min(stage || activeStage, maxStage));
   isZoomedToScreen = true;
   playHapticChime();
+
+  activeStage = targetStage;
+  updateActiveStage(targetStage);
 
   const isMobile = window.innerWidth < 768;
   const currentWp = CAMERA_WAYPOINTS[targetStage][isMobile ? 'mobile' : 'desktop'];

@@ -809,12 +809,23 @@ export function getPlatformTactileTextures() {
   colorCanvas.height = height;
   const cctx = colorCanvas.getContext('2d');
 
-  // Аутентичный оттенок парижской тактильной плитки: теплый песочно-кремовый / светло-бежевый
-  cctx.fillStyle = '#e5dfd2';
+  // Сигнальный ярко-желтый цвет тактильной плитки для слабовидящих (Transit Safety Yellow)
+  cctx.fillStyle = '#f0b400';
   cctx.fillRect(0, 0, width, height);
 
-  // Тонкий внешний контур стыков плит (42см x 42см)
-  cctx.strokeStyle = '#c4bcb0';
+  // Тонкая фактурная зернистость полимерно-бетонного компаунда
+  const imgData = cctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const grain = (Math.random() - 0.5) * 14;
+    data[i] = Math.max(0, Math.min(255, data[i] + grain));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + grain * 0.85));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + grain * 0.2));
+  }
+  cctx.putImageData(imgData, 0, 0);
+
+  // Тонкий внешний контур швов плиты (42см x 42см) — глубокий теплый янтарный оттенок
+  cctx.strokeStyle = '#b87e00';
   cctx.lineWidth = 3;
   cctx.strokeRect(1, 1, width - 2, height - 2);
 
@@ -831,7 +842,7 @@ export function getPlatformTactileTextures() {
   roughCanvas.width = width;
   roughCanvas.height = height;
   const rctx = roughCanvas.getContext('2d');
-  rctx.fillStyle = '#a29c92'; // матовое полимерно-бетонное основание (roughness ~0.64)
+  rctx.fillStyle = '#9e7a20'; // матовое нескользкое полимерно-бетонное основание (roughness ~0.55)
   rctx.fillRect(0, 0, width, height);
 
   // Расчет решетки пупырышков в шахматном (quincunx) порядке
@@ -856,30 +867,30 @@ export function getPlatformTactileTextures() {
     }
   }
 
-  // Отрисовка цвета и мягких теней пупырышков
+  // Отрисовка цвета и мягких теней желтых тактильных пупырышков
   studs.forEach(({ cx, cy }) => {
-    // Мягкая контактная тень вокруг основания пупырышка
-    const shadowGrad = cctx.createRadialGradient(cx, cy, studR * 0.8, cx, cy, studR * 1.25);
-    shadowGrad.addColorStop(0.0, 'rgba(120, 110, 95, 0.35)');
-    shadowGrad.addColorStop(1.0, 'rgba(120, 110, 95, 0.0)');
+    // Мягкая теплая контактная тень вокруг основания пупырышка
+    const shadowGrad = cctx.createRadialGradient(cx, cy, studR * 0.75, cx, cy, studR * 1.30);
+    shadowGrad.addColorStop(0.0, 'rgba(130, 80, 0, 0.45)');
+    shadowGrad.addColorStop(1.0, 'rgba(130, 80, 0, 0.0)');
     cctx.fillStyle = shadowGrad;
     cctx.beginPath();
-    cctx.arc(cx, cy, studR * 1.25, 0, Math.PI * 2);
+    cctx.arc(cx, cy, studR * 1.30, 0, Math.PI * 2);
     cctx.fill();
 
-    // Тело пупырышка с градиентом верхнего света
+    // Тело полусферического пупырышка с градиентом верхнего света (от светло-желтого к янтарному)
     const domeGrad = cctx.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, studR);
-    domeGrad.addColorStop(0.0, '#f8f4ec');
-    domeGrad.addColorStop(0.5, '#eee7da');
-    domeGrad.addColorStop(0.9, '#dbd3c2');
-    domeGrad.addColorStop(1.0, '#c7bea8');
+    domeGrad.addColorStop(0.0, '#fff088'); // Освещенная макушка
+    domeGrad.addColorStop(0.35, '#fcd320'); // Яркое тело полусферы
+    domeGrad.addColorStop(0.75, '#ebb000'); // Теплый насыщенный желтый
+    domeGrad.addColorStop(1.0, '#c28400'); // Темный янтарный спад к основанию
     cctx.fillStyle = domeGrad;
     cctx.beginPath();
     cctx.arc(cx, cy, studR, 0, Math.PI * 2);
     cctx.fill();
 
     // Блик на макушке
-    cctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    cctx.fillStyle = 'rgba(255, 255, 220, 0.70)';
     cctx.beginPath();
     cctx.arc(cx - 3, cy - 3, 4, 0, Math.PI * 2);
     cctx.fill();

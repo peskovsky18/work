@@ -106,6 +106,55 @@ const raycaster = new THREE.Raycaster();
 const mouseVec = new THREE.Vector2(-999, -999);
 let hoveredScreen = null;
 
+// Адаптивная динамическая производительность (Device Profiling & Adaptive Resolution)
+let deviceTier = 'high';
+let maxAllowedDPR = 1.5;
+let minAllowedDPR = 0.75;
+let currentDPR = 1.0;
+
+export function getDevicePerformanceProfile() {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const isMobile = /android|iphone|ipad|ipod|webos|blackberry|iemobile|opera mini/i.test(ua) || window.innerWidth < 768;
+  const cores = navigator.hardwareConcurrency || 4;
+  const mem = navigator.deviceMemory || 4;
+
+  let isBudgetGPU = false;
+  try {
+    const probe = document.createElement('canvas');
+    const gl = probe.getContext('webgl') || probe.getContext('experimental-webgl');
+    if (gl) {
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        const ren = (gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '').toLowerCase();
+        if (
+          ren.includes('mali') ||
+          ren.includes('adreno (tm) 3') ||
+          ren.includes('adreno (tm) 4') ||
+          ren.includes('adreno (tm) 5') ||
+          ren.includes('adreno 610') ||
+          ren.includes('adreno 612') ||
+          ren.includes('intel hd') ||
+          ren.includes('intel uhd') ||
+          ren.includes('powervr') ||
+          ren.includes('apple a10') ||
+          ren.includes('apple a11') ||
+          ren.includes('apple a12') ||
+          ren.includes('apple a13')
+        ) {
+          isBudgetGPU = true;
+        }
+      }
+    }
+  } catch (e) {}
+
+  if (isBudgetGPU || (isMobile && cores <= 4)) {
+    return 'low';
+  } else if (isMobile || cores <= 6 || mem <= 4) {
+    return 'medium';
+  }
+  return 'high';
+}
+
 // =============================================================================
 // ИНИЦИАЛИЗАЦИЯ
 // =============================================================================
@@ -113,14 +162,24 @@ export function initSubwayScene() {
   const canvas = document.getElementById('webgl-canvas');
   if (!canvas) return;
 
-  // 1. Создание рендерера
+  // 1. Создание рендерера с динамическим профилированием под устройство
+  deviceTier = getDevicePerformanceProfile();
+  const isLowTier = deviceTier === 'low';
+  const isMidTier = deviceTier === 'medium';
+
+  maxAllowedDPR = isLowTier ? 1.0 : (isMidTier ? 1.25 : 1.5);
+  minAllowedDPR = isLowTier ? 0.70 : 0.85;
+  currentDPR = Math.min(window.devicePixelRatio || 1, maxAllowedDPR);
+
   renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !isLowTier, // Отключаем MSAA на слабых устройствах (экономит 20-30% GPU)
     alpha: false,
-    powerPreference: 'high-performance'
+    powerPreference: isLowTier ? 'default' : 'high-performance',
+    stencil: false,
+    depth: true
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setPixelRatio(currentDPR);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.26;
@@ -131,7 +190,7 @@ export function initSubwayScene() {
   }, false);
 
   canvas.addEventListener('webglcontextrestored', () => {
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(currentDPR);
     renderer.setSize(window.innerWidth, window.innerHeight);
   }, false);
 
@@ -170,6 +229,7 @@ export function initSubwayScene() {
     THREE,
     getCamera: () => camera,
     getScene: () => scene,
+    getRenderer: () => renderer,
     getState: () => ({ isDescentActive, isEscalatorLoaded, isSubwayLoaded, camPos: camera?.position, camTarget: camCurrentTarget })
   };
   window.__THREE_SCENE__ = scene;
@@ -282,11 +342,12 @@ function setupStationEnvironment() {
   const texLoader = new THREE.TextureLoader();
 
   // Аутентичная текстура плитки Парижского метро с синей затиркой швов (Voûte de Métro Liège)
+  const maxAniso = renderer ? Math.min(renderer.capabilities.getMaxAnisotropy() || 1, 4) : 4;
   const metroTileColor = texLoader.load('assets/textures/paris_metro_tiles_blue_grout.png');
   metroTileColor.wrapS = THREE.RepeatWrapping;
   metroTileColor.wrapT = THREE.RepeatWrapping;
   metroTileColor.repeat.set(1, 1);
-  metroTileColor.anisotropy = 16;
+  metroTileColor.anisotropy = maxAniso;
   metroTileColor.colorSpace = THREE.SRGBColorSpace;
   metroTileColor.generateMipmaps = true;
 
@@ -294,7 +355,7 @@ function setupStationEnvironment() {
   metroTileNormal.wrapS = THREE.RepeatWrapping;
   metroTileNormal.wrapT = THREE.RepeatWrapping;
   metroTileNormal.repeat.set(1, 1);
-  metroTileNormal.anisotropy = 16;
+  metroTileNormal.anisotropy = maxAniso;
   metroTileNormal.generateMipmaps = true;
 
   // =========================================================================
@@ -345,22 +406,29 @@ function setupStationEnvironment() {
         child.material = new THREE.MeshPhysicalMaterial({
           color: 0xffffff,
           transparent: true,
-          opacity: 0.16,
-          roughness: 0.04,
-          transmission: 0.94,
-          ior: 1.52,
-          reflectivity: 0.90,
+          opacity: 0.22,
+          roughness: 0.05,
+          reflectivity: 0.88,
           clearcoat: 1.0,
           clearcoatRoughness: 0.03,
+          depthWrite: false,
           side: THREE.DoubleSide
         });
       }
 
-      // Подсветка индикаторов и витрины вендингового автомата Necta Melodia
+      // Подсветка индикаторов и оптимизация материалов вендингового автомата Necta Melodia
       if (child.material) {
         const mats = Array.isArray(child.material) ? child.material : [child.material];
         mats.forEach((mat) => {
           if (!mat) return;
+          // Отключаем ресурсоемкий transmission-пасс (снимает двойной рендеринг всей сцены)
+          if (mat.transmission > 0) {
+            mat.transmission = 0;
+            mat.transparent = true;
+            mat.opacity = 0.60;
+            mat.roughness = 0.15;
+            mat.needsUpdate = true;
+          }
           if (mat.name === 'Mat_VM_LED') {
             mat.emissive = new THREE.Color(0xffffff);
             mat.emissiveIntensity = 2.4;
@@ -466,7 +534,7 @@ function setupStationEnvironment() {
   safeLine.position.set(0, 0.002, 0.22);
   stationEnvGroup.add(safeLine);
 
-  // 2.3 Архитектурные колонны платформы (полированный белый мрамор с защитными отбойниками из стали)
+  // 2.3 Архитектурные колонны платформы (объединены в 2 меша для экономии 28 draw calls)
   const colMat = new THREE.MeshStandardMaterial({
     color: 0xf2f5fa,
     roughness: 0.18,
@@ -478,27 +546,33 @@ function setupStationEnvironment() {
     metalness: 0.95
   });
 
+  const shaftGeoms = [];
+  const cuffGeoms = [];
+  const colH = 4.45;
   [-19.4, -15.0, -10.6, -6.2, -1.8, 2.6, 7.0, 11.4, 15.8, 20.2].forEach(cx => {
-    const colGroup = new THREE.Group();
     // Основной ствол колонны (от Y = 0.0 до свода Y = 4.45)
-    const colH = 4.45;
-    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.52, colH, 0.52), colMat);
-    shaft.position.set(0, colH / 2, 0);
-    colGroup.add(shaft);
+    const shaftG = new THREE.BoxGeometry(0.52, colH, 0.52);
+    shaftG.translate(cx, colH / 2, 2.60);
+    shaftGeoms.push(shaftG);
 
     // Стальной отбойник цоколя
-    const baseCuff = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.35, 0.56), cuffMat);
-    baseCuff.position.set(0, 0.175, 0);
-    colGroup.add(baseCuff);
+    const baseCuffG = new THREE.BoxGeometry(0.56, 0.35, 0.56);
+    baseCuffG.translate(cx, 0.175, 2.60);
+    cuffGeoms.push(baseCuffG);
 
     // Капитель под сводчатым потолком
-    const capital = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.12, 0.58), cuffMat);
-    capital.position.set(0, colH - 0.06, 0);
-    colGroup.add(capital);
-
-    colGroup.position.set(cx, 0.0, 2.60);
-    stationEnvGroup.add(colGroup);
+    const capitalG = new THREE.BoxGeometry(0.58, 0.12, 0.58);
+    capitalG.translate(cx, colH - 0.06, 2.60);
+    cuffGeoms.push(capitalG);
   });
+
+  const mergedShafts = BufferGeometryUtils.mergeGeometries(shaftGeoms);
+  mergedShafts.clearGroups();
+  stationEnvGroup.add(new THREE.Mesh(mergedShafts, colMat));
+
+  const mergedCuffs = BufferGeometryUtils.mergeGeometries(cuffGeoms);
+  mergedCuffs.clearGroups();
+  stationEnvGroup.add(new THREE.Mesh(mergedCuffs, cuffMat));
 
   // Задняя стена станции и арочный потолок теперь формируются единым
   // архитектурным сводом Station_Vault_Arch из парижской плитки с синей затиркой.
@@ -1588,13 +1662,31 @@ export function scrollToStage(stageIndex) {
 // ОБРАБОТЧИКИ СОБЫТИЙ (ТОЛЬКО ЗАСКРИПТОВАННОЕ ДВИЖЕНИЕ КАМЕРЫ ПО СКРОЛЛУ)
 // =============================================================================
 function setupEventListeners() {
-  // Отслеживание курсора исключительно для Raycaster (интерактивность экранов и кнопок)
-  // Отслеживание курсора для Raycaster и деликатного параллакса взгляда на ПК
+  // Отслеживание курсора для Raycaster и деликатного параллакса взгляда на ПК (с троттлингом для 60 FPS)
+  let lastRaycast = 0;
   window.addEventListener('mousemove', (e) => {
     mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
     mouseOffset.x = mouseVec.x * 0.08;
     mouseOffset.y = mouseVec.y * 0.04;
+
+    const now = performance.now();
+    if (now - lastRaycast > 60 && !isDescentActive && camera) {
+      lastRaycast = now;
+      const validScreens = screenMeshes.filter(Boolean);
+      if (platformMapMesh) validScreens.push(platformMapMesh);
+      if (validScreens.length > 0) {
+        raycaster.setFromCamera(mouseVec, camera);
+        const intersects = raycaster.intersectObjects(validScreens, false);
+        if (intersects.length > 0) {
+          hoveredScreen = intersects[0].object;
+          document.body.style.cursor = 'pointer';
+        } else {
+          hoveredScreen = null;
+          document.body.style.cursor = '';
+        }
+      }
+    }
   }, { passive: true });
 
   // Гироскоп на смартфонах для эффекта присутствия (DeviceOrientation)
@@ -1788,7 +1880,7 @@ function onWindowResize() {
   updateCameraFov();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(currentDPR);
 
   // Обновление ScrollTrigger при ресайзе
   if (typeof ScrollTrigger !== 'undefined') {
@@ -1799,7 +1891,6 @@ function onWindowResize() {
 // Адаптивная динамическая производительность (Adaptive DPR & Performance)
 const frameTimes = [];
 let lastPixelRatioAdjustTime = 0;
-let currentDPR = Math.min(window.devicePixelRatio || 1, 2);
 
 // =============================================================================
 // ЦИКЛ РЕНДЕРИНГА (ANIMATE LOOP)
@@ -1810,24 +1901,23 @@ function animate() {
   const dt = clock ? Math.min(clock.getDelta(), 0.1) : 0.016;
   const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
 
-  // Динамический замер FPS для адаптации DPR (поддержание стабильных 60 FPS)
+  // Динамический адаптивный FPS Governor (поддержание стабильных 60 FPS на слабых устройствах)
   frameTimes.push(dt);
   if (frameTimes.length > 40) {
     frameTimes.shift();
     const nowMs = performance.now();
-    if (nowMs - lastPixelRatioAdjustTime > 2500) {
+    if (nowMs - lastPixelRatioAdjustTime > 1800) {
       let sum = 0;
       for (let i = 0; i < frameTimes.length; i++) sum += frameTimes[i];
       const avgDt = sum / frameTimes.length;
       const avgFps = 1 / Math.max(avgDt, 0.001);
-      const maxAllowedDPR = Math.min(window.devicePixelRatio || 1, 2);
 
-      if (avgFps < 40 && currentDPR > 1.0) {
-        currentDPR = Math.max(1.0, currentDPR - 0.25);
+      if (avgFps < 48 && currentDPR > minAllowedDPR) {
+        currentDPR = Math.max(minAllowedDPR, Math.round((currentDPR - 0.15) * 100) / 100);
         renderer.setPixelRatio(currentDPR);
         lastPixelRatioAdjustTime = nowMs;
-      } else if (avgFps > 57 && currentDPR < maxAllowedDPR) {
-        currentDPR = Math.min(maxAllowedDPR, currentDPR + 0.25);
+      } else if (avgFps > 58 && currentDPR < maxAllowedDPR) {
+        currentDPR = Math.min(maxAllowedDPR, Math.round((currentDPR + 0.10) * 100) / 100);
         renderer.setPixelRatio(currentDPR);
         lastPixelRatioAdjustTime = nowMs;
       }
@@ -2034,19 +2124,40 @@ function animate() {
     screenLight2.intensity += (base2 - screenLight2.intensity) * 0.15;
   }
 
-  // 2.3d Обновление кадров видеотекстур на экранах (только в салоне вагона после завершения спуска)
+  // 2.3d Интеллектуальное обновление кадров видеотекстур:
+  // Обновляем ТОЛЬКО текстуру текущего активного этапа и ТОЛЬКО если кадр действительно сменился!
   if (!isDescentActive) {
-    if (videoTexture1 && video1 && !video1.paused && video1.readyState >= 2) {
-      videoTexture1.needsUpdate = true;
+    let curV = null;
+    let curTex = null;
+    if (activeStage === 1) { curV = video1; curTex = videoTexture1; }
+    else if (activeStage === 2) { curV = video2; curTex = videoTexture2; }
+    else if (activeStage === 3) { curV = video3; curTex = videoTexture3; }
+    else if (activeStage === 4) { curV = video4; curTex = videoTexture4; }
+
+    if (curV && curTex && !curV.paused && curV.readyState >= 2) {
+      if (curV._lastUploadedTime !== curV.currentTime) {
+        curV._lastUploadedTime = curV.currentTime;
+        curTex.needsUpdate = true;
+      }
     }
-    if (videoTexture2 && video2 && !video2.paused && video2.readyState >= 2) {
-      videoTexture2.needsUpdate = true;
-    }
-    if (videoTexture3 && video3 && !video3.paused && video3.readyState >= 2) {
-      videoTexture3.needsUpdate = true;
-    }
-    if (videoTexture4 && video4 && !video4.paused && video4.readyState >= 2) {
-      videoTexture4.needsUpdate = true;
+  }
+
+  // 2.3e Динамическое отключение объектов и света платформы вне зоны видимости (экономит >200 draw calls)
+  const isInsideCar = !isDescentActive && (!freeRoamController || !freeRoamController.isActive);
+  if (escalatorGroup && escalatorGroup.visible !== !isInsideCar) {
+    escalatorGroup.visible = !isInsideCar;
+  }
+  if (stationEnvGroup) {
+    if (isInsideCar && stationEnvGroup._fillsVisible !== false) {
+      stationEnvGroup.traverse((c) => {
+        if (c.isPointLight && c.name && c.name.startsWith('platFill')) c.visible = false;
+      });
+      stationEnvGroup._fillsVisible = false;
+    } else if (!isInsideCar && stationEnvGroup._fillsVisible === false) {
+      stationEnvGroup.traverse((c) => {
+        if (c.isPointLight && c.name && c.name.startsWith('platFill')) c.visible = true;
+      });
+      stationEnvGroup._fillsVisible = true;
     }
   }
 
@@ -2061,23 +2172,8 @@ function animate() {
     }
   }
 
-  // 3. Raycaster и синхронизация плеера только после завершения спуска в вагон
+  // 3. Синхронизация полосы прогресса видео (троттлинг 10 FPS, без DOM layout thrashing)
   if (!isDescentActive) {
-    const validScreens = screenMeshes.filter(Boolean);
-    if (platformMapMesh) validScreens.push(platformMapMesh);
-    if (validScreens.length > 0) {
-      raycaster.setFromCamera(mouseVec, camera);
-      const intersects = raycaster.intersectObjects(validScreens, false);
-      if (intersects.length > 0) {
-        hoveredScreen = intersects[0].object;
-        document.body.style.cursor = 'pointer';
-      } else {
-        hoveredScreen = null;
-        document.body.style.cursor = '';
-      }
-    }
-
-    // 4. Синхронизация полосы прогресса видео
     syncScrubberUI();
   }
 
@@ -2088,22 +2184,37 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+let cachedScrubbers = null;
+let lastScrubberUpdateTime = 0;
+
 function syncScrubberUI() {
-  const allVideos = [video1, video2, video3, video4];
-  allVideos.forEach((v, idx) => {
-    if (v && v.duration) {
-      const stageIdx = idx + 1;
-      const progressEl = document.getElementById(`timeline-progress-stage${stageIdx}`);
-      const timeText = document.getElementById(`time-text-stage${stageIdx}`);
-      if (progressEl) {
-        const pct = (v.currentTime / v.duration) * 100;
-        progressEl.style.width = `${pct}%`;
-      }
-      if (timeText) {
-        timeText.textContent = formatTime(v.currentTime);
-      }
+  if (activeStage < 1 || activeStage > 4) return;
+  const now = performance.now();
+  if (now - lastScrubberUpdateTime < 95) return;
+  lastScrubberUpdateTime = now;
+
+  if (!cachedScrubbers) {
+    cachedScrubbers = [1, 2, 3, 4].map((idx) => ({
+      progressEl: document.getElementById(`timeline-progress-stage${idx}`),
+      timeText: document.getElementById(`time-text-stage${idx}`)
+    }));
+  }
+
+  const v = (activeStage === 1) ? video1 :
+            (activeStage === 2) ? video2 :
+            (activeStage === 3) ? video3 :
+            (activeStage === 4) ? video4 : null;
+
+  if (v && v.duration) {
+    const item = cachedScrubbers[activeStage - 1];
+    if (item && item.progressEl) {
+      const pct = (v.currentTime / v.duration) * 100;
+      item.progressEl.style.width = `${pct}%`;
     }
-  });
+    if (item && item.timeText) {
+      item.timeText.textContent = formatTime(v.currentTime);
+    }
+  }
 }
 
 function formatTime(seconds) {

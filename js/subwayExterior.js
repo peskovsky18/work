@@ -1333,28 +1333,37 @@ export function setupSubwayExterior(scene, subwayModel) {
     exteriorGroup.add(rib);
   });
 
-  // HVAC Блоки на крыше
+  // HVAC Блоки на крыше (объединены в единую геометрию для сокращения draw calls)
+  const hvacGeoms = [];
   [-2.6, 2.6].forEach((hvacX) => {
-    const hvac = new THREE.Mesh(
-      new THREE.BoxGeometry(2.30, 0.22, 1.40),
-      new THREE.MeshStandardMaterial({ color: 0x1b1e24, roughness: 0.40, metalness: 0.80 })
-    );
-    hvac.position.set(hvacX, 2.66, centerZ);
-    exteriorGroup.add(hvac);
+    const hvacG = new THREE.BoxGeometry(2.30, 0.22, 1.40);
+    hvacG.translate(hvacX, 2.66, centerZ);
+    hvacGeoms.push(hvacG);
   });
+  if (hvacGeoms.length > 0) {
+    const mergedHvac = BufferGeometryUtils.mergeGeometries(hvacGeoms);
+    mergedHvac.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(
+      mergedHvac,
+      new THREE.MeshStandardMaterial({ color: 0x1b1e24, roughness: 0.40, metalness: 0.80 })
+    ));
+  }
 
-  // B. Внешний борт (Сторона A)
+  // B. Внешний борт (Сторона A) — пакетное объединение секций в единый меш
   const wallAZ = 0.036;
-  const addWallSection = (x1, x2, y1, y2, mat = carPaintMat) => {
+  const wallPaintGeoms = [];
+  const wallRedGeoms = [];
+  const addWallSection = (x1, x2, y1, y2, isRed = false) => {
     const w = x2 - x1;
     const h = y2 - y1;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.024), mat);
-    mesh.position.set((x1 + x2) / 2, (y1 + y2) / 2, wallAZ);
-    exteriorGroup.add(mesh);
+    const g = new THREE.BoxGeometry(w, h, 0.024);
+    g.translate((x1 + x2) / 2, (y1 + y2) / 2, wallAZ);
+    if (isRed) wallRedGeoms.push(g);
+    else wallPaintGeoms.push(g);
   };
 
   addWallSection(-6.08, 6.08, 2.14, 2.28);
-  addWallSection(-6.08, 6.08, 2.06, 2.14, liveryRedMat);
+  addWallSection(-6.08, 6.08, 2.06, 2.14, true);
   addWallSection(-6.08, -4.405, 0.0, 2.06);
   addWallSection(-3.125, -2.18, 0.0, 2.06);
   addWallSection(-1.06, 1.06, 0.0, 2.06);
@@ -1364,6 +1373,17 @@ export function setupSubwayExterior(scene, subwayModel) {
   addWallSection(1.06, 2.18, 0.0, 0.95);
   addWallSection(-2.18, -1.06, 1.78, 2.06);
   addWallSection(1.06, 2.18, 1.78, 2.06);
+
+  if (wallPaintGeoms.length > 0) {
+    const mergedWP = BufferGeometryUtils.mergeGeometries(wallPaintGeoms);
+    mergedWP.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedWP, carPaintMat));
+  }
+  if (wallRedGeoms.length > 0) {
+    const mergedWR = BufferGeometryUtils.mergeGeometries(wallRedGeoms);
+    mergedWR.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedWR, liveryRedMat));
+  }
 
   // Внешние стекла с тонкой полой резиновой окантовкой по периметру (объединенные меши)
   const extGasketGeoms = [];
@@ -1395,10 +1415,15 @@ export function setupSubwayExterior(scene, subwayModel) {
     extG.translate(winX, 1.365, wallAZ + 0.005);
     extGlassGeoms.push(extG);
   });
-  exteriorGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(extGasketGeoms), rubberMat));
-  exteriorGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(extGlassGeoms), extGlassMat));
+  const mergedExtGask = BufferGeometryUtils.mergeGeometries(extGasketGeoms);
+  mergedExtGask.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedExtGask, rubberMat));
 
-  // Светодиодное маршрутное табло
+  const mergedExtGlass = BufferGeometryUtils.mergeGeometries(extGlassGeoms);
+  mergedExtGlass.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedExtGlass, extGlassMat));
+
+  // Светодиодное маршрутное табло (объединенные меши)
   const destTex = getDestinationDisplayTexture();
   const destMat = new THREE.MeshStandardMaterial({
     map: destTex,
@@ -1410,45 +1435,54 @@ export function setupSubwayExterior(scene, subwayModel) {
     side: THREE.DoubleSide
   });
 
+  const bezelGeoms = [];
+  const destGeoms = [];
   [-3.765, 3.765].forEach((doorX) => {
-    const bezel = new THREE.Mesh(
-      new THREE.BoxGeometry(1.24, 0.16, 0.03),
-      new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.35, metalness: 0.90 })
-    );
-    bezel.position.set(doorX, 2.21, wallAZ + 0.012);
-    exteriorGroup.add(bezel);
+    const bG = new THREE.BoxGeometry(1.24, 0.16, 0.03);
+    bG.translate(doorX, 2.21, wallAZ + 0.012);
+    bezelGeoms.push(bG);
 
-    const destMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.13), destMat);
-    destMesh.position.set(doorX, 2.21, wallAZ + 0.028);
-    exteriorGroup.add(destMesh);
+    const dG = new THREE.PlaneGeometry(1.18, 0.13);
+    dG.translate(doorX, 2.21, wallAZ + 0.028);
+    destGeoms.push(dG);
   });
+  const mergedBezel = BufferGeometryUtils.mergeGeometries(bezelGeoms);
+  mergedBezel.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedBezel, new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.35, metalness: 0.90 })));
+
+  const mergedDest = BufferGeometryUtils.mergeGeometries(destGeoms);
+  mergedDest.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedDest, destMat));
 
   // C. Внешний борт (Сторона B)
   const wallBMesh = new THREE.Mesh(new THREE.BoxGeometry(maxX - minX, 2.28, 0.024), carPaintMat);
   wallBMesh.position.set(0, 1.14, minZ);
+  wallBMesh.geometry.clearGroups();
   exteriorGroup.add(wallBMesh);
 
   const liveryB = new THREE.Mesh(new THREE.BoxGeometry(maxX - minX, 0.08, 0.026), liveryRedMat);
   liveryB.position.set(0, 2.10, minZ);
+  liveryB.geometry.clearGroups();
   exteriorGroup.add(liveryB);
 
-  // D. Торцы и межвагонные гармошки
+  // D. Торцы и межвагонные гармошки (пакетно объединенные)
+  const endGeoms = [];
+  const foldGeoms = [];
+  const couplerGeoms = [];
+
   [-1, 1].forEach((dir) => {
     const endX = dir * 6.08;
-    const endWallMat = new THREE.MeshStandardMaterial({ color: 0x22262d, roughness: 0.35, metalness: 0.85 });
+    const endPost1 = new THREE.BoxGeometry(0.04, 2.28, (maxZ - minZ - 0.90) / 2);
+    endPost1.translate(endX, 1.14, maxZ - (maxZ - minZ - 0.90) / 4);
+    endGeoms.push(endPost1);
 
-    const endPostGeom = new THREE.BoxGeometry(0.04, 2.28, (maxZ - minZ - 0.90) / 2);
-    const endPost1 = new THREE.Mesh(endPostGeom, endWallMat);
-    endPost1.position.set(endX, 1.14, maxZ - (maxZ - minZ - 0.90) / 4);
-    exteriorGroup.add(endPost1);
+    const endPost2 = new THREE.BoxGeometry(0.04, 2.28, (maxZ - minZ - 0.90) / 2);
+    endPost2.translate(endX, 1.14, minZ + (maxZ - minZ - 0.90) / 4);
+    endGeoms.push(endPost2);
 
-    const endPost2 = new THREE.Mesh(endPostGeom, endWallMat);
-    endPost2.position.set(endX, 1.14, minZ + (maxZ - minZ - 0.90) / 4);
-    exteriorGroup.add(endPost2);
-
-    const endHeader = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.38, 0.90), endWallMat);
-    endHeader.position.set(endX, 2.09, centerZ);
-    exteriorGroup.add(endHeader);
+    const endHeader = new THREE.BoxGeometry(0.04, 0.38, 0.90);
+    endHeader.translate(endX, 2.09, centerZ);
+    endGeoms.push(endHeader);
 
     // Гармошка
     const bellowFolds = 8;
@@ -1456,29 +1490,37 @@ export function setupSubwayExterior(scene, subwayModel) {
     for (let f = 0; f < bellowFolds; f++) {
       const bx = endX + dir * (f * foldW + foldW / 2);
       const scaleAdj = (f % 2 === 0) ? 1.05 : 0.95;
-      const fold = new THREE.Mesh(new THREE.BoxGeometry(foldW * 0.85, 2.20 * scaleAdj, 1.00 * scaleAdj), rubberMat);
-      fold.position.set(bx, 1.10, centerZ);
-      exteriorGroup.add(fold);
+      const foldG = new THREE.BoxGeometry(foldW * 0.85, 2.20 * scaleAdj, 1.00 * scaleAdj);
+      foldG.translate(bx, 1.10, centerZ);
+      foldGeoms.push(foldG);
     }
+
+    // Сцепка Шарфенберга (Coupler)
+    const cG = new THREE.BoxGeometry(1.20, 0.16, 0.22);
+    cG.translate(dir * 6.68, -0.24, centerZ);
+    couplerGeoms.push(cG);
   });
 
-  // E. Подвагонный фартук и рельсы
+  const mergedEnd = BufferGeometryUtils.mergeGeometries(endGeoms);
+  mergedEnd.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedEnd, new THREE.MeshStandardMaterial({ color: 0x22262d, roughness: 0.35, metalness: 0.85 })));
+
+  const mergedFolds = BufferGeometryUtils.mergeGeometries(foldGeoms);
+  mergedFolds.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedFolds, rubberMat));
+
+  const mergedCouplers = BufferGeometryUtils.mergeGeometries(couplerGeoms);
+  mergedCouplers.clearGroups();
+  exteriorGroup.add(new THREE.Mesh(mergedCouplers, new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.40, metalness: 0.90 })));
+
+  // E. Подвагонный фартук
   const underSkirt = new THREE.Mesh(
     new THREE.BoxGeometry(maxX - minX - 0.40, 0.32, maxZ - minZ - 0.10),
     new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.85, metalness: 0.40 })
   );
   underSkirt.position.set(0, -0.22, centerZ);
+  underSkirt.geometry.clearGroups();
   exteriorGroup.add(underSkirt);
-
-  // F. Сцепка Шарфенберга (Coupler) между вагонами под гармошками
-  [-1, 1].forEach((dir) => {
-    const coupler = new THREE.Mesh(
-      new THREE.BoxGeometry(1.20, 0.16, 0.22),
-      new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.40, metalness: 0.90 })
-    );
-    coupler.position.set(dir * 6.68, -0.24, centerZ);
-    exteriorGroup.add(coupler);
-  });
 
   // G. ПРИЦЕПНЫЕ ВАГОНЫ СОСТАВА МЕТРО (Второй вагон впереди X = +15.89 и хвостовой вагон X = -15.89)
   // Состав из 3 вагонов длиной 49.0м полностью перекрывает всю станцию (46м) и уходит в тоннели на обоих концах.
@@ -1830,36 +1872,43 @@ export function setupStationCeilingAndArchitecture(stationEnvGroup) {
   // поэтому плоская плоскость старого потолка исключена для открытого обзора арки.
   const ceilingY = 4.35;
 
-  // Элегантные продольные световые линии под арочным сводом станции
+  // Элегантные продольные световые линии под арочным сводом станции (объединены в 1 меш)
+  const barGeoms = [];
   [1.0, 2.6].forEach((lz) => {
-    const lightBar = new THREE.Mesh(
-      new THREE.BoxGeometry(ceilingW - 2.0, 0.04, 0.16),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        emissive: new THREE.Color(0xfff0dd),
-        emissiveIntensity: 3.2,
-        roughness: 0.10
-      })
-    );
-    lightBar.position.set(0, ceilingY, lz);
-    stationEnvGroup.add(lightBar);
+    const bG = new THREE.BoxGeometry(ceilingW - 2.0, 0.04, 0.16);
+    bG.translate(0, ceilingY, lz);
+    barGeoms.push(bG);
   });
+  const mergedBars = BufferGeometryUtils.mergeGeometries(barGeoms);
+  mergedBars.clearGroups();
+  stationEnvGroup.add(new THREE.Mesh(
+    mergedBars,
+    new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xfff0dd),
+      emissiveIntensity: 3.2,
+      roughness: 0.10
+    })
+  ));
 
   // Мягкое архитектурное заполняющее освещение станции под сводом (3000K Warm White)
-  const platFill1 = new THREE.PointLight(0xffe8d2, 2.4, 25.0, 1.1);
+  // Оптимизированный радиус действия 15.0м для снижения нагрузки на фрагментный шейдер
+  const platFill1 = new THREE.PointLight(0xffe8d2, 2.4, 15.0, 1.2);
   platFill1.position.set(-10.0, ceilingY - 0.40, 2.4);
+  platFill1.name = 'platFill1';
   stationEnvGroup.add(platFill1);
 
-  const platFill2 = new THREE.PointLight(0xffe8d2, 2.4, 25.0, 1.1);
+  const platFill2 = new THREE.PointLight(0xffe8d2, 2.4, 15.0, 1.2);
   platFill2.position.set(0.0, ceilingY - 0.40, 2.4);
+  platFill2.name = 'platFill2';
   stationEnvGroup.add(platFill2);
 
-  const platFill3 = new THREE.PointLight(0xffe8d2, 2.4, 25.0, 1.1);
+  const platFill3 = new THREE.PointLight(0xffe8d2, 2.4, 15.0, 1.2);
   platFill3.position.set(10.0, ceilingY - 0.40, 2.4);
-  stationEnvGroup.add(platFill3);
+  platFill3.name = 'platFill3';
   stationEnvGroup.add(platFill3);
 
-  // Навигационные световые табло
+  // Навигационные световые табло (объединены в 3 меша: корпуса, таблички, подвесы)
   const navTex = getNavSignTexture();
   const navMat = new THREE.MeshStandardMaterial({
     map: navTex,
@@ -1871,35 +1920,48 @@ export function setupStationCeilingAndArchitecture(stationEnvGroup) {
     side: THREE.DoubleSide
   });
 
+  const housingGeoms = [];
+  const plateGeoms = [];
+  const wireGeoms = [];
+
   [-10.5, -4.5, 4.5, 10.5].forEach((nx) => {
-    const signGroup = new THREE.Group();
-    const housing = new THREE.Mesh(
-      new THREE.BoxGeometry(2.40, 0.42, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.35, metalness: 0.90 })
-    );
-    signGroup.add(housing);
+    const hG = new THREE.BoxGeometry(2.40, 0.42, 0.12);
+    hG.translate(nx, ceilingY - 0.50, 2.20);
+    housingGeoms.push(hG);
 
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.32, 0.36), navMat);
-    plate.position.set(0, 0, 0.065);
-    signGroup.add(plate);
+    const plate = new THREE.PlaneGeometry(2.32, 0.36);
+    plate.translate(nx, ceilingY - 0.50, 2.20 + 0.065);
+    plateGeoms.push(plate);
 
-    const plateBack = new THREE.Mesh(new THREE.PlaneGeometry(2.32, 0.36), navMat);
-    plateBack.rotation.y = Math.PI;
-    plateBack.position.set(0, 0, -0.065);
-    signGroup.add(plateBack);
+    const plateBack = new THREE.PlaneGeometry(2.32, 0.36);
+    plateBack.rotateY(Math.PI);
+    plateBack.translate(nx, ceilingY - 0.50, 2.20 - 0.065);
+    plateGeoms.push(plateBack);
 
     [-1.0, 1.0].forEach((tx) => {
-      const wire = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.008, 0.008, 0.55),
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.95, roughness: 0.15 })
-      );
-      wire.position.set(tx, 0.48, 0);
-      signGroup.add(wire);
+      const wire = new THREE.CylinderGeometry(0.008, 0.008, 0.55);
+      wire.translate(nx + tx, ceilingY - 0.50 + 0.48, 2.20);
+      wireGeoms.push(wire);
     });
-
-    signGroup.position.set(nx, ceilingY - 0.50, 2.20);
-    stationEnvGroup.add(signGroup);
   });
+
+  const mergedHousings = BufferGeometryUtils.mergeGeometries(housingGeoms);
+  mergedHousings.clearGroups();
+  stationEnvGroup.add(new THREE.Mesh(
+    mergedHousings,
+    new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.35, metalness: 0.90 })
+  ));
+
+  const mergedPlates = BufferGeometryUtils.mergeGeometries(plateGeoms);
+  mergedPlates.clearGroups();
+  stationEnvGroup.add(new THREE.Mesh(mergedPlates, navMat));
+
+  const mergedWires = BufferGeometryUtils.mergeGeometries(wireGeoms);
+  mergedWires.clearGroups();
+  stationEnvGroup.add(new THREE.Mesh(
+    mergedWires,
+    new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.95, roughness: 0.15 })
+  ));
 
   // Ограждающие стены конкорса эскалатора (стык между порталом Z=4.80 и эскалатором Z=3.60)
   const concourseMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.45, metalness: 0.20 });

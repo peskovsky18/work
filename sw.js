@@ -1,10 +1,10 @@
 /**
- * Александр Песковский — 2026
+ * Александр Песковский — Портфолио
  * Service Worker: Автоматическая очистка устаревших кэшей и чистый Network-First
  * Гарантирует мгновенное обновление сайта на всех мобильных и десктопных устройствах
  */
 
-const CACHE_NAME = 'subway-portfolio-v20261030_1910';
+const CACHE_NAME = 'subway-portfolio-v20261030_1915';
 
 self.addEventListener('install', (event) => {
   // Немедленно активируем новый Service Worker, не дожидаясь закрытия вкладок

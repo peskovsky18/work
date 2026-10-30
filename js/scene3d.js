@@ -895,7 +895,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261030_2325',
+    'assets/models/subway.glb?v=20261030_2355',
     (gltf) => {
       subwayModel = gltf.scene;
 
@@ -911,6 +911,17 @@ function loadSubwayModel() {
       const ceilingLightTex = getPhotoCeilingLightTexture();
       const tilePBR = getStationTileTextures();
       const granitePBR = getPlatformGraniteTextures();
+
+      // Единый материал сатинированной шлифованной стали для стен и дверей (100% совпадение фактуры и отклика)
+      const wallSteelMat = new THREE.MeshStandardMaterial({
+        map: wallPBR.colorMap,
+        normalMap: wallPBR.normalMap,
+        normalScale: new THREE.Vector2(0.55, 0.55),
+        roughnessMap: wallPBR.roughnessMap,
+        roughness: 0.28,
+        metalness: 0.85,
+        side: THREE.DoubleSide
+      });
 
       // Настройка материалов для фотореалистичного интерьера вагона по фото
       subwayModel.traverse((child) => {
@@ -1087,15 +1098,7 @@ function loadSubwayModel() {
 
         // 9. Створки дверей вагона (единый стиль сатинированной стали со стенами)
         if (child.name.startsWith('Door_Left_Photo') || child.name.startsWith('Door_Right_Photo') || child.name.startsWith('Door_Screen')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: wallPBR.colorMap,
-            normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.55, 0.55),
-            roughnessMap: wallPBR.roughnessMap,
-            roughness: 0.28,
-            metalness: 0.85,
-            side: THREE.DoubleSide
-          });
+          child.material = wallSteelMat;
           return;
         }
 
@@ -1111,29 +1114,13 @@ function loadSubwayModel() {
         }
 
         if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar') || child.name.includes('Window_Surround_Bezel')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: wallPBR.colorMap,
-            normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.45, 0.45),
-            roughnessMap: wallPBR.roughnessMap,
-            roughness: 0.28,
-            metalness: 0.85,
-            side: THREE.DoubleSide
-          });
+          child.material = wallSteelMat;
           return;
         }
 
         // 11. Стены вагона, торцевые переборки, притолоки дверей и торцевые двери (сатинированная сталь высокого разрешения)
         if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || child.name.includes('Door_Header_Housing') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: wallPBR.colorMap,
-            normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.55, 0.55),
-            roughnessMap: wallPBR.roughnessMap,
-            roughness: 0.28,
-            metalness: 0.85,
-            side: THREE.DoubleSide
-          });
+          child.material = wallSteelMat;
           return;
         }
 
@@ -1399,10 +1386,10 @@ function loadSubwayModel() {
         const sz = Math.abs(doorObj.scale.z) || 1;
         const invScale = new THREE.Vector3(1 / sx, 1 / sy, 1 / sz);
 
-        // Для створок Стороны A наружная грань (в сторону платформы +Z) находится при Z > 0 (rotY = 0)
-        // Для створок Стороны B наружная грань (в сторону путевой стены -Z) находится при Z < 0 (rotY = Math.PI)
-        const zPos = isSideB ? -0.021 : 0.021;
-        const rotY = isSideB ? Math.PI : 0;
+        // Для створок Стороны A наружная грань находится при Z > 0 (+Z в сторону платформы, rotY = 0)
+        // Для створок Стороны B (уже развернутых на 180° в glTF модели) локальный +Z строго направлен наружу в сторону тоннеля (-Z в мире), rotY = 0
+        const zPos = 0.021;
+        const rotY = 0;
         const skinGroup = new THREE.Group();
 
         // 1. Нижняя белая панель створки (от Y = 0 до Y = 0.94m в мире, в двери от -0.99 до -0.05)

@@ -10,7 +10,6 @@
 
 import * as THREE from 'three';
 import * as BufferGeometryUtils from './vendor/utils/BufferGeometryUtils.js';
-import { getAlstomLine18BadgeTexture, getAlstomBrandingTexture } from './subwayMaterials.js';
 
 // Кэш сгенерированных текстур
 const extTextureCache = new Map();
@@ -1288,25 +1287,6 @@ export function setupSubwayExterior(scene, subwayModel) {
     side: THREE.DoubleSide
   });
 
-  // Эмблемы Линии 18 и логотипы Île-de-France Mobilités
-  const badgeTex = getAlstomLine18BadgeTexture();
-  const badgeMat = new THREE.MeshStandardMaterial({
-    map: badgeTex,
-    transparent: true,
-    roughness: 0.20,
-    metalness: 0.10,
-    side: THREE.DoubleSide
-  });
-
-  const brandingTex = getAlstomBrandingTexture();
-  const brandingMat = new THREE.MeshStandardMaterial({
-    map: brandingTex,
-    transparent: true,
-    roughness: 0.25,
-    metalness: 0.10,
-    side: THREE.DoubleSide
-  });
-
   // A. Арочная крыша
   const roofCurvePoints = 20;
   const roofXSegs = 32;
@@ -1454,18 +1434,6 @@ export function setupSubwayExterior(scene, subwayModel) {
     exteriorGroup.add(new THREE.Mesh(mergedTrim, anthraciteTrimMat));
   }
 
-  // Фирменные эмблемы Линии 18 и брендинг на Стороне A
-  [-2.65, 2.65].forEach((bx) => {
-    const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), badgeMat);
-    bMesh.position.set(bx, 1.48, wallAZ + 0.014);
-    exteriorGroup.add(bMesh);
-  });
-  [-1.62, 1.62].forEach((bx) => {
-    const brMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.30), brandingMat);
-    brMesh.position.set(bx, 0.50, wallAZ + 0.014);
-    exteriorGroup.add(brMesh);
-  });
-
   // Внешние стекла с тонкой полой резиновой окантовкой по периметру (объединенные меши)
   const extGasketGeoms = [];
   const extGlassGeoms = [];
@@ -1593,20 +1561,6 @@ export function setupSubwayExterior(scene, subwayModel) {
     mergedTrimB.clearGroups();
     exteriorGroup.add(new THREE.Mesh(mergedTrimB, anthraciteTrimMat));
   }
-
-  // Фирменные эмблемы Линии 18 и брендинг на Стороне B
-  [-2.65, 2.65].forEach((bx) => {
-    const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), badgeMat);
-    bMesh.rotation.y = Math.PI;
-    bMesh.position.set(bx, 1.48, wallBZ - 0.014);
-    exteriorGroup.add(bMesh);
-  });
-  [-1.62, 1.62].forEach((bx) => {
-    const brMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.30), brandingMat);
-    brMesh.rotation.y = Math.PI;
-    brMesh.position.set(bx, 0.50, wallBZ - 0.014);
-    exteriorGroup.add(brMesh);
-  });
 
   // Внешние стекла и резиновые уплотнители окон на Стороне B (смотрят на путевую стену станции с плиткой)
   const extGasketBGeoms = [];
@@ -1749,9 +1703,7 @@ export function setupSubwayExterior(scene, subwayModel) {
     roofMat,
     rubberMat,
     extGlassMat,
-    destMat,
-    badgeMat,
-    brandingMat
+    destMat
   };
   createCoupledCar(15.89, 1, exteriorGroup, coupledMats);
   createCoupledCar(-15.89, -1, exteriorGroup, coupledMats);
@@ -1773,9 +1725,7 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
     roofMat,
     rubberMat,
     extGlassMat,
-    destMat,
-    badgeMat,
-    brandingMat
+    destMat
   } = materials;
 
   const halfL = 8.61; // Длина вагона 17.22м — заходит глубоко в тоннельный портал X = ±23.0
@@ -1978,17 +1928,6 @@ function createCoupledCar(xCenter, dir, exteriorGroup, materials) {
     m.clearGroups();
     exteriorGroup.add(new THREE.Mesh(m, anthraciteTrimMat));
   }
-
-  // Фирменные круглые эмблемы Линии 18 и брендинг на прицепном вагоне
-  winOffsets.forEach((wx) => {
-    const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), badgeMat);
-    bMesh.position.set(xCenter + wx, 1.55, wallAZ + 0.014);
-    exteriorGroup.add(bMesh);
-
-    const brMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.30), brandingMat);
-    brMesh.position.set(xCenter + wx, 0.50, wallAZ + 0.014);
-    exteriorGroup.add(brMesh);
-  });
 
   // Окна, резиновые уплотнители и хромированные ручки дверей
   const gasketGeoms = [];

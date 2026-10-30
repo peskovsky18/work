@@ -33,7 +33,7 @@ html {
 }
 
 body.dark-cinema-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   background-color: var(--bg-deep);
   color: var(--text-primary);
   line-height: 1.5;
@@ -203,7 +203,7 @@ body.is-preloading #route-map-panel {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
   color: #fff;
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -323,7 +323,7 @@ body.is-preloading #route-map-panel {
   align-items: center;
   gap: 8px;
   padding: 7px 15px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Space Grotesk', sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-muted);

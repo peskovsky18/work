@@ -544,7 +544,7 @@ export function getNoLeanDecalTexture(THREE) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = '900 92px "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = '900 92px "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
   // Деликатная полупрозрачная тень для читаемости белой краски на фоне света станции
   ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
@@ -585,9 +585,9 @@ export function getPlaceholderScreenTexture(THREE, numStr, titleStr) {
   // Status & Title
   ctx.fillStyle = 'rgba(245, 166, 35, 0.85)'; ctx.beginPath(); ctx.arc(p + 15, p + 20, 6, 0, Math.PI * 2); ctx.fill();
   ctx.font = '600 22px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillText('STANDBY // 16:9 4K', p + 32, p + 28);
-  ctx.font = '800 240px "Space Grotesk", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '800 240px "Manrope", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(255,255,255,0.035)'; ctx.fillText(numStr, 960, 520);
-  ctx.font = '700 52px "Space Grotesk", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText(titleStr, 960, 500);
+  ctx.font = '700 52px "Manrope", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText(titleStr, 960, 500);
   ctx.font = '500 22px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(142,149,165,0.85)'; ctx.fillText('В РАЗРАБОТКЕ • СКОРО В ПОРТФОЛИО', 960, 570);
   const tex = new THREE.CanvasTexture(cvs);
   tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = true; tex.generateMipmaps = true;
@@ -636,7 +636,7 @@ export function getStationSignTexture(THREE) {
   ctx.restore();
 
   // Основной заголовок станции
-  ctx.font = '800 52px "Space Grotesk", sans-serif';
+  ctx.font = '800 52px "Manrope", sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.fillText('СТАНЦИЯ ПЕСКОВСКАЯ', 156, 138);
 
@@ -749,7 +749,7 @@ export function getTrackWallSignTexture(THREE) {
   ctx.strokeText('П Е С К О В С К А Я', 800, 195);
 
   // Подзаголовок латиницей и дата
-  ctx.font = '600 24px "Space Grotesk", sans-serif';
+  ctx.font = '600 24px "Manrope", sans-serif';
   ctx.letterSpacing = '6px';
   ctx.fillStyle = '#a6b0c2';
   ctx.fillText('СТАНЦИЯ ОТКРЫТА В 2026 ГОДУ • PESKOVSKAYA STATION', 800, 275);
@@ -801,7 +801,7 @@ export function getStationPosterTexture(THREE, index = 0) {
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 46px "Space Grotesk", sans-serif';
+    ctx.font = '800 46px "Manrope", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('MEDIA ART 2026', 360, 755);
 
@@ -837,7 +837,7 @@ export function getStationPosterTexture(THREE, index = 0) {
     });
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 44px "Space Grotesk", sans-serif';
+    ctx.font = '800 44px "Manrope", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('СКОРОСТЬ И ДВИЖЕНИЕ', 360, 740);
 
@@ -866,7 +866,7 @@ export function getStationPosterTexture(THREE, index = 0) {
     }
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 42px "Space Grotesk", sans-serif';
+    ctx.font = '800 42px "Manrope", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('АРХИТЕКТУРА И ДИЗАЙН', 360, 750);
 

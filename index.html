@@ -12,19 +12,34 @@
   <meta http-equiv="Expires" content="0">
 
   <script>
-    // Сброс устаревшего кэша PWA / Service Worker на localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          for (var i = 0; i < regs.length; i++) regs[i].unregister();
-        });
+    // Универсальный самоисцеляющийся сброс кэша PWA / Service Worker для ВСЕХ устройств (смартфоны, планшеты, ПК)
+    (function() {
+      var CURRENT_BUILD = '20261030_1740';
+      var lastBuild = localStorage.getItem('subway_portfolio_version');
+      var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+      if (lastBuild !== CURRENT_BUILD || isLocal) {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            for (var i = 0; i < keys.length; i++) {
+              caches.delete(keys[i]);
+            }
+          });
+        }
+        localStorage.setItem('subway_portfolio_version', CURRENT_BUILD);
+        // Если устройство застряло на старой версии, после сброса выполняем чистую перезагрузку
+        if (lastBuild && lastBuild !== CURRENT_BUILD && !isLocal) {
+          window.location.reload(true);
+        }
       }
-      if ('caches' in window) {
-        caches.keys().then(function(keys) {
-          for (var i = 0; i < keys.length; i++) caches.delete(keys[i]);
-        });
-      }
-    }
+    })();
   </script>
   
   <title>Александр Песковский — 2026 | Режиссура и медиа</title>
@@ -56,7 +71,7 @@
   </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css?v=20261030_1720">
+  <link rel="stylesheet" href="css/style.css?v=20261030_1740">
 
   <!-- GSAP & ScrollTrigger -->
   <script src="js/vendor/gsap.min.js"></script>
@@ -418,6 +433,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261030_1720"></script>
+  <script type="module" src="js/main.js?v=20261030_1740"></script>
 </body>
 </html>

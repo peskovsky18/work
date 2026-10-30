@@ -572,10 +572,10 @@ function initWaveformVisualizers() {
 }
 
 // =============================================================================
-// SERVICE WORKER & PWA ПОДДЕРЖКА
+// SERVICE WORKER & PWA ПОДДЕРЖКА (Network-First и мгновенное обновление)
 // =============================================================================
 function initServiceWorker() {
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
     // На локальном сервере всегда полностью отключаем и сбрасываем кэш
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       navigator.serviceWorker.getRegistrations().then((regs) => {
@@ -589,11 +589,13 @@ function initServiceWorker() {
       return;
     }
 
-    if (window.location.protocol.startsWith('http')) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-      });
-    }
+    // В продакшне регистрируем Network-First Service Worker для плавной работы
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js?v=20261030_1740').then((reg) => {
+        // Принудительно проверяем наличие новой версии на сервере
+        reg.update().catch(() => {});
+      }).catch(() => {});
+    });
   }
 }
 

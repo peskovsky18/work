@@ -3,13 +3,15 @@
  * Service Worker для оффлайн-кэширования и мгновенной загрузки
  */
 
-const CACHE_NAME = 'subway-portfolio-v1';
+const CACHE_NAME = 'subway-portfolio-v12';
 const CORE_ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/main.js',
   './js/scene3d.js',
+  './js/subwayExterior.js',
+  './js/subwayMaterials.js',
   './js/subwayMap.js',
   './js/subwayAudio.js',
   './manifest.json'
@@ -38,6 +40,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // На localhost всегда идем напрямую в сеть без кэша
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    return;
+  }
+
   // Игнорируем внешние запросы и запросы видео диапазона (byte range)
   if (!event.request.url.startsWith(self.location.origin) || event.request.headers.has('range')) {
     return;

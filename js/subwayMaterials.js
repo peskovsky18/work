@@ -45,8 +45,8 @@ function createNormalTexture(canvas, repeatX = 1, repeatY = 1) {
 export function getPhotoWallTextures() {
   if (textureCache.has('wall_steel_pbr')) return textureCache.get('wall_steel_pbr');
 
-  const width = 2048;
-  const height = 1024;
+  const width = 512;
+  const height = 256;
 
   // 1.1 Color Map: благородная сатинированная сталь с продольной микро-шлифовкой
   const colorCanvas = document.createElement('canvas');
@@ -74,10 +74,10 @@ export function getPhotoWallTextures() {
   };
 
   for (let y = 0; y < height; y++) {
-    const rowGrain = (rnd() - 0.5) * 16;
+    const rowGrain = (rnd() - 0.5) * 14;
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      const grain = rowGrain + (rnd() - 0.5) * 6;
+      const grain = rowGrain + (rnd() - 0.5) * 5;
       data[idx]     = Math.max(0, Math.min(255, data[idx] + grain));
       data[idx + 1] = Math.max(0, Math.min(255, data[idx + 1] + grain));
       data[idx + 2] = Math.max(0, Math.min(255, data[idx + 2] + grain + 2));
@@ -87,8 +87,8 @@ export function getPhotoWallTextures() {
 
   // Тонкие архитектурные стыки панелей вагона
   cctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-  cctx.lineWidth = 2;
-  [512, 1024, 1536].forEach(px => {
+  cctx.lineWidth = 1.5;
+  [128, 256, 384].forEach(px => {
     cctx.beginPath();
     cctx.moveTo(px, 0);
     cctx.lineTo(px, height);
@@ -96,7 +96,7 @@ export function getPhotoWallTextures() {
   });
   cctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
   cctx.lineWidth = 1;
-  [513, 1025, 1537].forEach(px => {
+  [129, 257, 385].forEach(px => {
     cctx.beginPath();
     cctx.moveTo(px, 0);
     cctx.lineTo(px, height);
@@ -115,10 +115,10 @@ export function getPhotoWallTextures() {
   const ndata = nImgData.data;
   seed = 7654321;
   for (let y = 0; y < height; y++) {
-    const dy = (rnd() - 0.5) * 22;
+    const dy = (rnd() - 0.5) * 18;
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      const dx = (rnd() - 0.5) * 8;
+      const dx = (rnd() - 0.5) * 6;
       ndata[idx]     = Math.max(0, Math.min(255, 128 + dx));
       ndata[idx + 1] = Math.max(0, Math.min(255, 128 + dy));
       ndata[idx + 2] = 250;
@@ -135,9 +135,9 @@ export function getPhotoWallTextures() {
   rctx.fillRect(0, 0, width, height);
 
   const result = {
-    colorMap: createHighResTexture(colorCanvas, 2, 1),
-    normalMap: createNormalTexture(normalCanvas, 2, 1),
-    roughnessMap: createNormalTexture(roughCanvas, 2, 1)
+    colorMap: createHighResTexture(colorCanvas, 4, 2),
+    normalMap: createNormalTexture(normalCanvas, 4, 2),
+    roughnessMap: createNormalTexture(roughCanvas, 4, 2)
   };
   textureCache.set('wall_steel_pbr', result);
   return result;
@@ -231,7 +231,7 @@ function createSeatFabricPBR(type, palette) {
   const cacheKey = `seat_fabric_${type}_pbr`;
   if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
 
-  const size = 1024;
+  const size = 256;
   const colorCanvas = document.createElement('canvas');
   colorCanvas.width = size;
   colorCanvas.height = size;
@@ -282,12 +282,12 @@ function createSeatFabricPBR(type, palette) {
       const cellY = y % 8;
       const isWarp = ((cellX + cellY) % 4) < 2; // Чередование основы и утка
 
-      // 2. Геометрический жаккардовый микро-узор метро (ромбовидная сетка 64x64 пикселей)
-      const diamondX = (x % 64) - 32;
-      const diamondY = (y % 64) - 32;
+      // 2. Геометрический жаккардовый микро-узор метро (ромбовидная сетка 32x32 пикселей)
+      const diamondX = (x % 32) - 16;
+      const diamondY = (y % 32) - 16;
       const distDiamond = Math.abs(diamondX) + Math.abs(diamondY);
-      const isJacquardMotif = distDiamond < 16;
-      const isJacquardBorder = distDiamond >= 16 && distDiamond <= 19;
+      const isJacquardMotif = distDiamond < 8;
+      const isJacquardBorder = distDiamond >= 8 && distDiamond <= 10;
 
       // Выбор цвета нити
       let r, g, b;
@@ -357,10 +357,10 @@ function createSeatFabricPBR(type, palette) {
   // Добавляем поверх элегантную декоративную строчку (двойной шов мебельной обивки)
   cctx.save();
   cctx.strokeStyle = palette.stitch;
-  cctx.lineWidth = 2.5;
-  cctx.setLineDash([8, 8]);
-  // Вертикальные швы кроя обивки (каждые 256 пикселей)
-  [128, 384, 640, 896].forEach(sx => {
+  cctx.lineWidth = 1.5;
+  cctx.setLineDash([4, 4]);
+  // Вертикальные швы кроя обивки (каждые 64 пикселей)
+  [32, 96, 160, 224].forEach(sx => {
     cctx.beginPath();
     cctx.moveTo(sx, 0);
     cctx.lineTo(sx, size);
@@ -371,9 +371,9 @@ function createSeatFabricPBR(type, palette) {
   // Добавляем рельеф швов и валиков на карту нормалей
   nctx.save();
   nctx.strokeStyle = 'rgb(90, 90, 245)';
-  nctx.lineWidth = 4;
-  nctx.setLineDash([8, 8]);
-  [128, 384, 640, 896].forEach(sx => {
+  nctx.lineWidth = 2;
+  nctx.setLineDash([4, 4]);
+  [32, 96, 160, 224].forEach(sx => {
     nctx.beginPath();
     nctx.moveTo(sx, 0);
     nctx.lineTo(sx, size);
@@ -392,27 +392,27 @@ function createSeatFabricPBR(type, palette) {
   aoCtx.fillRect(0, 0, size, size);
 
   // Мягкое затенение продольных линий утяжки и швов
-  [128, 384, 640, 896].forEach(sx => {
-    const grad = aoCtx.createLinearGradient(sx - 28, 0, sx + 28, 0);
+  [32, 96, 160, 224].forEach(sx => {
+    const grad = aoCtx.createLinearGradient(sx - 7, 0, sx + 7, 0);
     grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
     grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.45)');
     grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     aoCtx.fillStyle = grad;
-    aoCtx.fillRect(sx - 28, 0, 56, size);
+    aoCtx.fillRect(sx - 7, 0, 14, size);
   });
 
   // Затенение по краям подушки (межкресельный зазор)
-  const leftGrad = aoCtx.createLinearGradient(0, 0, 36, 0);
+  const leftGrad = aoCtx.createLinearGradient(0, 0, 9, 0);
   leftGrad.addColorStop(0, 'rgba(0, 0, 0, 0.60)');
   leftGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
   aoCtx.fillStyle = leftGrad;
-  aoCtx.fillRect(0, 0, 36, size);
+  aoCtx.fillRect(0, 0, 9, size);
 
-  const rightGrad = aoCtx.createLinearGradient(size - 36, 0, size, 0);
+  const rightGrad = aoCtx.createLinearGradient(size - 9, 0, size, 0);
   rightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
   rightGrad.addColorStop(1, 'rgba(0, 0, 0, 0.60)');
   aoCtx.fillStyle = rightGrad;
-  aoCtx.fillRect(size - 36, 0, 36, size);
+  aoCtx.fillRect(size - 9, 0, 9, size);
 
   const result = {
     colorMap: createHighResTexture(colorCanvas, 3, 3),
@@ -628,7 +628,7 @@ export function getStationTileTextures() {
 export function getPlatformGraniteTextures() {
   if (textureCache.has('platform_granite_pbr')) return textureCache.get('platform_granite_pbr');
 
-  const size = 1024;
+  const size = 256;
   const colorCanvas = document.createElement('canvas');
   colorCanvas.width = size;
   colorCanvas.height = size;
@@ -672,8 +672,8 @@ export function getPlatformGraniteTextures() {
   nctx.putImageData(nData, 0, 0);
 
   const result = {
-    colorMap: createHighResTexture(colorCanvas, 6, 2.5),
-    normalMap: createNormalTexture(normalCanvas, 6, 2.5)
+    colorMap: createHighResTexture(colorCanvas, 12, 5),
+    normalMap: createNormalTexture(normalCanvas, 12, 5)
   };
   textureCache.set('platform_granite_pbr', result);
   return result;

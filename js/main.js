@@ -6,8 +6,8 @@
 import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom, getActiveStage } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Инициализация 3D сцены метро
+function startApp() {
+  // 1. Немедленная инициализация 3D сцены метро (кадр 0 рендерится мгновенно)
   initSubwayScene();
 
   // 2. Инициализация навигации по этапам
@@ -39,7 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 13. Кнопки копирования ссылок и шаринга
   initShareButtons();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}
 
 // =============================================================================
 // НАВИГАЦИЯ ПО СЕКЦИЯМ
@@ -569,10 +575,25 @@ function initWaveformVisualizers() {
 // SERVICE WORKER & PWA ПОДДЕРЖКА
 // =============================================================================
 function initServiceWorker() {
-  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
+  if ('serviceWorker' in navigator) {
+    // На локальном сервере всегда полностью отключаем и сбрасываем кэш
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (let reg of regs) reg.unregister();
+      });
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          for (let name of names) caches.delete(name);
+        });
+      }
+      return;
+    }
+
+    if (window.location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
   }
 }
 

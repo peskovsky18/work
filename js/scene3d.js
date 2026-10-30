@@ -1837,9 +1837,9 @@ function animate() {
           playArrivalChime();
         }
 
-        // Distance & Frustum Culling: скрываем тяжелую геометрию эскалатора внутри вагона
+        // Эскалатор остается видимым сквозь окна вагона для максимального реализма станции
         if (escalatorGroup) {
-          escalatorGroup.visible = false;
+          escalatorGroup.visible = true;
         }
 
         // Фиксируем позицию камеры строго на Stage 0 внутри вагона
@@ -2047,7 +2047,7 @@ export function skipDescent() {
     playArrivalChime();
   }
   if (escalatorGroup) {
-    escalatorGroup.visible = false;
+    escalatorGroup.visible = true;
   }
   const isMob = window.innerWidth < 768;
   const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];

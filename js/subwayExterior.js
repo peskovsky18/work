@@ -695,12 +695,12 @@ export function createInstantEscalator(scene) {
   // 1.3 МАТЕРИАЛЫ БАЛЮСТРАДЫ, ДЕК, ПЛИНТУСОВ, СТУПЕНЕЙ И ПОДДОНА
   const balMat = new THREE.MeshStandardMaterial({
     map: textures.steelTex,
-    roughness: 0.20,
-    metalness: 0.92
+    roughness: 0.22,
+    metalness: 0.90
   });
   const deckMat = new THREE.MeshStandardMaterial({
-    color: 0x323640,
-    roughness: 0.25,
+    color: 0x2b2e37,
+    roughness: 0.26,
     metalness: 0.88
   });
   const trussBedMat = new THREE.MeshStandardMaterial({
@@ -709,14 +709,48 @@ export function createInstantEscalator(scene) {
     metalness: 0.35
   });
   const handrailMat = new THREE.MeshStandardMaterial({
-    color: 0x121316,
-    roughness: 0.16,
-    metalness: 0.06
+    color: 0x14161a,
+    roughness: 0.20,
+    metalness: 0.14
   });
   const chromeTrimMat = new THREE.MeshStandardMaterial({
-    color: 0xdde2ea,
-    roughness: 0.10,
-    metalness: 0.96
+    color: 0xf4f7fc,
+    roughness: 0.06,
+    metalness: 0.98
+  });
+  const ledCoveMat = new THREE.MeshStandardMaterial({
+    color: 0xfff6ea,
+    emissive: 0xffe8c8,
+    emissiveIntensity: 2.2,
+    roughness: 0.2,
+    metalness: 0.1
+  });
+  const pedestalSteelMat = new THREE.MeshStandardMaterial({
+    color: 0x828896,
+    roughness: 0.24,
+    metalness: 0.92
+  });
+  const safetyYellowMat = new THREE.MeshStandardMaterial({
+    color: 0xf5b700,
+    roughness: 0.28,
+    metalness: 0.14
+  });
+  const stopRedMat = new THREE.MeshStandardMaterial({
+    color: 0xdc1414,
+    roughness: 0.18,
+    metalness: 0.15
+  });
+  const pilotGreenMat = new THREE.MeshStandardMaterial({
+    color: 0x24ee44,
+    emissive: 0x24ee44,
+    emissiveIntensity: 2.2,
+    roughness: 0.2
+  });
+  const pilotRedMat = new THREE.MeshStandardMaterial({
+    color: 0xee2222,
+    emissive: 0xee2222,
+    emissiveIntensity: 1.8,
+    roughness: 0.2
   });
   const brushMat = new THREE.MeshStandardMaterial({
     color: 0x0f1012,
@@ -734,119 +768,167 @@ export function createInstantEscalator(scene) {
     metalness: 0.85
   });
 
+  const yMid = (yTop + yBot) / 2;
+  const zMid = (zTop + zBot) / 2;
+
+  // Расчет мировых координат (Y, Z) на уклоне 30°
+  // uNormal — смещение по нормали ВВЕРХ от гребня ступеней (+Y, -Z)
+  // vTangent — смещение вдоль уклона ВВЕРХ от центрального сечения (+Y, +Z)
+  function getInclineCoords(uNormal, vTangent = 0) {
+    return {
+      y: yMid + uNormal * cosA + vTangent * sinA,
+      z: zMid - uNormal * sinA + vTangent * cosA
+    };
+  }
+
   // 1.4 СПЛОШНОЙ НЕСУЩИЙ СТАЛЬНОЙ ПОДДОН (ТРАССА ЭСКАЛАТОРА) ПОД СТУПЕНЯМИ
-  // Глухая непрозрачная стальная плита на 28 см ниже ступеней: исключает любой просвет
   const trussBedGeoms = [];
-  const bedG = new THREE.BoxGeometry(1.18, 0.08, len + 0.60);
+  const bedG = new THREE.BoxGeometry(1.22, 0.08, len + 0.60);
   bedG.rotateX(-inclineAngle);
-  const bedYOffset = -0.28 * cosA;
-  const bedZOffset = -0.28 * sinA;
-  bedG.translate(xc, (yTop + yBot) / 2 + bedYOffset, (zTop + zBot) / 2 + bedZOffset);
+  const bedC = getInclineCoords(-0.28);
+  bedG.translate(xc, bedC.y, bedC.z);
   trussBedGeoms.push(bedG);
 
   // 1.5 ВЕРТИКАЛЬНЫЕ ЗАЩИТНЫЕ ПЛИНТУСЫ (ФАРТУКИ) С ЩЕТКАМИ ПО ОБЕИМ СТОРОНАМ СТУПЕНЕЙ
-  // Высота 0.72м: от поддона (-0.28) до внутренней деки (+0.40) — абсолютно герметичные вертикальные стенки
   const skirtGeoms = [];
   const brushGeoms = [];
   [-1, 1].forEach((side) => {
     const sx = xc + side * 0.535;
 
-    const skirtG = new THREE.BoxGeometry(0.035, 0.72, len + 0.60);
+    // Плинтус: от поддона (-0.28) до уровня деки (+0.36)
+    const skirtG = new THREE.BoxGeometry(0.035, 0.68, len + 0.60);
     skirtG.rotateX(-inclineAngle);
-    const skirtYOffset = 0.05 * cosA;
-    const skirtZOffset = 0.05 * sinA;
-    skirtG.translate(sx, (yTop + yBot) / 2 + skirtYOffset, (zTop + zBot) / 2 + skirtZOffset);
+    const sc = getInclineCoords(0.06);
+    skirtG.translate(sx, sc.y, sc.z);
     skirtGeoms.push(skirtG);
 
     // Защитные щеточные дефлекторы прямо над гребнем ступеней
     const brushG = new THREE.BoxGeometry(0.04, 0.065, len + 0.60);
     brushG.rotateX(-inclineAngle);
-    const brushYOffset = 0.035 * cosA;
-    const brushZOffset = 0.035 * sinA;
-    brushG.translate(xc + side * 0.52, (yTop + yBot) / 2 + brushYOffset, (zTop + zBot) / 2 + brushZOffset);
+    const bc = getInclineCoords(0.035);
+    brushG.translate(xc + side * 0.52, bc.y, bc.z);
     brushGeoms.push(brushG);
   });
 
-  // 1.6 ВНУТРЕННИЕ И ВНЕШНИЕ НАКЛОННЫЕ ДЕКИ
+  // 1.6 ВНУТРЕННИЕ И ВНЕШНИЕ НАКЛОННЫЕ ДЕКИ, БАЛЮСТРАДЫ И РЕЛЬЕФНЫЕ ПОРУЧНИ
   const deckGeoms = [];
   const balGeoms = [];
   const trimGeoms = [];
+  const ledGeoms = [];
   const hrGeoms = [];
-
-  const deckYOffset = 0.38 * cosA;
-  const deckZOffset = 0.38 * sinA;
 
   [-1, 1].forEach((side) => {
     const bx = xc + side * 0.96;
 
     // Внутренняя дека (стык плинтуса 0.535 и балюстрады 0.91)
-    const inDeckG = new THREE.BoxGeometry(0.38, 0.03, len + 0.60);
+    const inDeckG = new THREE.BoxGeometry(0.375, 0.035, len + 0.60);
     inDeckG.rotateX(-inclineAngle);
-    inDeckG.translate(xc + side * 0.725, (yTop + yBot) / 2 + deckYOffset, (zTop + zBot) / 2 + deckZOffset);
+    const idc = getInclineCoords(0.36);
+    inDeckG.translate(xc + side * 0.7225, idc.y, idc.z);
     deckGeoms.push(inDeckG);
 
-    // Балюстрада: наклонная панель от Y = 0.38 до 0.98
-    const balG = new THREE.BoxGeometry(0.10, 0.62, len + 0.20);
-    balG.rotateX(-inclineAngle);
-    const balYOffset = 0.68 * cosA;
-    const balZOffset = 0.68 * sinA;
-    balG.translate(bx, (yTop + yBot) / 2 + balYOffset, (zTop + zBot) / 2 + balZOffset);
-    balGeoms.push(balG);
-
     // Внешняя наклонная дека (стык балюстрады 1.01 и стены тоннеля 1.95)
-    const outDeckG = new THREE.BoxGeometry(0.96, 0.03, len + 0.60);
+    const outDeckG = new THREE.BoxGeometry(0.94, 0.035, len + 0.60);
     outDeckG.rotateX(-inclineAngle);
-    outDeckG.translate(xc + side * 1.485, (yTop + yBot) / 2 + deckYOffset, (zTop + zBot) / 2 + deckZOffset);
+    const odc = getInclineCoords(0.36);
+    outDeckG.translate(xc + side * 1.48, odc.y, odc.z);
     deckGeoms.push(outDeckG);
 
-    // Хромированный молдинг под поручнем
-    const trimG = new THREE.BoxGeometry(0.14, 0.02, len + 0.25);
+    // 1. НАКЛОННАЯ СТАЛЬНАЯ ПАНЕЛЬ БАЛЮСТРАДЫ (u = 0.36 ... 0.88, высота 0.52м)
+    // Длина точно от стыка сопряжения Z = 4.55 до верхнего вестибюля Z = 18.00 (15.53м)
+    const incLen = 15.53;
+    const incVt = 0.42;
+
+    const balG = new THREE.BoxGeometry(0.10, 0.52, incLen);
+    balG.rotateX(-inclineAngle);
+    const balC = getInclineCoords(0.62, incVt);
+    balG.translate(bx, balC.y, balC.z);
+    balGeoms.push(balG);
+
+    // 2. СКРЫТАЯ КОНТУРНАЯ ПОДСВЕТКА (LED COVE LIGHTING ПОД КРОМКОЙ РЕЛЬСА)
+    const ledG = new THREE.BoxGeometry(0.14, 0.015, incLen);
+    ledG.rotateX(-inclineAngle);
+    const ledC = getInclineCoords(0.8725, incVt);
+    ledG.translate(bx, ledC.y, ledC.z);
+    ledGeoms.push(ledG);
+
+    // 3. ХРОМИРОВАННАЯ НАПРАВЛЯЮЩАЯ ШИНА ПОРУЧНЯ (CHROME GUIDE TRACK, u = 0.88 ... 0.915)
+    const trimG = new THREE.BoxGeometry(0.18, 0.035, incLen);
     trimG.rotateX(-inclineAngle);
-    const trimYOffset = 0.97 * cosA;
-    const trimZOffset = 0.97 * sinA;
-    trimG.translate(bx, (yTop + yBot) / 2 + trimYOffset, (zTop + zBot) / 2 + trimZOffset);
+    const trimC = getInclineCoords(0.8975, incVt);
+    trimG.translate(bx, trimC.y, trimC.z);
     trimGeoms.push(trimG);
 
-    // Резиновый поручень
-    const hrG = new THREE.BoxGeometry(0.12, 0.055, len + 0.35);
-    hrG.rotateX(-inclineAngle);
-    const hrYOffset = 1.00 * cosA;
-    const hrZOffset = 1.00 * sinA;
-    hrG.translate(bx, (yTop + yBot) / 2 + hrYOffset, (zTop + zBot) / 2 + hrZOffset);
-    hrGeoms.push(hrG);
+    // 4. РЕЗИНОВЫЙ ПОЛНОТЕЛЫЙ ПОРУЧЕНЬ («РУЧКА ЭСКАЛАТОРА»)
+    // 4.1 Базовый С-образный резиновый сердечник (u = 0.915 ... 0.985, толщина 0.07м, ширина 0.16м)
+    const hrBaseG = new THREE.BoxGeometry(0.16, 0.07, incLen);
+    hrBaseG.rotateX(-inclineAngle);
+    const hrBaseC = getInclineCoords(0.950, incVt);
+    hrBaseG.translate(bx, hrBaseC.y, hrBaseC.z);
+    hrGeoms.push(hrBaseG);
 
-    // 1.6.2 ГОРИЗОНТАЛЬНОЕ ПРОДОЛЖЕНИЕ БАЛЮСТРАДЫ НА ПЛАТФОРМЕ (Z = 4.80 ... 3.50)
-    const horizBalG = new THREE.BoxGeometry(0.10, 0.96, 1.35);
-    horizBalG.translate(bx, 0.48, 4.125);
+    // 4.2 Округлый выпуклый гребень поручня (Tactile Rounded Crown Profile)
+    const hrCrownG = new THREE.CylinderGeometry(0.078, 0.078, incLen, 16);
+    hrCrownG.rotateX(Math.PI / 2);
+    hrCrownG.rotateX(-inclineAngle);
+    const hrCrownC = getInclineCoords(0.985, incVt);
+    hrCrownG.translate(bx, hrCrownC.y, hrCrownC.z);
+    hrGeoms.push(hrCrownG);
+
+    // 5. ГОРИЗОНТАЛЬНАЯ БАЛЮСТРАДА И ПОРУЧНИ НА ПЛАТФОРМЕ (Z = 4.55 ... 3.45)
+    // 5.1 Горизонтальная панель балюстрады (Y = 0.00 ... 0.88, центр Y = 0.44)
+    const horizBalG = new THREE.BoxGeometry(0.10, 0.88, 1.10);
+    horizBalG.translate(bx, 0.44, 4.00);
     balGeoms.push(horizBalG);
 
-    // Монолитная переходная муфта в месте стыка наклона 30° и горизонтали на Z = 4.80
-    // Полностью устраняет клиновидный разрыв!
-    const elbowBalG = new THREE.BoxGeometry(0.10, 0.96, 0.45);
-    elbowBalG.translate(bx, 0.48, 4.80);
+    // Монолитная переходная муфта стыка на Z = 4.55
+    const elbowBalG = new THREE.BoxGeometry(0.10, 0.88, 0.16);
+    elbowBalG.translate(bx, 0.44, 4.55);
     balGeoms.push(elbowBalG);
 
-    const horizTrimG = new THREE.BoxGeometry(0.14, 0.02, 1.35);
-    horizTrimG.translate(bx, 0.96, 4.125);
+    // 5.2 Горизонтальная направляющая шина (Y = 0.88 ... 0.915, центр Y = 0.8975)
+    const horizTrimG = new THREE.BoxGeometry(0.18, 0.035, 1.10);
+    horizTrimG.translate(bx, 0.8975, 4.00);
     trimGeoms.push(horizTrimG);
 
-    const elbowTrimG = new THREE.BoxGeometry(0.14, 0.02, 0.45);
-    elbowTrimG.translate(bx, 0.96, 4.80);
+    const elbowTrimG = new THREE.BoxGeometry(0.18, 0.035, 0.16);
+    elbowTrimG.translate(bx, 0.8975, 4.55);
     trimGeoms.push(elbowTrimG);
 
-    const horizHrG = new THREE.BoxGeometry(0.12, 0.055, 1.35);
-    horizHrG.translate(bx, 0.985, 4.125);
-    hrGeoms.push(horizHrG);
+    // 5.3 Горизонтальная скрытая LED подсветка (Y = 0.8725)
+    const horizLedG = new THREE.BoxGeometry(0.14, 0.015, 1.10);
+    horizLedG.translate(bx, 0.8725, 4.00);
+    ledGeoms.push(horizLedG);
 
-    const elbowHrG = new THREE.BoxGeometry(0.12, 0.055, 0.45);
-    elbowHrG.translate(bx, 0.985, 4.80);
-    hrGeoms.push(elbowHrG);
+    // 5.4 Горизонтальный резиновый поручень (сердечник + выпуклый валик)
+    const horizHrBaseG = new THREE.BoxGeometry(0.16, 0.07, 1.10);
+    horizHrBaseG.translate(bx, 0.950, 4.00);
+    hrGeoms.push(horizHrBaseG);
 
-    // Скругленный носок поручня (Newel End) на краю площадки Z = 3.45
-    const newelG = new THREE.CylinderGeometry(0.06, 0.06, 0.12, 16);
-    newelG.rotateZ(Math.PI / 2);
-    newelG.translate(bx, 0.95, 3.45);
-    hrGeoms.push(newelG);
+    const elbowHrBaseG = new THREE.BoxGeometry(0.16, 0.07, 0.16);
+    elbowHrBaseG.translate(bx, 0.950, 4.55);
+    hrGeoms.push(elbowHrBaseG);
+
+    const horizHrCrownG = new THREE.CylinderGeometry(0.078, 0.078, 1.10, 16);
+    horizHrCrownG.rotateX(Math.PI / 2);
+    horizHrCrownG.translate(bx, 0.985, 4.00);
+    hrGeoms.push(horizHrCrownG);
+
+    const elbowHrCrownG = new THREE.SphereGeometry(0.078, 16, 12);
+    elbowHrCrownG.translate(bx, 0.985, 4.55);
+    hrGeoms.push(elbowHrCrownG);
+
+    // 5.5 СКРУГЛЕННЫЙ НОСОВОЙ ОГОЛОВОК (NEWEL TERMINAL NOSE) НА Z = 3.45
+    // Скругленный стальной нос балюстрады
+    const newelNoseG = new THREE.CylinderGeometry(0.05, 0.05, 0.88, 16, 1, false, -Math.PI / 2, Math.PI);
+    newelNoseG.translate(bx, 0.44, 3.45);
+    balGeoms.push(newelNoseG);
+
+    // 180-градусный разворот резинового поручня в приемное устье балюстрады
+    const newelLoopG = new THREE.TorusGeometry(0.24, 0.078, 12, 16, Math.PI);
+    newelLoopG.rotateY(Math.PI / 2);
+    newelLoopG.translate(bx, 0.745, 3.45);
+    hrGeoms.push(newelLoopG);
   });
 
   // 1.6.3 МОНОЛИТНАЯ ФРОНТОННАЯ СТЕНА ПОРТАЛА (Z = 4.65 ... 4.83)
@@ -919,7 +1001,6 @@ export function createInstantEscalator(scene) {
   escGroup.add(combPlate);
 
   // 1.8 СТУПЕНИ ЭСКАЛАТОРА (100% ВЗАИМНО-ПЕРЕКРЫВАЮЩИЕСЯ ПРОСТУПИ И ПОДСТУПЕНКИ)
-  // Геометрически сплошная лестница с нахлестом 2 см: ЛЮБЫЕ дыры или пустоты исключены!
   const numSteps = 44;
   const dZ = (zTop - zBot) / numSteps; // ~0.300м
   const dY = (yTop - yBot) / numSteps; // ~0.173м
@@ -945,28 +1026,132 @@ export function createInstantEscalator(scene) {
     riserGeoms.push(rg);
   }
 
-  // 1.9 КРАСНЫЕ АВАРИЙНЫЕ БЛОКИ С КНОПКАМИ «СТОП»
-  const redCubeMat = new THREE.MeshStandardMaterial({ color: 0xd81c14, roughness: 0.22, metalness: 0.15 });
-  const btnMetalMat = new THREE.MeshStandardMaterial({ color: 0xdcdfe4, roughness: 0.15, metalness: 0.96 });
+  // 1.9 ПОЛНОЦЕННЫЕ НАПОЛЬНЫЕ ТУМБЫ И ВСТРОЕННЫЕ КНОПКИ АВАРИЙНОГО ОСТАНОВА «СТОП»
+  // Полностью исключают любые висящие в воздухе детали: все конструкции жестко заземлены на гранитный пол!
+  const pedestalGeoms = [];
+  const yellowPlateGeoms = [];
+  const stopBtnGeoms = [];
+  const pilotGreenGeoms = [];
+  const pilotRedGeoms = [];
 
-  const emCubes = [];
-  const emBtns = [];
-  [zTop - 2.0, zBot + 0.8].forEach((az) => {
-    const s = (zTop - az) / (zTop - zBot);
-    const ay = yTop - s * (yTop - yBot);
+  // 1.9.1 НАПОЛЬНЫЕ ТУМБЫ АВАРИЙНОЙ ОСТАНОВКИ НА ПЛАТФОРМЕ СТАНЦИИ (Z = 3.40)
+  // Массивные монолитные колонны из сатинированной стали, прикрученные к гранитному полу платформы (Y = 0.00).
+  [-1, 1].forEach((side) => {
+    const px = xc + side * 1.30;
+    const pz = 3.40;
 
-    [-1, 1].forEach((side) => {
-      const cubeG = new THREE.BoxGeometry(0.14, 0.10, 0.16);
-      cubeG.rotateX(-inclineAngle);
-      cubeG.translate(xc + side * 0.96, ay + 0.98, az);
-      emCubes.push(cubeG);
+    // Опорный стальной фланец на гранитном полу (Y = 0.00 ... 0.02)
+    const basePlateG = new THREE.BoxGeometry(0.24, 0.02, 0.24);
+    basePlateG.translate(px, 0.01, pz);
+    pedestalGeoms.push(basePlateG);
 
-      const btnG = new THREE.CylinderGeometry(0.035, 0.035, 0.025, 16);
-      btnG.translate(0, 0.055, 0);
-      btnG.rotateX(-inclineAngle);
-      btnG.translate(xc + side * 0.96, ay + 0.98, az);
-      emBtns.push(btnG);
+    // 4 хромированных анкерных болта по углам фланца
+    [[-0.09, -0.09], [0.09, -0.09], [-0.09, 0.09], [0.09, 0.09]].forEach(([bx, bz]) => {
+      const boltG = new THREE.CylinderGeometry(0.012, 0.012, 0.02, 8);
+      boltG.translate(px + bx, 0.025, pz + bz);
+      trimGeoms.push(boltG);
     });
+
+    // Вертикальная несущая стойка тумбы (Y = 0.02 ... 0.80)
+    const pillarG = new THREE.BoxGeometry(0.18, 0.78, 0.18);
+    pillarG.translate(px, 0.41, pz);
+    pedestalGeoms.push(pillarG);
+
+    // Эргономичная скошенная консоль оператора (35 градусов к пассажиру)
+    const consoleHoodG = new THREE.BoxGeometry(0.19, 0.14, 0.14);
+    consoleHoodG.rotateX(-0.61);
+    consoleHoodG.translate(px, 0.84, pz - 0.02);
+    pedestalGeoms.push(consoleHoodG);
+
+    // Яркая желтая сигнальная панель безопасности
+    const yPlateG = new THREE.BoxGeometry(0.16, 0.12, 0.012);
+    yPlateG.rotateX(-0.61);
+    yPlateG.translate(px, 0.865, pz - 0.075);
+    yellowPlateGeoms.push(yPlateG);
+
+    // Защитная хромированная обечайка вокруг кнопки (предотвращает случайное нажатие)
+    const collarG = new THREE.CylinderGeometry(0.046, 0.046, 0.022, 16);
+    collarG.rotateX(Math.PI / 2 - 0.61);
+    collarG.translate(px, 0.865, pz - 0.082);
+    trimGeoms.push(collarG);
+
+    // Крупная ярко-красная грибовидная кнопка аварийного останова «СТОП»
+    const stopG = new THREE.CylinderGeometry(0.036, 0.038, 0.028, 16);
+    stopG.rotateX(Math.PI / 2 - 0.61);
+    stopG.translate(px, 0.865, pz - 0.092);
+    stopBtnGeoms.push(stopG);
+
+    // Зеленый индикатор нормальной работы («СЕТЬ / ГОТОВ»)
+    const greenLedG = new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12);
+    greenLedG.rotateX(Math.PI / 2 - 0.61);
+    greenLedG.translate(px - 0.05, 0.895, pz - 0.065);
+    pilotGreenGeoms.push(greenLedG);
+
+    // Красный индикатор срабатывания («АВАРИЯ / СТОП»)
+    const redLedG = new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12);
+    redLedG.rotateX(Math.PI / 2 - 0.61);
+    redLedG.translate(px + 0.05, 0.895, pz - 0.065);
+    pilotRedGeoms.push(redLedG);
+  });
+
+  // 1.9.2 ВСТРОЕННЫЕ КНОПКИ АВАРИЙНОГО ОСТАНОВА В ТОРЦАХ БАЛЮСТРАД (Z = 3.44)
+  // Вмонтированы заподлицо непосредственно в стальной оголовок балюстрады
+  [-1, 1].forEach((side) => {
+    const bx = xc + side * 0.96;
+
+    const bezelG = new THREE.BoxGeometry(0.10, 0.10, 0.02);
+    bezelG.translate(bx, 0.72, 3.44);
+    pedestalGeoms.push(bezelG);
+
+    const plateG = new THREE.CylinderGeometry(0.038, 0.038, 0.008, 16);
+    plateG.rotateX(Math.PI / 2);
+    plateG.translate(bx, 0.72, 3.435);
+    yellowPlateGeoms.push(plateG);
+
+    const btnG = new THREE.CylinderGeometry(0.026, 0.028, 0.022, 16);
+    btnG.rotateX(Math.PI / 2);
+    btnG.translate(bx, 0.72, 3.425);
+    stopBtnGeoms.push(btnG);
+  });
+
+  // 1.9.3 ВЕРХНИЕ ТУМБЫ АВАРИЙНОЙ ОСТАНОВКИ ВО ВХОДНОМ ВЕСТИБЮЛЕ (Z = 17.65, Y = yTop = 7.62)
+  [-1, 1].forEach((side) => {
+    const px = xc + side * 1.25;
+    const pz = 17.65;
+    const py = yTop;
+
+    const basePlateG = new THREE.BoxGeometry(0.24, 0.02, 0.24);
+    basePlateG.translate(px, py + 0.01, pz);
+    pedestalGeoms.push(basePlateG);
+
+    const pillarG = new THREE.BoxGeometry(0.18, 0.78, 0.18);
+    pillarG.translate(px, py + 0.41, pz);
+    pedestalGeoms.push(pillarG);
+
+    const consoleHoodG = new THREE.BoxGeometry(0.19, 0.14, 0.14);
+    consoleHoodG.rotateX(0.61);
+    consoleHoodG.translate(px, py + 0.84, pz + 0.02);
+    pedestalGeoms.push(consoleHoodG);
+
+    const yPlateG = new THREE.BoxGeometry(0.16, 0.12, 0.012);
+    yPlateG.rotateX(0.61);
+    yPlateG.translate(px, py + 0.865, pz + 0.075);
+    yellowPlateGeoms.push(yPlateG);
+
+    const collarG = new THREE.CylinderGeometry(0.046, 0.046, 0.022, 16);
+    collarG.rotateX(Math.PI / 2 + 0.61);
+    collarG.translate(px, py + 0.865, pz + 0.082);
+    trimGeoms.push(collarG);
+
+    const stopG = new THREE.CylinderGeometry(0.036, 0.038, 0.028, 16);
+    stopG.rotateX(Math.PI / 2 + 0.61);
+    stopG.translate(px, py + 0.865, pz + 0.092);
+    stopBtnGeoms.push(stopG);
+
+    const greenLedG = new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12);
+    greenLedG.rotateX(Math.PI / 2 + 0.61);
+    greenLedG.translate(px - 0.05, py + 0.895, pz + 0.065);
+    pilotGreenGeoms.push(greenLedG);
   });
 
   // 1.10 ВЕРХНЯЯ СТЕНА ВХОДНОГО ВЕСТИБЮЛЯ (Z = 18.00)
@@ -982,12 +1167,16 @@ export function createInstantEscalator(scene) {
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(deckGeoms), deckMat));
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(balGeoms), balMat));
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(trimGeoms), chromeTrimMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(ledGeoms), ledCoveMat));
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(hrGeoms), handrailMat));
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(brushGeoms), brushMat));
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(treadGeoms), treadMat));
   escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(riserGeoms), riserMat));
-  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(emCubes), redCubeMat));
-  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(emBtns), btnMetalMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(pedestalGeoms), pedestalSteelMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(yellowPlateGeoms), safetyYellowMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(stopBtnGeoms), stopRedMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(pilotGreenGeoms), pilotGreenMat));
+  escGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(pilotRedGeoms), pilotRedMat));
 
   // 1.11 Мягкий заполняющий свет тоннеля
   const escFillLight = new THREE.PointLight(0xfff4ea, 2.2, 16.0, 1.2);

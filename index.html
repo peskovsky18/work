@@ -14,7 +14,7 @@
   <script>
     // Универсальный самоисцеляющийся сброс кэша PWA / Service Worker для ВСЕХ устройств (смартфоны, планшеты, ПК)
     (function() {
-      var CURRENT_BUILD = '20261030_1740';
+      var CURRENT_BUILD = '20261030_1800';
       var lastBuild = localStorage.getItem('subway_portfolio_version');
       var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -71,7 +71,7 @@
   </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css?v=20261030_1740">
+  <link rel="stylesheet" href="css/style.css?v=20261030_1800">
 
   <!-- GSAP & ScrollTrigger -->
   <script src="js/vendor/gsap.min.js"></script>
@@ -106,6 +106,9 @@
       <div class="preloader-bar-wrap">
         <div id="loader-progress-bar" class="preloader-bar-fill"></div>
       </div>
+      <button id="preloader-skip-btn" class="preloader-skip-btn" type="button" aria-label="Пропустить спуск" onclick="window.skipDescent && window.skipDescent()">
+        <span>Войти в вагон ➔</span>
+      </button>
     </div>
   </div>
 
@@ -433,6 +436,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261030_1740"></script>
+  <script type="module" src="js/main.js?v=20261030_1800"></script>
 </body>
 </html>

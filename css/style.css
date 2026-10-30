@@ -192,6 +192,36 @@ body.is-preloading #route-map-panel {
   transition: width 0.15s ease-out;
 }
 
+.preloader-skip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: #fff;
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.preloader-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.preloader-skip-btn:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.22);
+}
+
 /* ==========================================================================
    ФИКСИРОВАННЫЙ CANVAS THREE.JS
    ========================================================================== */
@@ -794,50 +824,58 @@ body.is-preloading #route-map-panel {
    ========================================================================== */
 @media (max-width: 768px) {
   .site-header {
-    padding: max(10px, env(safe-area-inset-top, 10px)) max(16px, env(safe-area-inset-right, 16px)) 10px max(16px, env(safe-area-inset-left, 16px));
+    padding: max(8px, env(safe-area-inset-top, 8px)) max(14px, env(safe-area-inset-right, 14px)) 8px max(14px, env(safe-area-inset-left, 14px));
+    height: auto;
+    min-height: 48px;
   }
 
   .header-container {
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .brand-block {
-    width: 100%;
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .brand-block {
+    width: auto;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
   }
 
   .brand-name {
-    font-size: clamp(0.92rem, 4.2vw, 1.15rem);
+    font-size: clamp(0.78rem, 3.5vw, 0.95rem);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.02em;
+    font-weight: 700;
   }
 
   .brand-badge {
-    font-size: clamp(0.62rem, 2.4vw, 0.72rem);
-    padding: 2px 7px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    display: none;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 100%;
+    width: auto;
+    flex-shrink: 0;
     gap: 6px;
     flex-wrap: nowrap;
   }
 
   .header-actions .apple-pill-btn {
     padding: 6px 10px;
-    font-size: 0.75rem;
-    flex: 1 1 auto;
-    justify-content: center;
+    font-size: 0.72rem;
+    height: 32px;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .intro-layout {
@@ -863,7 +901,7 @@ body.is-preloading #route-map-panel {
   }
 
   .floating-hud-top {
-    top: calc(max(10px, env(safe-area-inset-top, 10px)) + 84px);
+    top: calc(max(8px, env(safe-area-inset-top, 8px)) + 52px);
   }
 
   .title-capsule {
@@ -940,6 +978,22 @@ body.is-preloading #route-map-panel {
     max-height: calc(100dvh - 32px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 420px) {
+  .header-actions .apple-pill-btn span {
+    display: none;
+  }
+  .header-actions .apple-pill-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .header-actions .apple-pill-btn .pill-icon {
+    margin: 0;
   }
 }
 

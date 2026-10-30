@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
+import { DRACOLoader } from './vendor/DRACOLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime, startEscalatorAudio, stopEscalatorAudio } from './subwayAudio.js';
 import {
@@ -698,6 +699,10 @@ function setupVideoTextures() {
 // =============================================================================
 function loadSubwayModel() {
   const loader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('./js/vendor/draco/');
+  loader.setDRACOLoader(dracoLoader);
+
   const progressBar = document.getElementById('loader-progress-bar');
   const preloader = document.getElementById('scene-preloader');
 
@@ -1832,6 +1837,11 @@ function animate() {
           playArrivalChime();
         }
 
+        // Distance & Frustum Culling: скрываем тяжелую геометрию эскалатора внутри вагона
+        if (escalatorGroup) {
+          escalatorGroup.visible = false;
+        }
+
         // Фиксируем позицию камеры строго на Stage 0 внутри вагона
         const isMob = window.innerWidth < 768;
         const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
@@ -2021,3 +2031,37 @@ function formatTime(seconds) {
 export function getVideos() {
   return { video1, video2, video3, video4 };
 }
+
+export function skipDescent() {
+  if (!isDescentActive) return;
+  isDescentActive = false;
+  const preloader = document.getElementById('scene-preloader');
+  if (preloader) {
+    preloader.style.opacity = '0';
+    preloader.style.display = 'none';
+    preloader.classList.add('fade-out');
+  }
+  document.body.classList.remove('is-preloading');
+  stopEscalatorAudio(0.3);
+  if (!isGlobalMuted) {
+    playArrivalChime();
+  }
+  if (escalatorGroup) {
+    escalatorGroup.visible = false;
+  }
+  const isMob = window.innerWidth < 768;
+  const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
+  camCurrentPos.copy(wp0.pos);
+  camTargetPos.copy(wp0.pos);
+  camCurrentTarget.copy(wp0.target);
+  camTargetLookAt.copy(wp0.target);
+  if (camera) {
+    camera.position.copy(camCurrentPos);
+    camera.lookAt(camCurrentTarget);
+  }
+  if (video1 && video1.paused) {
+    video1.play().catch(() => {});
+  }
+  initScrollTriggers();
+}
+window.skipDescent = skipDescent;

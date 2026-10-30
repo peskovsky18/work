@@ -1454,16 +1454,111 @@ export function setupSubwayExterior(scene, subwayModel) {
   mergedDest.clearGroups();
   exteriorGroup.add(new THREE.Mesh(mergedDest, destMat));
 
-  // C. Внешний борт (Сторона B)
-  const wallBMesh = new THREE.Mesh(new THREE.BoxGeometry(maxX - minX, 2.28, 0.024), carPaintMat);
-  wallBMesh.position.set(0, 1.14, minZ);
-  wallBMesh.geometry.clearGroups();
-  exteriorGroup.add(wallBMesh);
+  // C. Внешний борт (Сторона B) — с аутентичными оконными проемами и дверными порталами
+  const wallBZ = minZ; // -2.435
+  const wallBPaintGeoms = [];
+  const wallBRedGeoms = [];
+  const addWallBSection = (x1, x2, y1, y2, isRed = false) => {
+    const w = x2 - x1;
+    const h = y2 - y1;
+    const g = new THREE.BoxGeometry(w, h, 0.024);
+    g.translate((x1 + x2) / 2, (y1 + y2) / 2, wallBZ);
+    if (isRed) wallBRedGeoms.push(g);
+    else wallBPaintGeoms.push(g);
+  };
 
-  const liveryB = new THREE.Mesh(new THREE.BoxGeometry(maxX - minX, 0.08, 0.026), liveryRedMat);
-  liveryB.position.set(0, 2.10, minZ);
-  liveryB.geometry.clearGroups();
-  exteriorGroup.add(liveryB);
+  addWallBSection(-6.08, 6.08, 2.14, 2.28);
+  addWallBSection(-6.08, 6.08, 2.06, 2.14, true);
+  addWallBSection(-6.08, -4.405, 0.0, 2.06);
+  addWallBSection(-3.125, -2.18, 0.0, 2.06);
+  addWallBSection(-1.06, 1.06, 0.0, 2.06);
+  addWallBSection(2.18, 3.125, 0.0, 2.06);
+  addWallBSection(4.405, 6.08, 0.0, 2.06);
+  addWallBSection(-2.18, -1.06, 0.0, 0.95);
+  addWallBSection(1.06, 2.18, 0.0, 0.95);
+  addWallBSection(-2.18, -1.06, 1.78, 2.06);
+  addWallBSection(1.06, 2.18, 1.78, 2.06);
+
+  if (wallBPaintGeoms.length > 0) {
+    const mergedWPB = BufferGeometryUtils.mergeGeometries(wallBPaintGeoms);
+    mergedWPB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedWPB, carPaintMat));
+  }
+  if (wallBRedGeoms.length > 0) {
+    const mergedWRB = BufferGeometryUtils.mergeGeometries(wallBRedGeoms);
+    mergedWRB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedWRB, liveryRedMat));
+  }
+
+  // Внешние стекла и резиновые уплотнители окон на Стороне B (смотрят на путевую стену станции с плиткой)
+  const extGasketBGeoms = [];
+  const extGlassBGeoms = [];
+  [-1.62, 1.62].forEach((winX) => {
+    const winW = 1.08;
+    const winH = 0.81;
+    const gThick = 0.03;
+
+    const gTop = new THREE.BoxGeometry(winW + gThick * 2, gThick, 0.02);
+    gTop.translate(winX, 1.365 + winH / 2, wallBZ);
+    extGasketBGeoms.push(gTop);
+
+    const gBot = new THREE.BoxGeometry(winW + gThick * 2, gThick, 0.02);
+    gBot.translate(winX, 1.365 - winH / 2, wallBZ);
+    extGasketBGeoms.push(gBot);
+
+    const gL = new THREE.BoxGeometry(gThick, winH, 0.02);
+    gL.translate(winX - winW / 2, 1.365, wallBZ);
+    extGasketBGeoms.push(gL);
+
+    const gR = new THREE.BoxGeometry(gThick, winH, 0.02);
+    gR.translate(winX + winW / 2, 1.365, wallBZ);
+    extGasketBGeoms.push(gR);
+
+    // Кристально прозрачное наружное стекло окна (сторона B смотрит в -Z)
+    const extG = new THREE.PlaneGeometry(winW, winH);
+    extG.rotateY(Math.PI);
+    extG.translate(winX, 1.365, wallBZ - 0.005);
+    extGlassBGeoms.push(extG);
+  });
+  if (extGasketBGeoms.length > 0) {
+    const mergedExtGaskB = BufferGeometryUtils.mergeGeometries(extGasketBGeoms);
+    mergedExtGaskB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedExtGaskB, rubberMat));
+  }
+  if (extGlassBGeoms.length > 0) {
+    const mergedExtGlassB = BufferGeometryUtils.mergeGeometries(extGlassBGeoms);
+    mergedExtGlassB.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(mergedExtGlassB, extGlassMat));
+  }
+
+  // D. Притворные дверные планки и уплотнители (устраняют любые щели между дверями и стенами на всех 4 проемах)
+  const doorJambGeoms = [];
+  [-3.765, 3.765].forEach((doorX) => {
+    [wallAZ - 0.010, minZ + 0.010].forEach((zCenter) => {
+      // Левая вертикальная притворная планка
+      const jL = new THREE.BoxGeometry(0.060, 2.06, 0.050);
+      jL.translate(doorX - 0.610, 1.03, zCenter);
+      doorJambGeoms.push(jL);
+
+      // Правая вертикальная притворная планка
+      const jR = new THREE.BoxGeometry(0.060, 2.06, 0.050);
+      jR.translate(doorX + 0.610, 1.03, zCenter);
+      doorJambGeoms.push(jR);
+
+      // Верхняя притолочная планка
+      const lintel = new THREE.BoxGeometry(1.280, 0.08, 0.050);
+      lintel.translate(doorX, 2.02, zCenter);
+      doorJambGeoms.push(lintel);
+    });
+  });
+  if (doorJambGeoms.length > 0) {
+    const mergedDoorJambs = BufferGeometryUtils.mergeGeometries(doorJambGeoms);
+    mergedDoorJambs.clearGroups();
+    exteriorGroup.add(new THREE.Mesh(
+      mergedDoorJambs,
+      new THREE.MeshStandardMaterial({ color: 0x181a1f, roughness: 0.55, metalness: 0.85 })
+    ));
+  }
 
   // D. Торцы и межвагонные гармошки (пакетно объединенные)
   const endGeoms = [];

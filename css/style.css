@@ -50,12 +50,15 @@ body.dark-cinema-body {
 .scene-preloader {
   position: fixed;
   inset: 0;
-  background-color: #07080a;
+  background: transparent;
   z-index: 9999;
   display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s ease;
+  padding: clamp(24px, 5vh, 48px) 24px clamp(32px, 6vh, 56px);
+  pointer-events: none;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
 }
 
 .scene-preloader.fade-out {
@@ -64,10 +67,39 @@ body.dark-cinema-body {
   pointer-events: none;
 }
 
-.preloader-content {
+body.is-preloading {
+  overflow: hidden !important;
+  touch-action: none !important;
+  height: 100vh !important;
+}
+
+body.is-preloading .site-header,
+body.is-preloading #scroll-story,
+body.is-preloading .sound-floating-toggle,
+body.is-preloading .screen-zoom-button,
+body.is-preloading #route-map-panel {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.site-header,
+#scroll-story,
+.sound-floating-toggle,
+.screen-zoom-button,
+#route-map-panel {
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
+}
+
+.preloader-top-brand {
   text-align: center;
-  max-width: 380px;
-  padding: 24px;
+  background: rgba(14, 16, 22, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 14px 28px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
 .preloader-badge {
@@ -76,45 +108,88 @@ body.dark-cinema-body {
   letter-spacing: 2px;
   color: var(--accent-amber);
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: inline-block;
 }
 
 .preloader-title {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .preloader-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.90rem;
   color: var(--text-muted);
-  margin-bottom: 24px;
+  margin-bottom: 0;
+}
+
+.preloader-bottom-hud {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(14, 16, 22, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 14px 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.preloader-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.preloader-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.preloader-pulse-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  margin-right: 8px;
+  box-shadow: 0 0 10px var(--accent-amber);
+  animation: preloaderPulse 1.4s infinite ease-in-out;
+}
+
+@keyframes preloaderPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.preloader-percent {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-amber);
 }
 
 .preloader-bar-wrap {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 12px;
 }
 
 .preloader-bar-fill {
-  width: 15%;
+  width: 0%;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-amber), #fff);
   border-radius: 999px;
-  transition: width 0.25s ease;
-}
-
-.preloader-hint {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  transition: width 0.15s ease-out;
 }
 
 /* ==========================================================================
@@ -1206,14 +1281,7 @@ body.tunnel-speed-active .cinematic-vignette {
 
 /* Кинематографическое пленочное зерно (35mm Film Grain) */
 .cinema-film-grain {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 6;
-  opacity: 0.65;
-  mix-blend-mode: overlay;
+  display: none !important;
 }
 
 

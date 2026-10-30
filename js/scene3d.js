@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
-import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime, startEscalatorAudio, stopEscalatorAudio } from './subwayAudio.js';
 import {
   getPhotoWallTextures,
   getPhotoDoorTextures,
@@ -18,6 +18,8 @@ import {
   getStationTileTextures,
   getPlatformGraniteTextures
 } from './subwayMaterials.js';
+import { setupSubwayExterior, setupStationCeilingAndArchitecture, createInstantEscalator } from './subwayExterior.js';
+import * as BufferGeometryUtils from './vendor/utils/BufferGeometryUtils.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
@@ -77,6 +79,15 @@ let currentDoorCloseRatio = 0.0;
 let targetDoor2OpenRatio = 0.0;  // 0.0 = закрыты, 1.0 = открыты (Двери 2)
 let currentDoor2OpenRatio = 0.0;
 
+// Состояние эскалатора (интерактивный 3D-спуск при загрузке)
+let escalatorGroup;
+let isEscalatorLoaded = false;
+let isSubwayLoaded = false;
+let isDescentActive = true;
+let descentStartTime = 0;
+const DESCENT_DURATION = 16000; // 16.0 секунд медитативного кинематографичного спуска в метро (плавно и без спешки)
+const escalatorLights = [];
+
 
 // Векторы интерполяции камеры
 const camCurrentPos = new THREE.Vector3();
@@ -107,7 +118,7 @@ export function initSubwayScene() {
     alpha: false,
     powerPreference: 'high-performance'
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.26;
@@ -118,7 +129,7 @@ export function initSubwayScene() {
   }, false);
 
   canvas.addEventListener('webglcontextrestored', () => {
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
   }, false);
 
@@ -127,38 +138,65 @@ export function initSubwayScene() {
   scene.background = new THREE.Color(0x07080a);
   scene.fog = new THREE.FogExp2(0x07080a, 0.04);
 
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
+
   // 3. Камера
   const isMobile = window.innerWidth < 768;
-  const initialConfig = CAMERA_WAYPOINTS[0][isMobile ? 'mobile' : 'desktop'];
-  camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 50);
-  updateCameraFov();
-  camera.position.copy(initialConfig.pos);
-  camCurrentPos.copy(initialConfig.pos);
-  camTargetPos.copy(initialConfig.pos);
+  const initialFov = isMobile ? 70 : 60;
+  camera = new THREE.PerspectiveCamera(initialFov, window.innerWidth / window.innerHeight, 0.1, 70);
+  
+  // При старте камера находится на верхнем конце эскалатора (вид спуска по референсу)
+  const ESC_START_POS = new THREE.Vector3(-3.765, 8.65, 17.60);
+  const ESC_START_TARGET = new THREE.Vector3(-3.765, 6.20, 13.00);
+  camera.position.copy(ESC_START_POS);
+  camCurrentPos.copy(ESC_START_POS);
 
-  camCurrentTarget.copy(initialConfig.target);
-  camTargetLookAt.copy(initialConfig.target);
+  // Штатная целевая позиция камеры после завершения спуска — СТРОГО вагон метро (Stage 0)
+  const wp0 = CAMERA_WAYPOINTS[0][isMobile ? 'mobile' : 'desktop'];
+  camTargetPos.copy(wp0.pos);
+  camTargetLookAt.copy(wp0.target);
+
+  camCurrentTarget.copy(ESC_START_TARGET);
   camera.lookAt(camCurrentTarget);
 
   clock = new THREE.Clock();
 
-  // 4. Освещение вагона и станции
-  setupSubwayLighting();
+  window.__debug = {
+    THREE,
+    getCamera: () => camera,
+    getScene: () => scene,
+    getState: () => ({ isDescentActive, isEscalatorLoaded, isSubwayLoaded, camPos: camera?.position, camTarget: camCurrentTarget })
+  };
 
-  // 4.1 Архитектурное окружение станции (путевая стена и детальная платформа с постерами и скамейками)
-  setupStationEnvironment();
+  // 4. Мгновенное создание высокополигонального эскалатора (0 мс задержки, спуск начинается сразу)
+  escalatorGroup = createInstantEscalator(scene);
+  isEscalatorLoaded = true;
+  isDescentActive = true;
+  descentStartTime = performance.now();
 
-  // 5. Видеоэлементы и текстуры
-  setupVideoTextures();
+  // 5. Первоначальный кадр рендерится немедленно на Frame 0 — исключает любой черный экран!
+  renderer.render(scene, camera);
+  startEscalatorAudio();
 
-  // 6. Загрузка 3D модели
-  loadSubwayModel();
-
-  // 7. Слушатели событий (скролл, ресайз, параллакс)
+  // 6. Слушатели событий
   setupEventListeners();
 
-  // 8. Запуск цикла рендеринга
+  // 7. Запуск цикла рендеринга
   animate();
+
+  // 8. Прогрессивное фоновое подключение остальных систем без микрофризов
+  requestAnimationFrame(() => {
+    setupSubwayLighting();
+    setupStationEnvironment();
+
+    // Загрузка модели вагона в фоновом потоке без конкуренции за кадр
+    setTimeout(() => {
+      loadSubwayModel();
+    }, 400);
+  });
 }
 
 // =============================================================================
@@ -177,9 +215,9 @@ function setupSubwayLighting() {
   const ambient = new THREE.AmbientLight(0xffe4cc, 1.45);
   scene.add(ambient);
 
-  // 2. Сплошная центральная LED-световая линия вагона (3000K по осевой линии потолка)
-  [-5.0, -3.75, -2.5, -1.25, 0.0, 1.25, 2.5, 3.75, 5.0].forEach(px => {
-    const centralLed = new THREE.PointLight(0xffc882, 2.8, 7.5, 1.1);
+  // 2. Оптимизированная центральная LED-световая линия вагона (3 ключевых источника вместо 9)
+  [-3.75, 0.0, 3.75].forEach(px => {
+    const centralLed = new THREE.PointLight(0xffc882, 3.2, 9.5, 1.1);
     centralLed.position.set(px, 2.22, -1.192);
     scene.add(centralLed);
     ceilingLamps.push(centralLed);
@@ -238,7 +276,7 @@ function setupStationEnvironment() {
   // 1. СТОРОНА B: ПУТЕВАЯ СТЕНА ИЗ БЕЛОЙ ГЛАЗУРОВАННОЙ КЕРАМИЧЕСКОЙ ПЛИТКИ («КАБАНЧИК»)
   // =========================================================================
   const trackWallZ = -3.25; // 85 см от стены вагона (окна на Z = -2.40)
-  const trackWallW = 24.0;
+  const trackWallW = 54.0; // Простирается на 54м глубоко в оба тоннеля для непрерывности
   const trackWallH = 3.20;
 
   // 1.1 Белоснежная глазурованная плитка с объемной 3D-фаской и зеркальным глянцем
@@ -295,8 +333,8 @@ function setupStationEnvironment() {
     side: THREE.DoubleSide
   });
 
-  // Таблички размещены напротив окон поезда (по центру и по краям вагона)
-  [-4.2, 0.0, 4.2].forEach(px => {
+  // Таблички размещены вдоль всей путевой стены станции
+  [-17.4, -13.0, -8.6, -4.2, 0.0, 4.2, 8.6, 13.0, 17.4].forEach(px => {
     const signMesh = new THREE.Mesh(signGeom, signMat);
     signMesh.position.set(px, 1.45, trackWallZ + 0.02);
     stationEnvGroup.add(signMesh);
@@ -313,10 +351,38 @@ function setupStationEnvironment() {
   ballast.position.set(0, -0.50, -1.80);
   stationEnvGroup.add(ballast);
 
+  // 1.5.2 Стальные ходовые рельсы Р-65 и шпалы на щебеночном балласте (объединенные меши)
+  const railMat = new THREE.MeshStandardMaterial({
+    color: 0xc8cdd6,
+    roughness: 0.14,
+    metalness: 0.95
+  });
+  const sleeperMat = new THREE.MeshStandardMaterial({
+    color: 0x242220,
+    roughness: 0.88,
+    metalness: 0.08
+  });
+
+  const railGeoms = [];
+  [-1.96, -0.44].forEach((railZ) => {
+    const rHead = new THREE.BoxGeometry(trackWallW, 0.045, 0.07);
+    rHead.translate(0, -0.38, railZ);
+    railGeoms.push(rHead);
+  });
+  stationEnvGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(railGeoms), railMat));
+
+  const sleeperGeoms = [];
+  for (let sx = -trackWallW / 2 + 0.35; sx < trackWallW / 2; sx += 0.70) {
+    const slpG = new THREE.BoxGeometry(0.25, 0.10, 2.20);
+    slpG.translate(sx, -0.44, -1.20);
+    sleeperGeoms.push(slpG);
+  }
+  stationEnvGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(sleeperGeoms), sleeperMat));
+
   // =========================================================================
   // 2. СТОРОНА A: СОВРЕМЕННАЯ ПЛАТФОРМА С НЕОНОВЫМИ ПОЛОСАМИ
   // =========================================================================
-  const platformW = 24.0;
+  const platformW = 46.0;
 
   // 2.1 Сплошной гранитный пол платформы (без швов и тайловых артефактов)
   const platFloorGeom = new THREE.BoxGeometry(platformW, 0.15, 4.80);
@@ -340,34 +406,92 @@ function setupStationEnvironment() {
   safeLine.position.set(0, 0.002, 0.22);
   stationEnvGroup.add(safeLine);
 
-  // 2.3 Архитектурные колонны платформы (полированный белый мрамор)
-  const colGeom = new THREE.BoxGeometry(0.48, 3.10, 0.48);
+  // 2.3 Архитектурные колонны платформы (полированный белый мрамор с защитными отбойниками из стали)
   const colMat = new THREE.MeshStandardMaterial({
     color: 0xf2f5fa,
-    roughness: 0.22,
-    metalness: 0.08
+    roughness: 0.18,
+    metalness: 0.10
   });
-  [-6.2, -1.8, 2.6, 7.0].forEach(cx => {
-    const col = new THREE.Mesh(colGeom, colMat);
-    col.position.set(cx, 1.45, 2.60);
-    stationEnvGroup.add(col);
+  const cuffMat = new THREE.MeshStandardMaterial({
+    color: 0xc8ccd4,
+    roughness: 0.20,
+    metalness: 0.95
   });
 
+  [-19.4, -15.0, -10.6, -6.2, -1.8, 2.6, 7.0, 11.4, 15.8, 20.2].forEach(cx => {
+    const colGroup = new THREE.Group();
+    // Основной ствол колонны (от Y = 0.0 до потолка Y = 3.45)
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.52, 3.45, 0.52), colMat);
+    shaft.position.set(0, 1.725, 0);
+    colGroup.add(shaft);
 
-  // 2.5 Задняя стена вестибюля платформы (сплошная темно-серая архитектурная отделка)
-  const backWallGeom = new THREE.PlaneGeometry(platformW, 3.4, 1, 1);
+    // Стальной отбойник цоколя
+    const baseCuff = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.35, 0.56), cuffMat);
+    baseCuff.position.set(0, 0.175, 0);
+    colGroup.add(baseCuff);
+
+    // Капитель под кессонным потолком
+    const capital = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.12, 0.58), cuffMat);
+    capital.position.set(0, 3.39, 0);
+    colGroup.add(capital);
+
+    colGroup.position.set(cx, 0.0, 2.60);
+    stationEnvGroup.add(colGroup);
+  });
+
+  // 2.5 Задняя стена вестибюля платформы с арочным порталом для эскалатора (X = -3.765)
   const backWallMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(0x181a20),
     roughness: 0.50,
     metalness: 0.20
   });
-  const backWall = new THREE.Mesh(backWallGeom, backWallMat);
-  backWall.rotation.y = Math.PI;
-  backWall.position.set(0, 1.55, 4.80);
-  stationEnvGroup.add(backWall);
+
+  // Левая секция стены (X: от -23.0 до -5.85, ширина 17.15)
+  const wallLeftW = 17.15;
+  const backWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(wallLeftW, 3.4), backWallMat);
+  backWallLeft.rotation.y = Math.PI;
+  backWallLeft.position.set(-23.0 + wallLeftW / 2, 1.55, 4.80);
+  stationEnvGroup.add(backWallLeft);
+
+  // Правая секция стены (X: от -1.65 до +23.0, ширина 24.65)
+  const wallRightW = 24.65;
+  const backWallRight = new THREE.Mesh(new THREE.PlaneGeometry(wallRightW, 3.4), backWallMat);
+  backWallRight.rotation.y = Math.PI;
+  backWallRight.position.set(23.0 - wallRightW / 2, 1.55, 4.80);
+  stationEnvGroup.add(backWallRight);
+
+  // 2.5.2 Торцевые порталы станции на краях X = -23.0 и X = +23.0 (вход поезда из тоннеля)
+  const stationEndWallMat = new THREE.MeshStandardMaterial({
+    color: 0x14161a,
+    roughness: 0.85,
+    metalness: 0.20,
+    side: THREE.DoubleSide
+  });
+  [-23.0, 23.0].forEach((ex) => {
+    // 1. Торцевая глухая стена платформы (от Z = 0.15 до 4.80)
+    const platEndWall = new THREE.Mesh(new THREE.PlaneGeometry(4.65, 3.6), stationEndWallMat);
+    platEndWall.rotation.y = ex < 0 ? Math.PI / 2 : -Math.PI / 2;
+    platEndWall.position.set(ex, 1.70, 2.475);
+    stationEnvGroup.add(platEndWall);
+
+    // 2. Перемычка портала тоннеля над путями (от Y = 2.75 до 3.50, поезд проходит снизу)
+    const lintel = new THREE.Mesh(new THREE.PlaneGeometry(3.10, 0.80), stationEndWallMat);
+    lintel.rotation.y = ex < 0 ? Math.PI / 2 : -Math.PI / 2;
+    lintel.position.set(ex, 3.10, -1.20);
+    stationEnvGroup.add(lintel);
+
+    // 3. Светопоглощающий темный тоннельный короб (вагон заходит на 1.5м вглубь тоннеля)
+    const tunnelVoidMat = new THREE.MeshBasicMaterial({ color: 0x020304, side: THREE.BackSide });
+    const tunnelVoid = new THREE.Mesh(new THREE.BoxGeometry(4.0, 3.2, 3.4), tunnelVoidMat);
+    tunnelVoid.position.set(ex + (ex > 0 ? 2.0 : -2.0), 1.40, -1.20);
+    stationEnvGroup.add(tunnelVoid);
+  });
+
+  // Обрамление портала эскалатора (пилоны, притолока, паруса и архивольт)
+  // монолитно создаются с субмиллиметровой точностью в createInstantEscalator (subwayExterior.js)
 
   // 2.6 Аутентичные скамейки на платформе станции (натуральные деревянные рейки + чугунный каркас)
-  [-4.8, 0.0, 4.8].forEach(bx => {
+  [-13.5, -7.8, 0.0, 4.8, 10.5].forEach(bx => {
     const benchGroup = new THREE.Group();
     const legMat = new THREE.MeshStandardMaterial({ color: 0x151619, roughness: 0.4, metalness: 0.85 });
     [-0.85, 0.85].forEach(lx => {
@@ -422,7 +546,7 @@ function setupStationEnvironment() {
 
   // 4 мема от пользователя, с естественными пропорциями, неоновой окантовкой и расстановкой по стене
   const memePosters = [
-    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.50, x: -4.0, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
+    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.50, x: -7.5, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
     { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.50, x: -0.7, neon: 0xffaa00 },   // 2. Задумавшаяся обезьяна (теплый неоновый янтарь)
     { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.35, x: 1.3, neon: 0x00ffd0 }, // 3. Рыбак и дельфины «Хотите верьте хотите нет» (морской бирюзовый)
     { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.50, x: 4.5, neon: 0xff6644 }      // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
@@ -493,14 +617,24 @@ function setupStationEnvironment() {
     stationEnvGroup.add(posterGroup);
   });
 
+  // Кессонный потолок станции, скрытое освещение, навигационные лайтбоксы и ограждение конкорса
+  setupStationCeilingAndArchitecture(stationEnvGroup);
+
   scene.add(stationEnvGroup);
+
+  // СИНХРОННАЯ ИНИЦИАЛИЗАЦИЯ СОСТАВА МЕТРО (Frame 0):
+  // Полный внешний кузов Car 1 и прицепные вагоны Car 0 и Car 2 сразу размещаются на путях.
+  // Исключает появление пустых рельс даже до загрузки внутренней GLTF-модели вагона!
+  setupSubwayExterior(scene);
 }
 
 
 // =============================================================================
-// ВИДЕОТЕКСТУРЫ ДЛЯ ЭКРАНОВ ВАГОНА
+// ВИДЕОТЕКСТУРЫ ДЛЯ ЭКРАНОВ ВАГОНА (ОПТИМИЗИРОВАННАЯ ФОНОВАЯ ИНИЦИАЛИЗАЦИЯ)
 // =============================================================================
 function setupVideoTextures() {
+  if (video1) return; // предотвращаем повторную инициализацию
+
   const initVideo = (id) => {
     const v = document.getElementById(id);
     if (!v) return null;
@@ -511,19 +645,8 @@ function setupVideoTextures() {
     v.setAttribute('playsinline', '');
     v.setAttribute('webkit-playsinline', '');
     v.loop = true;
-    v.preload = 'auto';
-
-    // Пытаемся запустить автостарт
-    const playPromise = v.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Ограничение автоплея браузером - ждем жеста пользователя
-      });
-    }
-
-    v.addEventListener('canplay', () => {
-      if (v.paused) v.play().catch(() => {});
-    });
+    // Только первые 2 экрана кэшируются сразу, остальные подгружают метаданные
+    v.preload = (id === 'video-swag' || id === 'video-mini-swag') ? 'auto' : 'metadata';
 
     const tex = new THREE.VideoTexture(v);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -571,7 +694,7 @@ function setupVideoTextures() {
 }
 
 // =============================================================================
-// ЗАГРУЗКА И НАСТРОЙКА 3D МОДЕЛИ ВАГОНА
+// ЗАГРУЗКА И НАСТРОЙКА 3D МОДЕЛИ ВАГОНА МЕТРО
 // =============================================================================
 function loadSubwayModel() {
   const loader = new GLTFLoader();
@@ -582,6 +705,9 @@ function loadSubwayModel() {
     'assets/models/subway.glb',
     (gltf) => {
       subwayModel = gltf.scene;
+
+      // Инициализируем текстуры видео только перед связыванием с материалами
+      setupVideoTextures();
 
       // Инициализация фотореалистичных PBR-текстур на основе реальной фотографии вагона
       const wallPBR = getPhotoWallTextures();
@@ -722,18 +848,14 @@ function loadSubwayModel() {
 
         const matName = child.material ? child.material.name : '';
 
-        // 5. Стекла окон и дверей: кристальная прозрачность с физичным френелем
+        // 5. Стекла окон и дверей: кристальная прозрачность
         if (child.name.includes('Glass') || matName === 'Mat_Glass') {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0x82b4d4),
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(0xcde8fc),
             transparent: true,
-            opacity: 0.28,
-            roughness: 0.02,
-            metalness: 0.05,
-            reflectivity: 0.90,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.04,
-            ior: 1.52,
+            opacity: 0.16,
+            roughness: 0.04,
+            metalness: 0.10,
             side: THREE.DoubleSide,
             depthWrite: false
           });
@@ -810,7 +932,7 @@ function loadSubwayModel() {
         }
 
         // 11. Стены вагона, торцевые переборки, притолоки дверей и торцевые двери (сатинированная сталь высокого разрешения)
-        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
+        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || child.name.includes('Door_Header_Housing') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
           child.material = new THREE.MeshStandardMaterial({
             map: wallPBR.colorMap,
             normalMap: wallPBR.normalMap,
@@ -1061,16 +1183,18 @@ function loadSubwayModel() {
       attachDoorDecal(doorRightD4);
 
       scene.add(subwayModel);
+      isSubwayLoaded = true;
 
-      // Инициализация привязки скролла GSAP ScrollTrigger
-      initScrollTriggers();
-
-      // Плавное скрытие прелоадера
-      if (preloader) {
-        preloader.classList.add('fade-out');
-        setTimeout(() => {
-          preloader.style.display = 'none';
-        }, 600);
+      // Если спуск на эскалаторе уже завершился или отключен, активируем ScrollTrigger и скрываем лоадер
+      if (!isDescentActive) {
+        document.body.classList.remove('is-preloading');
+        initScrollTriggers();
+        if (preloader) {
+          preloader.classList.add('fade-out');
+          setTimeout(() => {
+            preloader.style.display = 'none';
+          }, 850);
+        }
       }
     },
     (xhr) => {
@@ -1078,11 +1202,16 @@ function loadSubwayModel() {
         const percent = xhr.total
           ? Math.round((xhr.loaded / xhr.total) * 100)
           : Math.min(Math.round((xhr.loaded / 1800000) * 100), 95);
-        progressBar.style.width = `${percent}%`;
+        if (!isDescentActive) {
+          progressBar.style.width = `${percent}%`;
+          const pNum = document.getElementById('loader-percent-num');
+          if (pNum) pNum.textContent = `${percent}%`;
+        }
       }
     },
     (err) => {
       console.error('Ошибка загрузки 3D модели метро:', err);
+      isSubwayLoaded = true;
       if (preloader) preloader.style.display = 'none';
     }
   );
@@ -1101,6 +1230,12 @@ function initScrollTriggers() {
 
   const isMobile = () => window.innerWidth < 768;
   const getWaypoint = (idx) => CAMERA_WAYPOINTS[idx][isMobile() ? 'mobile' : 'desktop'];
+  
+  // Стартовое положение целевых векторов для ScrollTrigger — строго Stage 0
+  const wp0 = getWaypoint(0);
+  camTargetPos.copy(wp0.pos);
+  camTargetLookAt.copy(wp0.target);
+
   const NUM_SEGMENTS = CAMERA_WAYPOINTS.length - 1;
   let hasPlayedDepartureGong = false;
   let hasPlayedDoorChime = false;
@@ -1611,36 +1746,144 @@ function animate() {
     }
   }
 
-  // 1. Медленная, медитативная интерполяция позиции камеры (cinematic dolly lerp)
-  camCurrentPos.lerp(camTargetPos, 0.042);
-  camCurrentTarget.lerp(camTargetLookAt, 0.042);
+  // =========================================================================
+  // ИНТЕРАКТИВНЫЙ СПУСК НА ЭСКАЛАТОРЕ (ПРЕЛОАДЕР) ИЛИ ШТАТНАЯ КАМЕРА ВАГОНА
+  // =========================================================================
+  if (isDescentActive) {
+    if (isEscalatorLoaded) {
+      const elapsed = performance.now() - descentStartTime;
+      const rawP = Math.min(1.0, elapsed / DESCENT_DURATION);
+      const maxP = isSubwayLoaded ? 1.0 : 0.82; // если вагон еще подгружается, плавно замедляемся у нижней площадки
+      const p = Math.min(rawP, maxP);
 
-  // 2. Демпфирование мышиного параллакса
-  mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * 0.06;
-  mouseOffsetDamped.y += (mouseOffset.y - mouseOffsetDamped.y) * 0.06;
+      // Плавный кубический smoothstep
+      const easedP = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
 
-  // 2.1 Пневматическое движение створок дверей
-  currentDoorCloseRatio += (targetDoorCloseRatio - currentDoorCloseRatio) * 0.08;
-  if (doorLeft && doorRight) {
-    doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
-    doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
+      // Обновляем прогресс-бар и процент в HUD
+      const hudPercent = Math.min(100, Math.round(easedP * 100));
+      const pBar = document.getElementById('loader-progress-bar');
+      const pNum = document.getElementById('loader-percent-num');
+      if (pBar) pBar.style.width = `${hudPercent}%`;
+      if (pNum) pNum.textContent = `${hudPercent}%`;
+
+      // Плавное бесшовное угасание оверлея прелоадера при приближении к дверям вагона (исключает перекрытие заголовков)
+      const preloader = document.getElementById('scene-preloader');
+      if (preloader) {
+        if (easedP > 0.82) {
+          const fadeFrac = Math.max(0, (1.0 - easedP) / 0.18);
+          preloader.style.opacity = fadeFrac.toFixed(3);
+        } else {
+          preloader.style.opacity = '1';
+        }
+      }
+
+      if (easedP <= 0.72) {
+        // 1. Поездка вниз по наклону эскалатора (30 градусов) со ступенями и легкой вибрацией
+        const s = easedP / 0.72;
+        const stepVibe = Math.sin(time * 16.0) * 0.0006;
+        camCurrentPos.x = -3.765;
+        camCurrentPos.y = THREE.MathUtils.lerp(8.65, 1.34, s) + stepVibe;
+        camCurrentPos.z = THREE.MathUtils.lerp(17.60, 4.80, s);
+
+        camCurrentTarget.x = -3.765;
+        camCurrentTarget.y = THREE.MathUtils.lerp(6.20, 1.38, s);
+        camCurrentTarget.z = THREE.MathUtils.lerp(13.00, -1.192, s);
+      } else if (easedP <= 0.86) {
+        // 2. Сошествие с гребенки на гранит платформы к открытым дверям вагона
+        const s = (easedP - 0.72) / 0.14;
+        camCurrentPos.x = -3.765;
+        camCurrentPos.y = 1.34;
+        camCurrentPos.z = THREE.MathUtils.lerp(4.80, 0.60, s);
+
+        camCurrentTarget.x = -3.765;
+        camCurrentTarget.y = 1.38;
+        camCurrentTarget.z = -1.192; // взгляд прямо в салон через открытую дверь 1
+      } else {
+        // 3. Бесшовный пролет через открытую дверь 1 в вагон и разворот на позицию Stage 0
+        const s = (easedP - 0.86) / 0.14;
+        const sCurve = s * s * (3.0 - 2.0 * s);
+        camCurrentPos.x = THREE.MathUtils.lerp(-3.765, -5.50, sCurve);
+        camCurrentPos.y = THREE.MathUtils.lerp(1.34, 1.40, sCurve);
+        camCurrentPos.z = THREE.MathUtils.lerp(0.60, -1.192, sCurve);
+
+        camCurrentTarget.x = THREE.MathUtils.lerp(-3.765, -2.675, sCurve);
+        camCurrentTarget.y = 1.40;
+        camCurrentTarget.z = THREE.MathUtils.lerp(-1.192, -0.016, sCurve);
+      }
+
+      camera.position.copy(camCurrentPos);
+      camera.lookAt(
+        camCurrentTarget.x + mouseOffsetDamped.x * 0.3,
+        camCurrentTarget.y + mouseOffsetDamped.y * 0.3,
+        camCurrentTarget.z
+      );
+
+      // Завершение спуска и вход в вагон
+      if (easedP >= 0.999 && isSubwayLoaded) {
+        isDescentActive = false;
+        if (preloader) {
+          preloader.style.opacity = '0';
+          preloader.style.display = 'none';
+          preloader.classList.add('fade-out');
+        }
+        document.body.classList.remove('is-preloading');
+        stopEscalatorAudio(0.8);
+        if (!isGlobalMuted) {
+          playArrivalChime();
+        }
+
+        // Фиксируем позицию камеры строго на Stage 0 внутри вагона
+        const isMob = window.innerWidth < 768;
+        const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
+        camCurrentPos.copy(wp0.pos);
+        camTargetPos.copy(wp0.pos);
+        camCurrentTarget.copy(wp0.target);
+        camTargetLookAt.copy(wp0.target);
+        camera.position.copy(camCurrentPos);
+        camera.lookAt(camCurrentTarget);
+
+        if (video1 && video1.paused) {
+          video1.play().catch(() => {});
+        }
+
+        initScrollTriggers();
+      }
+    } else {
+      // Пока модель эскалатора подгружается (<100мс), держим камеру строго на старте спуска
+      camCurrentPos.set(-3.765, 8.65, 17.60);
+      camCurrentTarget.set(-3.765, 6.20, 13.00);
+      camera.position.copy(camCurrentPos);
+      camera.lookAt(camCurrentTarget);
+    }
+  } else {
+    // 1. Медленная, медитативная интерполяция позиции камеры (cinematic dolly lerp)
+    camCurrentPos.lerp(camTargetPos, 0.042);
+    camCurrentTarget.lerp(camTargetLookAt, 0.042);
+
+    // 2. Демпфирование мышиного параллакса
+    mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * 0.06;
+    mouseOffsetDamped.y += (mouseOffset.y - mouseOffsetDamped.y) * 0.06;
+
+    // 2.1 Пневматическое движение створок дверей
+    currentDoorCloseRatio += (targetDoorCloseRatio - currentDoorCloseRatio) * 0.08;
+    if (doorLeft && doorRight) {
+      doorLeft.position.x = THREE.MathUtils.lerp(DOOR_LEFT_OPEN_X, DOOR_LEFT_CLOSED_X, currentDoorCloseRatio);
+      doorRight.position.x = THREE.MathUtils.lerp(DOOR_RIGHT_OPEN_X, DOOR_RIGHT_CLOSED_X, currentDoorCloseRatio);
+    }
+    currentDoor2OpenRatio += (targetDoor2OpenRatio - currentDoor2OpenRatio) * 0.08;
+    if (doorLeftD2 && doorRightD2) {
+      doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, currentDoor2OpenRatio);
+      doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, currentDoor2OpenRatio);
+    }
+
+    // Строго заскриптованное кинематографичное движение камеры по скроллу + тонкий параллакс взгляда
+    camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
+    camera.lookAt(
+      camCurrentTarget.x + mouseOffsetDamped.x,
+      camCurrentTarget.y + mouseOffsetDamped.y,
+      camCurrentTarget.z
+    );
   }
-  currentDoor2OpenRatio += (targetDoor2OpenRatio - currentDoor2OpenRatio) * 0.08;
-  if (doorLeftD2 && doorRightD2) {
-    doorLeftD2.position.x = THREE.MathUtils.lerp(4.065, 4.615, currentDoor2OpenRatio);
-    doorRightD2.position.x = THREE.MathUtils.lerp(3.465, 2.915, currentDoor2OpenRatio);
-  }
-
-  // 2.2 Процедурное покачивание вагона и микровибрация при движении в тоннеле
-  const vibY = (Math.sin(time * 16.0) * 0.002 + Math.sin(time * 4.0) * 0.006) * trainSpeed;
-  const vibX = (Math.cos(time * 12.0) * 0.0015 + Math.sin(time * 2.5) * 0.004) * trainSpeed;
-  // Строго заскриптованное кинематографичное движение камеры по скроллу + тонкий параллакс взгляда
-  camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
-  camera.lookAt(
-    camCurrentTarget.x + mouseOffsetDamped.x,
-    camCurrentTarget.y + mouseOffsetDamped.y,
-    camCurrentTarget.z
-  );
 
   // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
   if (trainSpeed > 0.01) {
@@ -1696,18 +1939,20 @@ function animate() {
     screenLight2.intensity += (base2 - screenLight2.intensity) * 0.15;
   }
 
-  // 2.3d Обновление кадров видеотекстур на экранах
-  if (videoTexture1 && video1 && !video1.paused && video1.readyState >= 2) {
-    videoTexture1.needsUpdate = true;
-  }
-  if (videoTexture2 && video2 && !video2.paused && video2.readyState >= 2) {
-    videoTexture2.needsUpdate = true;
-  }
-  if (videoTexture3 && video3 && !video3.paused && video3.readyState >= 2) {
-    videoTexture3.needsUpdate = true;
-  }
-  if (videoTexture4 && video4 && !video4.paused && video4.readyState >= 2) {
-    videoTexture4.needsUpdate = true;
+  // 2.3d Обновление кадров видеотекстур на экранах (только в салоне вагона после завершения спуска)
+  if (!isDescentActive) {
+    if (videoTexture1 && video1 && !video1.paused && video1.readyState >= 2) {
+      videoTexture1.needsUpdate = true;
+    }
+    if (videoTexture2 && video2 && !video2.paused && video2.readyState >= 2) {
+      videoTexture2.needsUpdate = true;
+    }
+    if (videoTexture3 && video3 && !video3.paused && video3.readyState >= 2) {
+      videoTexture3.needsUpdate = true;
+    }
+    if (videoTexture4 && video4 && !video4.paused && video4.readyState >= 2) {
+      videoTexture4.needsUpdate = true;
+    }
   }
 
   // 2.4 Движение встречного поезда в тоннеле за окнами
@@ -1721,23 +1966,25 @@ function animate() {
     }
   }
 
-  // 3. Raycaster для определения наведения на экраны и схему метро
-  const validScreens = screenMeshes.filter(Boolean);
-  if (platformMapMesh) validScreens.push(platformMapMesh);
-  if (validScreens.length > 0) {
-    raycaster.setFromCamera(mouseVec, camera);
-    const intersects = raycaster.intersectObjects(validScreens, false);
-    if (intersects.length > 0) {
-      hoveredScreen = intersects[0].object;
-      document.body.style.cursor = 'pointer';
-    } else {
-      hoveredScreen = null;
-      document.body.style.cursor = '';
+  // 3. Raycaster и синхронизация плеера только после завершения спуска в вагон
+  if (!isDescentActive) {
+    const validScreens = screenMeshes.filter(Boolean);
+    if (platformMapMesh) validScreens.push(platformMapMesh);
+    if (validScreens.length > 0) {
+      raycaster.setFromCamera(mouseVec, camera);
+      const intersects = raycaster.intersectObjects(validScreens, false);
+      if (intersects.length > 0) {
+        hoveredScreen = intersects[0].object;
+        document.body.style.cursor = 'pointer';
+      } else {
+        hoveredScreen = null;
+        document.body.style.cursor = '';
+      }
     }
-  }
 
-  // 4. Синхронизация полосы прогресса видео
-  syncScrubberUI();
+    // 4. Синхронизация полосы прогресса видео
+    syncScrubberUI();
+  }
 
   // 5. Синхронизация звука поезда со скоростью
   updateSubwayAudio(trainSpeed, isGlobalMuted);

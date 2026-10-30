@@ -398,4 +398,143 @@ export function playPassingTrainWhoosh() {
   src.start(now);
 }
 
+// =============================================================================
+// ПРОЦЕДУРНЫЙ ЗВУК ЭСКАЛАТОРА МЕТРО (НИЗКИЙ ГУЛ МОТОРА, ШУРШАНИЕ СТУПЕНЕЙ И ПОРУЧНЕЙ)
+// =============================================================================
+let escalatorGain = null;
+let escalatorOsc1 = null;
+let escalatorOsc2 = null;
+let escalatorNoise = null;
+let escalatorStepInterval = null;
+
+export function startEscalatorAudio() {
+  if (isAudioMuted || !audioCtx) return;
+  try {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+
+    if (escalatorGain) return; // уже запущен
+
+    const now = audioCtx.currentTime;
+    escalatorGain = audioCtx.createGain();
+    escalatorGain.gain.setValueAtTime(0.0001, now);
+    escalatorGain.gain.linearRampToValueAtTime(0.14, now + 0.6); // мягкое нарастание
+    escalatorGain.connect(audioCtx.destination);
+
+    // 1. Низкочастотный гул электромотора и редуктора эскалатора (68 Гц и 136 Гц)
+    escalatorOsc1 = audioCtx.createOscillator();
+    escalatorOsc1.type = 'triangle';
+    escalatorOsc1.frequency.setValueAtTime(68, now);
+
+    escalatorOsc2 = audioCtx.createOscillator();
+    escalatorOsc2.type = 'sine';
+    escalatorOsc2.frequency.setValueAtTime(136.5, now);
+
+    const motorFilter = audioCtx.createBiquadFilter();
+    motorFilter.type = 'lowpass';
+    motorFilter.frequency.setValueAtTime(260, now);
+    motorFilter.Q.setValueAtTime(2.2, now);
+
+    const motorGain = audioCtx.createGain();
+    motorGain.gain.setValueAtTime(0.55, now);
+
+    escalatorOsc1.connect(motorFilter);
+    escalatorOsc2.connect(motorFilter);
+    motorFilter.connect(motorGain);
+    motorGain.connect(escalatorGain);
+
+    escalatorOsc1.start(now);
+    escalatorOsc2.start(now);
+
+    // 2. Механический шум движения полотна и резиновых поручней
+    const bSize = Math.floor(audioCtx.sampleRate * 2.0);
+    const nBuf = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
+    const data = nBuf.getChannelData(0);
+    let last = 0.0;
+    for (let i = 0; i < bSize; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.03 * white) / 1.03;
+      data[i] = last * 1.8;
+    }
+
+    escalatorNoise = audioCtx.createBufferSource();
+    escalatorNoise.buffer = nBuf;
+    escalatorNoise.loop = true;
+
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(340, now);
+    noiseFilter.Q.setValueAtTime(1.8, now);
+
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.40, now);
+
+    escalatorNoise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(escalatorGain);
+
+    escalatorNoise.start(now);
+
+    // 3. Ритмичный микро-перестук зубцов ступеней на направляющих (~3.2 Гц)
+    escalatorStepInterval = setInterval(() => {
+      if (!audioCtx || audioCtx.state !== 'running' || !escalatorGain) return;
+      try {
+        const clickNow = audioCtx.currentTime;
+        const clickOsc = audioCtx.createOscillator();
+        const clickGain = audioCtx.createGain();
+        clickOsc.type = 'triangle';
+        clickOsc.frequency.setValueAtTime(110 + Math.random() * 25, clickNow);
+        clickOsc.frequency.exponentialRampToValueAtTime(45, clickNow + 0.04);
+
+        clickGain.gain.setValueAtTime(0.04, clickNow);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, clickNow + 0.04);
+
+        clickOsc.connect(clickGain);
+        clickGain.connect(escalatorGain);
+        clickOsc.start(clickNow);
+        clickOsc.stop(clickNow + 0.045);
+      } catch (_) {}
+    }, 310);
+
+  } catch (err) {
+    console.warn('Ошибка запуска звука эскалатора:', err);
+  }
+}
+
+export function stopEscalatorAudio(fadeDuration = 0.8) {
+  if (escalatorStepInterval) {
+    clearInterval(escalatorStepInterval);
+    escalatorStepInterval = null;
+  }
+  if (!escalatorGain || !audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+    escalatorGain.gain.setValueAtTime(escalatorGain.gain.value, now);
+    escalatorGain.gain.exponentialRampToValueAtTime(0.0001, now + fadeDuration);
+
+    setTimeout(() => {
+      if (escalatorOsc1) {
+        try { escalatorOsc1.stop(); escalatorOsc1.disconnect(); } catch (_) {}
+        escalatorOsc1 = null;
+      }
+      if (escalatorOsc2) {
+        try { escalatorOsc2.stop(); escalatorOsc2.disconnect(); } catch (_) {}
+        escalatorOsc2 = null;
+      }
+      if (escalatorNoise) {
+        try { escalatorNoise.stop(); escalatorNoise.disconnect(); } catch (_) {}
+        escalatorNoise = null;
+      }
+      if (escalatorGain) {
+        try { escalatorGain.disconnect(); } catch (_) {}
+        escalatorGain = null;
+      }
+    }, fadeDuration * 1000 + 50);
+  } catch (err) {
+    console.warn('Ошибка остановки звука эскалатора:', err);
+  }
+}
+
+
 

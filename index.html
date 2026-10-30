@@ -7,6 +7,26 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-capable" content="yes">
   
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <script>
+    // Сброс устаревшего кэша PWA / Service Worker на localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (var i = 0; i < regs.length; i++) regs[i].unregister();
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(keys) {
+          for (var i = 0; i < keys.length; i++) caches.delete(keys[i]);
+        });
+      }
+    }
+  </script>
+  
   <title>Александр Песковский — 2026 | Режиссура и медиа</title>
   <meta name="description" content="Интерактивное кинематографичное 3D-путешествие в вагоне метро через авторские видеоработы Александра Песковского.">
   <meta name="keywords" content="Александр Песковский, режиссер, оператор, видеопродакшн, iPhone Log, медиа, портфолио">
@@ -27,13 +47,16 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5a623'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 3v2h2V7H6zm4 0v2h2V7h-2zm4 0v2h2V7h-2zm4 0v2h2V7h-2z'/%3E%3C/svg%3E">
   <link rel="manifest" href="manifest.json">
   
-  <!-- Шрифты: Space Grotesk и JetBrains Mono -->
+  <!-- Шрифты: Space Grotesk и JetBrains Mono (асинхронная неблокирующая загрузка) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+  </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261030_1705">
 
   <!-- GSAP & ScrollTrigger -->
   <script src="js/vendor/gsap.min.js"></script>
@@ -49,22 +72,25 @@
   }
   </script>
 </head>
-<body class="dark-cinema-body">
+<body class="dark-cinema-body is-preloading">
 
   <!-- =========================================================================
-       ПРЕЛОАДЕР 3D СЦЕНЫ
+       ПРЕЛОАДЕР 3D СЦЕНЫ: ИНТЕРАКТИВНЫЙ СПУСК НА ЭСКАЛАТОРЕ В МЕТРО
        ========================================================================= -->
   <div id="scene-preloader" class="scene-preloader">
-    <div class="preloader-content">
-      <div class="preloader-brand">
-        <span class="preloader-badge">2026</span>
-        <h2 class="preloader-title">Александр Песковский</h2>
-        <p class="preloader-subtitle">Разнорабочий в медиа</p>
+    <div class="preloader-top-brand">
+      <span class="preloader-badge">2026</span>
+      <h2 class="preloader-title">Александр Песковский</h2>
+      <p class="preloader-subtitle">Разнорабочий в медиа</p>
+    </div>
+    <div class="preloader-bottom-hud">
+      <div class="preloader-status-row">
+        <span class="preloader-hint"><span class="preloader-pulse-dot"></span> Спуск на станцию</span>
+        <span class="preloader-percent" id="loader-percent-num">0%</span>
       </div>
       <div class="preloader-bar-wrap">
         <div id="loader-progress-bar" class="preloader-bar-fill"></div>
       </div>
-      <span class="preloader-hint">Спускаемся в метро</span>
     </div>
   </div>
 
@@ -73,13 +99,6 @@
        ========================================================================= -->
   <canvas id="webgl-canvas" class="webgl-fixed-canvas"></canvas>
   <div id="cinematic-vignette" class="cinematic-vignette" aria-hidden="true"></div>
-  <svg class="cinema-film-grain" aria-hidden="true">
-    <filter id="film-grain-filter">
-      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
-      <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.055 0" />
-    </filter>
-    <rect width="100%" height="100%" filter="url(#film-grain-filter)" />
-  </svg>
 
   <!-- =========================================================================
        СКРЫТЫЕ ИСТОЧНИКИ ВИДЕО ДЛЯ THREE.VIDEOTEXTURE
@@ -399,6 +418,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/main.js?v=20261030_1705"></script>
 </body>
 </html>

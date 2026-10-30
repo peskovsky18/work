@@ -1,6 +1,7 @@
 .DS_Store
 Thumbs.db
 *.log
+*.bak
 *.blend1
 *_pre_fix.blend
 scratch/

@@ -9,7 +9,30 @@
 
 import * as THREE from 'three';
 
+const textureLoader = new THREE.TextureLoader();
 const textureCache = new Map();
+
+/**
+ * Загрузка PBR-карты из внешнего файла WebP/PNG с настройкой фильтрации
+ */
+function loadPBRTexture(path, repeatX = 1, repeatY = 1, sRGB = true) {
+  const cacheKey = `${path}_${repeatX}_${repeatY}_${sRGB}`;
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
+
+  const tex = textureLoader.load(path);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = 16;
+  if (sRGB) {
+    tex.colorSpace = THREE.SRGBColorSpace;
+  }
+  textureCache.set(cacheKey, tex);
+  return tex;
+}
 
 /**
  * Вспомогательная функция создания текстуры с максимальной трилинейной и анизотропной фильтрацией 16x
@@ -425,25 +448,19 @@ function createSeatFabricPBR(type, palette) {
 }
 
 export function getPhotoSeatYellowTextures() {
-  return createSeatFabricPBR('yellow', {
-    seed: 556677,
-    base: '#dca018',
-    warpRGB: [238, 178, 38], // Светло-золотистая нить основы
-    weftRGB: [195, 136, 12], // Глубокая теплая охра утка
-    accentRGB: [255, 198, 65], // Золотистый жаккардовый акцент
-    stitch: 'rgba(110, 70, 6, 0.45)' // Тонкая контрастная строчка
-  });
+  return {
+    colorMap: loadPBRTexture('assets/textures/pbr_seat_yellow_color.webp', 1, 1, true),
+    normalMap: loadPBRTexture('assets/textures/pbr_seat_yellow_normal.webp', 1, 1, false),
+    roughnessMap: loadPBRTexture('assets/textures/pbr_seat_yellow_roughness.webp', 1, 1, false)
+  };
 }
 
 export function getPhotoSeatOrangeTextures() {
-  return createSeatFabricPBR('orange', {
-    seed: 889900,
-    base: '#c94d1a',
-    warpRGB: [225, 95, 38], // Сочная терракотовая нить основы
-    weftRGB: [168, 55, 15], // Глубокий кирпичный тон утка
-    accentRGB: [248, 125, 60], // Яркий микро-жаккардовый акцент
-    stitch: 'rgba(90, 25, 8, 0.45)' // Тонкая контрастная строчка
-  });
+  return {
+    colorMap: loadPBRTexture('assets/textures/pbr_seat_orange_color.webp', 1, 1, true),
+    normalMap: loadPBRTexture('assets/textures/pbr_seat_orange_normal.webp', 1, 1, false),
+    roughnessMap: loadPBRTexture('assets/textures/pbr_seat_orange_roughness.webp', 1, 1, false)
+  };
 }
 
 // =============================================================================

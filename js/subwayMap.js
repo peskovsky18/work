@@ -75,7 +75,7 @@ export function createSubwayMapCanvas() {
 
   ctx.font = '500 16px "JetBrains Mono", monospace, sans-serif';
   ctx.fillStyle = '#7e90a6';
-  ctx.fillText('МОСКОВСКИЙ МЕТРОПОЛИТЕН • КАРТА СЕТИ 2026', 130, 88);
+  ctx.fillText('МОСКОВСКИЙ МЕТРОПОЛИТЕН • КАРТА СЕТИ', 130, 88);
 
   // Правый плакат / статус станции
   ctx.save();
@@ -643,7 +643,7 @@ export function getStationSignTexture(THREE) {
   // Подзаголовок: выход в город и пересадки
   ctx.font = '600 24px "JetBrains Mono", monospace';
   ctx.fillStyle = '#8e95a5';
-  ctx.fillText('ВЫХОД В ГОРОД // ПОРТФОЛИО 2026 // WAY OUT ↗', 158, 185);
+  ctx.fillText('ВЫХОД В ГОРОД // ПОРТФОЛИО // WAY OUT ↗', 158, 185);
 
   // Правая стрелка и пиктограмма
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -748,11 +748,11 @@ export function getTrackWallSignTexture(THREE) {
   ctx.lineWidth = 1.5;
   ctx.strokeText('П Е С К О В С К А Я', 800, 195);
 
-  // Подзаголовок латиницей и дата
+  // Подзаголовок латиницей
   ctx.font = '600 24px "Manrope", sans-serif';
   ctx.letterSpacing = '6px';
   ctx.fillStyle = '#a6b0c2';
-  ctx.fillText('СТАНЦИЯ ОТКРЫТА В 2026 ГОДУ • PESKOVSKAYA STATION', 800, 275);
+  ctx.fillText('СТАНЦИЯ ПЕСКОВСКАЯ • PESKOVSKAYA STATION', 800, 275);
 
   cachedTrackWallSignTex = new THREE.CanvasTexture(cvs);
   cachedTrackWallSignTex.colorSpace = THREE.SRGBColorSpace;
@@ -803,7 +803,7 @@ export function getStationPosterTexture(THREE, index = 0) {
     ctx.fillStyle = '#ffffff';
     ctx.font = '800 46px "Manrope", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('MEDIA ART 2026', 360, 755);
+    ctx.fillText('MEDIA ART', 360, 755);
 
     ctx.font = '600 22px "JetBrains Mono", monospace';
     ctx.fillStyle = '#a8b2c6';
@@ -844,7 +844,7 @@ export function getStationPosterTexture(THREE, index = 0) {
     ctx.font = '600 22px "JetBrains Mono", monospace';
     ctx.fillStyle = '#8ea0b8';
     ctx.fillText('МОСКОВСКИЙ СКОРОСТНОЙ ТРАНСПОРТ', 360, 795);
-    ctx.fillText('СЕТЬ НОВОГО ПОКОЛЕНИЯ • 2026', 360, 835);
+    ctx.fillText('СЕТЬ НОВОГО ПОКОЛЕНИЯ', 360, 835);
 
     ctx.font = '700 16px "JetBrains Mono", monospace';
     ctx.fillStyle = '#00f0ff';

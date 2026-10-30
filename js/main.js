@@ -7,6 +7,12 @@ import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScre
 import { playNavTick } from './subwayAudio.js';
 
 function startApp() {
+  // Expose methods for testing, automation, and external controls
+  window.scrollToStage = scrollToStage;
+  window.getActiveStage = getActiveStage;
+  window.toggleFreeRoam = toggleFreeRoam;
+  window.isFreeRoamActive = isFreeRoamActive;
+
   // 1. Немедленная инициализация 3D сцены метро (кадр 0 рендерится мгновенно)
   initSubwayScene();
 

@@ -172,6 +172,8 @@ export function initSubwayScene() {
     getScene: () => scene,
     getState: () => ({ isDescentActive, isEscalatorLoaded, isSubwayLoaded, camPos: camera?.position, camTarget: camCurrentTarget })
   };
+  window.__THREE_SCENE__ = scene;
+  window.THREE = THREE;
 
   // 3.1 Инициализация контроллера режима Free Roam (свободная 3D-прогулка)
   freeRoamController = new FreeRoamController(camera, renderer.domElement, onFreeRoamToggled);
@@ -277,34 +279,50 @@ function setupStationEnvironment() {
   stationEnvGroup = new THREE.Group();
   const tilePBR = getStationTileTextures();
   const granitePBR = getPlatformGraniteTextures();
+  const texLoader = new THREE.TextureLoader();
+
+  // Аутентичная текстура плитки Парижского метро с синей затиркой швов (Voûte de Métro Liège)
+  const metroTileColor = texLoader.load('assets/textures/paris_metro_tiles_blue_grout.png');
+  metroTileColor.wrapS = THREE.RepeatWrapping;
+  metroTileColor.wrapT = THREE.RepeatWrapping;
+  metroTileColor.repeat.set(1, 1);
+  metroTileColor.anisotropy = 16;
+  metroTileColor.colorSpace = THREE.SRGBColorSpace;
+  metroTileColor.generateMipmaps = true;
+
+  const metroTileNormal = texLoader.load('assets/textures/paris_metro_tiles_normal.png');
+  metroTileNormal.wrapS = THREE.RepeatWrapping;
+  metroTileNormal.wrapT = THREE.RepeatWrapping;
+  metroTileNormal.repeat.set(1, 1);
+  metroTileNormal.anisotropy = 16;
+  metroTileNormal.generateMipmaps = true;
 
   // =========================================================================
-  // 1. АРОЧНЫЙ СВОД СТАНЦИИ И ЛАВОЧКИ ПАРИЖСКОГО МЕТРО («Voûte de Métro»)
+  // 1. АРОЧНЫЙ СВОД СТАНЦИИ, ЛАВОЧКИ И ВЕНДИНГОВЫЙ АВТОМАТ ПАРИЖСКОГО МЕТРО
   // =========================================================================
   const trackWallW = 54.0;
   const trackWallZ = -3.25;
 
-  // 1.1 Загрузка Blender GLTF модели арочного свода и парижских сидений
+  // 1.1 Загрузка Blender GLTF модели арочного свода, вендингового автомата и парижских сидений
   const stationLoader = new GLTFLoader();
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('./js/vendor/draco/');
   stationLoader.setDRACOLoader(dracoLoader);
 
-  stationLoader.load('assets/models/paris_station.glb?v=20261030_2025', (gltf) => {
+  stationLoader.load('assets/models/paris_station.glb?v=20261030_2115', (gltf) => {
     const model = gltf.scene;
     model.traverse((child) => {
       if (!child.isMesh) return;
       if (child.name === 'Station_Vault_Arch') {
         child.material = new THREE.MeshPhysicalMaterial({
-          map: tilePBR.colorMap,
-          normalMap: tilePBR.normalMap,
-          normalScale: new THREE.Vector2(0.85, 0.85),
-          roughnessMap: tilePBR.roughnessMap,
+          map: metroTileColor,
+          normalMap: metroTileNormal,
+          normalScale: new THREE.Vector2(0.95, 0.95),
           roughness: 0.10,
-          metalness: 0.04,
-          clearcoat: 0.95,
-          clearcoatRoughness: 0.05,
-          reflectivity: 0.85,
+          metalness: 0.02,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.04,
+          reflectivity: 0.90,
           side: THREE.DoubleSide
         });
       } else if (child.name === 'Paris_Metro_Seats_Red') {
@@ -322,6 +340,37 @@ function setupStationEnvironment() {
           color: new THREE.Color(0x334155),
           roughness: 0.24,
           metalness: 0.92
+        });
+      } else if (child.name === 'Vending_Machine_Glass' || (child.material && child.material.name === 'Mat_VM_Glass')) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.16,
+          roughness: 0.04,
+          transmission: 0.94,
+          ior: 1.52,
+          reflectivity: 0.90,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.03,
+          side: THREE.DoubleSide
+        });
+      }
+
+      // Подсветка индикаторов и витрины вендингового автомата Necta Melodia
+      if (child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((mat) => {
+          if (!mat) return;
+          if (mat.name === 'Mat_VM_LED') {
+            mat.emissive = new THREE.Color(0xffffff);
+            mat.emissiveIntensity = 2.4;
+          } else if (mat.name === 'Mat_VM_LCD') {
+            mat.emissive = new THREE.Color(0x0088ff);
+            mat.emissiveIntensity = 2.2;
+          } else if (mat.name === 'Mat_VM_GreenLED') {
+            mat.emissive = new THREE.Color(0x22c55e);
+            mat.emissiveIntensity = 2.0;
+          }
         });
       }
     });
@@ -488,11 +537,12 @@ function setupStationEnvironment() {
   // установленные вдоль стены платформы под постерами-мемами.
 
   // 2.7 Светящиеся рекламные лайтбоксы-постеры на стене платформы (мемы пользователя)
-  const texLoader = new THREE.TextureLoader();
+  // В парижском метро (станция Liège) постеры и их обрамление точно повторяют цилиндрический свод арки
   const posterHousingMat = new THREE.MeshStandardMaterial({
     color: 0x111317,
     roughness: 0.25,
-    metalness: 0.90
+    metalness: 0.90,
+    side: THREE.DoubleSide
   });
 
   const glassMat = new THREE.MeshPhysicalMaterial({
@@ -502,79 +552,143 @@ function setupStationEnvironment() {
     roughness: 0.04,
     reflectivity: 0.85,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.04
+    clearcoatRoughness: 0.04,
+    side: THREE.DoubleSide
   });
 
-  // 4 мема от пользователя, с естественными пропорциями, неоновой окантовкой и расстановкой по стене
-  const memePosters = [
-    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.50, x: -7.5, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
-    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.50, x: -0.7, neon: 0xffaa00 },   // 2. Задумавшаяся обезьяна (теплый неоновый янтарь)
-    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.35, x: 1.3, neon: 0x00ffd0 }, // 3. Рыбак и дельфины «Хотите верьте хотите нет» (морской бирюзовый)
-    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.50, x: 4.5, neon: 0xff6644 }      // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
+  // Архитектурный вертикальный профиль арочного свода станции (Y -> Z)
+  const ARCH_PROFILE = [
+    [0.000, 4.800],
+    [0.620, 4.674],
+    [0.990, 4.548],
+    [1.300, 4.423],
+    [1.575, 4.297],
+    [1.826, 4.171],
+    [2.058, 4.045],
+    [2.274, 3.920],
+    [2.477, 3.794],
+    [2.668, 3.668],
+    [2.848, 3.542],
+    [3.018, 3.416]
   ];
+
+  function getArchWallZ(y) {
+    if (y <= ARCH_PROFILE[0][0]) return ARCH_PROFILE[0][1];
+    for (let i = 0; i < ARCH_PROFILE.length - 1; i++) {
+      const [y0, z0] = ARCH_PROFILE[i];
+      const [y1, z1] = ARCH_PROFILE[i + 1];
+      if (y >= y0 && y <= y1) {
+        const frac = (y - y0) / (y1 - y0);
+        return z0 + frac * (z1 - z0);
+      }
+    }
+    return ARCH_PROFILE[ARCH_PROFILE.length - 1][1];
+  }
+
+  // Генератор геометрии, изогнутой строго по радиусу арочного свода стены метро
+  function createCurvedArchGeometry(w, h, segX, segY, offsetForward, centerY, centerZ) {
+    const geom = new THREE.PlaneGeometry(w, h, segX, segY);
+    geom.scale(-1, 1, 1); // Лицевая сторона обращена в сторону платформы (-Z)
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const ly = pos.getY(i);
+      const wy = centerY + ly;
+      const wz = getArchWallZ(wy);
+      const lz = (wz - centerZ) - offsetForward;
+      pos.setZ(i, lz);
+    }
+    geom.computeVertexNormals();
+    return geom;
+  }
+
+  // 4 мема от пользователя, сгармонизированные с двумя скамейками и вендинговым автоматом:
+  // - Постер 2 (Обезьяна) расположен строго над левой скамейкой (X = -2.2)
+  // - Постер 3 (Дельфины) расположен строго над правой скамейкой (X = +2.2)
+  // - Между ними (X = 0.0) стоит фотореалистичный вендинговый автомат Necta Melodia
+  // - Постеры 1 (Муравей) и 4 (Лев) завершают композицию на левом и правом крыле
+  const memePosters = [
+    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.48, x: -5.8, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
+    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.48, x: -2.2, neon: 0xffaa00 },   // 2. Задумавшаяся обезьяна (теплый янтарь — над левой скамейкой)
+    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.36, x: 2.2, neon: 0x00ffd0 }, // 3. Рыбак и дельфины (морской бирюзовый — над правой скамейкой)
+    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.48, x: 5.2, neon: 0xff6644 }      // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
+  ];
+
+  const posterCenterY = 1.65;
+  const posterCenterZ = getArchWallZ(posterCenterY); // ~4.259
 
   memePosters.forEach((item) => {
     const posterGroup = new THREE.Group();
-    const frameW = item.w + 0.10;
-    const frameH = item.h + 0.10;
-    const housing = new THREE.Mesh(new THREE.BoxGeometry(frameW, frameH, 0.08), posterHousingMat);
+    const frameW = item.w + 0.12;
+    const frameH = item.h + 0.12;
+
+    // 1. Изогнутый каркас / задник лайтбокса
+    const housingGeom = createCurvedArchGeometry(frameW, frameH, 16, 32, 0.008, posterCenterY, posterCenterZ);
+    const housing = new THREE.Mesh(housingGeom, posterHousingMat);
     posterGroup.add(housing);
 
-    // Неоновая контурная трубка по периметру рамки
+    // 2. Изогнутая неоновая контурная окантовка
     const neonMat = new THREE.MeshBasicMaterial({ color: item.neon });
     const hw = frameW / 2;
     const hh = frameH / 2;
     const tubeThick = 0.016;
-    const tubeDepth = 0.016;
-    const neonZ = -0.046;
 
-    const neonTop = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeDepth), neonMat);
-    neonTop.position.set(0, hh, neonZ);
+    // Верхняя и нижняя горизонтальные трубки
+    const topWy = posterCenterY + hh;
+    const topWz = getArchWallZ(topWy);
+    const topLz = (topWz - posterCenterZ) - 0.030;
+    const neonTop = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeThick), neonMat);
+    neonTop.position.set(0, hh, topLz);
     posterGroup.add(neonTop);
 
-    const neonBottom = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeDepth), neonMat);
-    neonBottom.position.set(0, -hh, neonZ);
+    const btmWy = posterCenterY - hh;
+    const btmWz = getArchWallZ(btmWy);
+    const btmLz = (btmWz - posterCenterZ) - 0.030;
+    const neonBottom = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeThick), neonMat);
+    neonBottom.position.set(0, -hh, btmLz);
     posterGroup.add(neonBottom);
 
-    const neonLeft = new THREE.Mesh(new THREE.BoxGeometry(tubeThick, frameH, tubeDepth), neonMat);
-    neonLeft.position.set(-hw, 0, neonZ);
+    // Левая и правая вертикальные трубки изогнуты по дуге свода
+    const neonLeftGeom = createCurvedArchGeometry(tubeThick, frameH, 1, 32, 0.030, posterCenterY, posterCenterZ);
+    const neonLeft = new THREE.Mesh(neonLeftGeom, neonMat);
+    neonLeft.position.set(-hw, 0, 0);
     posterGroup.add(neonLeft);
 
-    const neonRight = new THREE.Mesh(new THREE.BoxGeometry(tubeThick, frameH, tubeDepth), neonMat);
-    neonRight.position.set(hw, 0, neonZ);
+    const neonRightGeom = createCurvedArchGeometry(tubeThick, frameH, 1, 32, 0.030, posterCenterY, posterCenterZ);
+    const neonRight = new THREE.Mesh(neonRightGeom, neonMat);
+    neonRight.position.set(hw, 0, 0);
     posterGroup.add(neonRight);
 
     // Мягкий рассеянный неоновый свет на стену и платформу
-    const posterGlow = new THREE.PointLight(item.neon, 0.40, 2.8);
+    const posterGlow = new THREE.PointLight(item.neon, 0.45, 3.2);
     posterGlow.position.set(0, 0, -0.22);
     posterGroup.add(posterGlow);
 
+    // 3. Изогнутое полотно постера-мема с текстурой
     const tex = texLoader.load(item.url);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.generateMipmaps = true;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.magFilter = THREE.LinearFilter;
 
-    const posterFaceGeom = new THREE.PlaneGeometry(item.w, item.h);
-    posterFaceGeom.scale(-1, 1, 1);
+    const posterFaceGeom = createCurvedArchGeometry(item.w, item.h, 16, 32, 0.018, posterCenterY, posterCenterZ);
     const posterMat = new THREE.MeshStandardMaterial({
       map: tex,
       emissive: new THREE.Color(0xffffff),
       emissiveMap: tex,
-      emissiveIntensity: 0.92,
+      emissiveIntensity: 0.95,
       roughness: 0.18,
       metalness: 0.05,
       side: THREE.DoubleSide
     });
     const posterFace = new THREE.Mesh(posterFaceGeom, posterMat);
-    posterFace.position.set(0, 0, -0.045);
     posterGroup.add(posterFace);
 
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(item.w, item.h), glassMat);
-    glass.position.set(0, 0, -0.048);
+    // 4. Изогнутое антибликовое защитное стекло лайтбокса
+    const glassGeom = createCurvedArchGeometry(item.w, item.h, 16, 32, 0.024, posterCenterY, posterCenterZ);
+    const glass = new THREE.Mesh(glassGeom, glassMat);
     posterGroup.add(glass);
 
-    posterGroup.position.set(item.x, 1.65, 4.70);
+    posterGroup.position.set(item.x, posterCenterY, posterCenterZ);
     stationEnvGroup.add(posterGroup);
   });
 

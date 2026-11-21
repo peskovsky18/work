@@ -74,20 +74,14 @@ body.is-preloading {
 }
 
 body.is-preloading .site-header,
-body.is-preloading #scroll-story,
-body.is-preloading .sound-floating-toggle,
-body.is-preloading .screen-zoom-button,
-body.is-preloading #route-map-panel {
+body.is-preloading #scroll-story {
   opacity: 0 !important;
   pointer-events: none !important;
   visibility: hidden !important;
 }
 
 .site-header,
-#scroll-story,
-.sound-floating-toggle,
-.screen-zoom-button,
-#route-map-panel {
+#scroll-story {
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
 }
 
@@ -102,28 +96,12 @@ body.is-preloading #route-map-panel {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
-.preloader-badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 2px;
-  color: var(--accent-amber);
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  display: inline-block;
-}
-
 .preloader-title {
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   text-transform: uppercase;
   margin-bottom: 3px;
-}
-
-.preloader-subtitle {
-  font-size: 0.90rem;
-  color: var(--text-muted);
-  margin-bottom: 0;
 }
 
 .preloader-bottom-hud {
@@ -278,17 +256,6 @@ body.is-preloading #route-map-panel {
   color: #fff;
 }
 
-.brand-badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  padding: 3px 9px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-}
-
 /* Переключатель режимов в шапке (Проекты / Free Roam) */
 .header-mode-nav {
   display: inline-flex;
@@ -344,19 +311,6 @@ body.is-preloading #route-map-panel {
   stroke: currentColor;
 }
 
-/* Навигация по вагону (Pill Buttons) */
-.stage-nav-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(20, 22, 28, 0.75);
-  padding: 4px;
-  border-radius: 9999px;
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-}
-
 .apple-pill-btn {
   display: inline-flex;
   align-items: center;
@@ -378,13 +332,6 @@ body.is-preloading #route-map-panel {
 .apple-pill-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.1);
-}
-
-.stage-nav-pill.active {
-  color: #07080a;
-  background: #ffffff;
-  border-color: #ffffff;
-  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.25);
 }
 
 /* Действия в правой части шапки */
@@ -515,13 +462,6 @@ body.is-preloading #route-map-panel {
   color: #fff;
 }
 
-.intro-subheadline {
-  font-size: 1.05rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin-bottom: 0;
-}
-
 /* --------------------------------------------------------------------------
    ЭТАПЫ 1 И 2: ЭКРАНЫ ВАГОНА (FLOATING GLASS CAPSULES)
    -------------------------------------------------------------------------- */
@@ -552,11 +492,6 @@ body.is-preloading #route-map-panel {
   opacity: 0;
   transform: translateY(15px);
   transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.info-capsule,
-.stage-placeholder .floating-hud-bottom {
-  display: none !important;
 }
 
 /* На видео-этапах (1 и 2) нижний плеер доступен и появляется плавно */
@@ -629,35 +564,6 @@ body.is-preloading #route-map-panel {
   padding: 3px 8px;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.hud-badge-tunnel {
-  color: #38ef7d;
-  border-color: rgba(56, 239, 125, 0.35);
-  background: rgba(56, 239, 125, 0.1);
-}
-
-.info-capsule {
-  padding: 10px 22px;
-  gap: 12px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
-  max-width: 90vw;
-}
-
-.status-indicator-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  flex-shrink: 0;
-}
-
-.status-indicator-dot.dot-active {
-  background: #38ef7d;
-  box-shadow: 0 0 10px #38ef7d;
-  animation: pulse-dot 1.8s infinite;
 }
 
 @keyframes pulse-dot {
@@ -759,34 +665,6 @@ body.is-preloading #route-map-panel {
   transition: width 0.1s linear;
 }
 
-.timeline-time-display {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  min-width: 34px;
-  text-align: right;
-}
-
-.player-waveform-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
-  width: 46px;
-  opacity: 0.85;
-  transition: opacity 0.25s ease;
-}
-
-.player-waveform-box:hover {
-  opacity: 1;
-}
-
-.player-waveform-canvas {
-  width: 42px;
-  height: 16px;
-  display: block;
-}
-
 /* --------------------------------------------------------------------------
    ЭТАП 3: КОНТАКТЫ (ФИНАЛЬНЫЙ ТЕРМИНАЛ)
    -------------------------------------------------------------------------- */
@@ -862,14 +740,6 @@ body.is-preloading #route-map-panel {
   color: #07080a;
 }
 
-.contact-card-footer {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 20px;
-}
-
 /* ==========================================================================
    АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ (IPHONE & ANDROID)
    ========================================================================== */
@@ -906,10 +776,6 @@ body.is-preloading #route-map-panel {
     text-overflow: ellipsis;
     letter-spacing: 0.02em;
     font-weight: 700;
-  }
-
-  .brand-badge {
-    display: none;
   }
 
   .header-mode-nav {
@@ -962,10 +828,6 @@ body.is-preloading #route-map-panel {
 
   .intro-headline {
     font-size: clamp(1.6rem, 5.5vw, 2.1rem);
-  }
-
-  .intro-subheadline {
-    font-size: 0.92rem;
   }
 
   .floating-hud-top {
@@ -1028,18 +890,6 @@ body.is-preloading #route-map-panel {
     font-size: 0.88rem;
   }
 
-  .emergency-banner {
-    top: calc(max(10px, env(safe-area-inset-top, 10px)) + 84px);
-    width: calc(100% - 32px);
-  }
-
-  .emergency-banner-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-    padding: 12px 14px;
-  }
-
   .modal-sheet {
     padding: 20px 16px;
     border-radius: 20px;
@@ -1087,10 +937,6 @@ body.is-preloading #route-map-panel {
 
   .header-container {
     gap: 6px;
-  }
-
-  .brand-badge {
-    display: none;
   }
 
   .header-mode-nav {
@@ -1183,24 +1029,6 @@ body.is-preloading #route-map-panel {
   transform: translateY(0) scale(1);
 }
 
-.modal-video-box {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 18px;
-  overflow: hidden;
-  margin: 14px 0 18px;
-  background: #000;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
-}
-
-.modal-video-elem {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .modal-close-btn {
   position: absolute;
   top: 20px;
@@ -1243,33 +1071,6 @@ body.is-preloading #route-map-panel {
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.6;
   margin-bottom: 24px;
-}
-
-.modal-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 20px;
-}
-
-.meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.meta-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.meta-val {
-  font-size: 0.85rem;
-  color: #fff;
-  font-weight: 600;
 }
 
 /* Интерактивная карта метро в модальном окне */
@@ -1348,75 +1149,6 @@ body.is-preloading #route-map-panel {
   color: var(--text-muted);
 }
 
-/* Экстренное оповещение: Стоп-кран */
-.emergency-banner {
-  position: fixed;
-  top: 76px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-30px);
-  z-index: 1000;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  width: 90%;
-  max-width: 640px;
-}
-
-.emergency-banner.active {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
-}
-
-.emergency-banner-content {
-  background: rgba(220, 24, 24, 0.88);
-  border: 1px solid rgba(255, 100, 100, 0.4);
-  border-radius: 20px;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  box-shadow: 0 12px 36px rgba(220, 24, 24, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.emergency-pill-tag {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-
-.emergency-msg {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 500;
-  line-height: 1.3;
-}
-
-.emergency-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.em-tg-btn, .em-mail-btn {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
-  font-size: 0.75rem;
-  padding: 6px 14px;
-}
-
-.em-tg-btn:hover, .em-mail-btn:hover {
-  background: #fff;
-  color: #0d0f14;
-}
-
 /* Кинематографическая виньетка: углубляется в тоннеле, открывается на станциях */
 .cinematic-vignette {
   position: fixed;
@@ -1432,59 +1164,6 @@ body.tunnel-speed-active .cinematic-vignette {
   opacity: 0.82;
 }
 
-/* Кинематографическое пленочное зерно (35mm Film Grain) */
-.cinema-film-grain {
-  display: none !important;
-}
-
-
-
-
-/* Светодиодная линия пути вагона (LED Route Tracker с интерактивной перемоткой) */
-.header-route-track {
-  position: absolute;
-  bottom: 0;
-  left: 24px;
-  right: 24px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  overflow: visible;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: height 0.2s ease, background 0.2s ease;
-}
-
-.header-route-track:hover {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.route-track-tooltip {
-  position: absolute;
-  bottom: 16px;
-  left: 0%;
-  transform: translateX(-50%);
-  background: rgba(18, 20, 26, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  pointer-events: none;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.route-track-tooltip.show {
-  opacity: 1;
-}
-
 /* Режим приближения к экрану (чистый фокус на видео без наложения плашек) */
 body.screen-zoomed .story-stage.active .floating-hud-bottom {
   opacity: 1 !important;
@@ -1496,123 +1175,6 @@ body.screen-zoomed .story-stage.active .floating-hud-top {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
-}
-
-.route-track-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #38ef7d 0%, #f5a623 45%, #5ac8fa 80%, #ff3b30 100%);
-  border-radius: 1px;
-  box-shadow: 0 0 8px rgba(245, 166, 35, 0.45);
-  transition: width 0.12s linear;
-}
-
-.route-track-car-dot {
-  position: absolute;
-  top: -3px;
-  left: 0%;
-  width: 8px;
-  height: 8px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #ffffff, 0 0 14px rgba(245, 166, 35, 0.8);
-  transform: translateX(-50%);
-  transition: left 0.12s linear;
-}
-
-/* Карточка концепта проекта в производстве */
-.modal-placeholder-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  padding: 24px 20px;
-  margin: 14px 0 18px;
-  text-align: center;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-}
-
-.ph-status-pill {
-  display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--accent-amber);
-  background: rgba(245, 166, 35, 0.12);
-  border: 1px solid rgba(245, 166, 35, 0.3);
-  border-radius: 9999px;
-  padding: 5px 14px;
-  margin-bottom: 12px;
-  letter-spacing: 0.5px;
-}
-
-.ph-pitch-text {
-  font-size: 0.88rem;
-  color: rgba(255, 255, 255, 0.82);
-  line-height: 1.5;
-  margin-bottom: 18px;
-  max-width: 440px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ph-action-row {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-/* ==========================================================================
-   ВСПЛЫВАЮЩИЙ ТОАСТ УВЕДОМЛЕНИЙ (APPLE FROSTED GLASS TOAST)
-   ========================================================================== */
-.app-toast {
-  position: fixed;
-  top: 84px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-20px);
-  z-index: 2000;
-  background: rgba(20, 24, 32, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 9999px;
-  padding: 10px 22px;
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.app-toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.modal-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal-share-action {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 0.82rem;
-  gap: 8px;
-}
-
-.modal-share-action:hover {
-  background: rgba(255, 255, 255, 0.18);
 }
 
 /* =============================================================================
@@ -1631,11 +1193,7 @@ body.is-free-roam.is-dragging canvas {
   cursor: grabbing;
 }
 
-body.is-free-roam #scroll-story,
-body.is-free-roam .story-progress-bar,
-body.is-free-roam .sound-floating-toggle,
-body.is-free-roam .screen-zoom-button,
-body.is-free-roam #route-map-panel {
+body.is-free-roam #scroll-story {
   opacity: 0 !important;
   pointer-events: none !important;
   visibility: hidden !important;
@@ -1788,5 +1346,4 @@ body.is-free-roam #route-map-panel {
     display: none !important;
   }
 }
-
 

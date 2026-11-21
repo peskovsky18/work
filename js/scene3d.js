@@ -6,24 +6,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { DRACOLoader } from './vendor/DRACOLoader.js';
-import { getSubwayMapTexture, getNoLeanDecalTexture, getPlaceholderScreenTexture, getTrackWallSignTexture, getStationPosterTexture } from './subwayMap.js';
 import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime, startEscalatorAudio, stopEscalatorAudio } from './subwayAudio.js';
-import {
-  getPhotoWallTextures,
-  getPhotoDoorTextures,
-  getPhotoFloorTextures,
-  getFiberglassTextures,
-  getPhotoVentGrilleTexture,
-  getPhotoCeilingLightTexture,
-  getStationTileTextures,
-  getPlatformGraniteTextures,
-  getPlatformWhiteCurbTextures,
-  getPlatformTactileTextures,
-  getPlatformDarkTileTextures
-} from './subwayMaterials.js';
-import { setupSubwayExterior, setupStationCeilingAndArchitecture, createInstantEscalator } from './subwayExterior.js';
 import { FreeRoamController } from './freeRoam.js';
-import * as BufferGeometryUtils from './vendor/utils/BufferGeometryUtils.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
@@ -66,7 +50,7 @@ let scene, camera, renderer, clock;
 let freeRoamController = null;
 let subwayModel;
 const screenMeshes = [];
-let screen1Mesh, screen2Mesh, screen3Mesh, screen4Mesh, platformMapMesh;
+let platformMapMesh;
 let video1, video2, video3, video4;
 let videoTexture1, videoTexture2, videoTexture3, videoTexture4;
 let screenLight1, screenLight2;
@@ -242,13 +226,28 @@ export function initSubwayScene() {
   freeRoamController = new FreeRoamController(camera, renderer.domElement, onFreeRoamToggled);
   window.__FREE_ROAM__ = freeRoamController;
 
-  // 4. Мгновенное создание высокополигонального эскалатора (0 мс задержки, спуск начинается сразу)
-  escalatorGroup = createInstantEscalator(scene);
-  isEscalatorLoaded = true;
+  // 4. Эскалатор спуска (assets/models/escalator_system.blend). Пока GLB грузится,
+  //    камера стоит на верхней площадке; спуск стартует сразу после загрузки.
   isDescentActive = true;
-  descentStartTime = performance.now();
+  escalatorGroup = new THREE.Group();
+  escalatorGroup.name = 'Escalator';
+  const escFillLight = new THREE.PointLight(0xfff4ea, 2.2, 16.0, 1.2);
+  escFillLight.position.set(-3.765, 5.2, 11.0);
+  escalatorGroup.add(escFillLight);
+  scene.add(escalatorGroup);
+  const startDescent = () => {
+    isEscalatorLoaded = true;
+    descentStartTime = performance.now();
+  };
+  createGLTFLoader().load('assets/models/escalator_system.glb?v=20261121', (gltf) => {
+    escalatorGroup.add(gltf.scene);
+    startDescent();
+  }, undefined, (err) => {
+    console.error('Ошибка загрузки escalator_system.glb:', err);
+    startDescent();
+  });
 
-  // 5. Первоначальный кадр рендерится немедленно на Frame 0 — исключает любой черный экран!
+  // 5. Первый кадр рендерится сразу
   renderer.render(scene, camera);
   startEscalatorAudio();
 
@@ -340,482 +339,43 @@ function setupSubwayLighting() {
 
 function setupStationEnvironment() {
   stationEnvGroup = new THREE.Group();
-  const tilePBR = getStationTileTextures();
-  const granitePBR = getPlatformGraniteTextures();
-  const texLoader = new THREE.TextureLoader();
+  stationEnvGroup.name = 'Station';
 
-  // Аутентичная текстура плитки Парижского метро с синей затиркой швов (Voûte de Métro Liège)
-  const maxAniso = renderer ? Math.min(renderer.capabilities.getMaxAnisotropy() || 1, 4) : 4;
-  const metroTileColor = texLoader.load('assets/textures/paris_metro_tiles_blue_grout.png');
-  metroTileColor.wrapS = THREE.RepeatWrapping;
-  metroTileColor.wrapT = THREE.RepeatWrapping;
-  metroTileColor.repeat.set(1, 1);
-  metroTileColor.anisotropy = maxAniso;
-  metroTileColor.colorSpace = THREE.SRGBColorSpace;
-  metroTileColor.generateMipmaps = true;
-
-  const metroTileNormal = texLoader.load('assets/textures/paris_metro_tiles_normal.png');
-  metroTileNormal.wrapS = THREE.RepeatWrapping;
-  metroTileNormal.wrapT = THREE.RepeatWrapping;
-  metroTileNormal.repeat.set(1, 1);
-  metroTileNormal.anisotropy = maxAniso;
-  metroTileNormal.generateMipmaps = true;
-
-  // =========================================================================
-  // 1. АРОЧНЫЙ СВОД СТАНЦИИ, ЛАВОЧКИ И ВЕНДИНГОВЫЙ АВТОМАТ ПАРИЖСКОГО МЕТРО
-  // =========================================================================
-  const trackWallW = 54.0;
-  const trackWallZ = -3.25;
-
-  // 1.1 Загрузка Blender GLTF модели арочного свода, вендингового автомата и парижских сидений
-  const stationLoader = new GLTFLoader();
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath('./js/vendor/draco/');
-  stationLoader.setDRACOLoader(dracoLoader);
-
-  stationLoader.load('assets/models/paris_station.glb?v=20261030_2135', (gltf) => {
-    const model = gltf.scene;
-    model.traverse((child) => {
-      if (!child.isMesh) return;
-      if (child.name === 'Station_Vault_Arch') {
-        child.material = new THREE.MeshPhysicalMaterial({
-          map: metroTileColor,
-          normalMap: metroTileNormal,
-          normalScale: new THREE.Vector2(0.95, 0.95),
-          roughness: 0.10,
-          metalness: 0.02,
-          clearcoat: 1.0,
-          clearcoatRoughness: 0.04,
-          reflectivity: 0.90,
-          side: THREE.DoubleSide
-        });
-      } else if (child.name === 'Paris_Metro_Seats_Red') {
-        child.material = new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color(0xb91c1c),
-          roughness: 0.10,
-          metalness: 0.04,
-          clearcoat: 1.0,
-          clearcoatRoughness: 0.04,
-          reflectivity: 0.90,
-          side: THREE.DoubleSide
-        });
-      } else if (child.name === 'Paris_Metro_Seats_Frames') {
-        child.material = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(0x334155),
-          roughness: 0.24,
-          metalness: 0.92
-        });
-      } else if (child.name === 'Vending_Machine_Glass' || (child.material && child.material.name === 'Mat_VM_Glass')) {
-        child.material = new THREE.MeshPhysicalMaterial({
-          color: 0xffffff,
-          transparent: true,
-          opacity: 0.22,
-          roughness: 0.05,
-          reflectivity: 0.88,
-          clearcoat: 1.0,
-          clearcoatRoughness: 0.03,
-          depthWrite: false,
-          side: THREE.DoubleSide
-        });
-      }
-
-      // Подсветка индикаторов и оптимизация материалов вендингового автомата Necta Melodia
-      if (child.material) {
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((mat) => {
-          if (!mat) return;
-          // Отключаем ресурсоемкий transmission-пасс (снимает двойной рендеринг всей сцены)
-          if (mat.transmission > 0) {
-            mat.transmission = 0;
-            mat.transparent = true;
-            mat.opacity = 0.60;
-            mat.roughness = 0.15;
-            mat.needsUpdate = true;
-          }
-          if (mat.name === 'Mat_VM_LED') {
-            mat.emissive = new THREE.Color(0xffffff);
-            mat.emissiveIntensity = 2.4;
-          } else if (mat.name === 'Mat_VM_LCD') {
-            mat.emissive = new THREE.Color(0x0088ff);
-            mat.emissiveIntensity = 2.2;
-          } else if (mat.name === 'Mat_VM_GreenLED') {
-            mat.emissive = new THREE.Color(0x22c55e);
-            mat.emissiveIntensity = 2.0;
-          }
-        });
-      }
-    });
-    stationEnvGroup.add(model);
+  // Геометрия и материалы станции заданы в assets/models/station.blend (экспорт station.glb)
+  createGLTFLoader().load('assets/models/station.glb?v=20261121', (gltf) => {
+    stationEnvGroup.add(gltf.scene);
   }, undefined, (err) => {
-    console.error('Ошибка загрузки арочного свода paris_station.glb:', err);
+    console.error('Ошибка загрузки station.glb:', err);
   });
 
-  // 1.4 Аутентичные эмалированные таблички с названием станции («ПЕСКОВСКАЯ»)
-  const signTex = getTrackWallSignTexture(THREE);
-  const signGeom = new THREE.PlaneGeometry(2.20, 0.50);
-  signGeom.scale(-1, 1, 1); // Прямое незеркальное чтение букв при взгляде из вагона в сторону -Z
-  const signMat = new THREE.MeshStandardMaterial({
-    map: signTex,
-    emissive: new THREE.Color(0xffffff),
-    emissiveMap: signTex,
-    emissiveIntensity: 0.92,
-    roughness: 0.25,
-    metalness: 0.10,
-    side: THREE.DoubleSide
+  // Свет станции остаётся в коде:
+  // заполняющие лампы под сводом (выключаются, пока камера в вагоне, см. animate) ...
+  [-10.0, 0.0, 10.0].forEach((x, i) => {
+    const fill = new THREE.PointLight(0xffe8d2, 2.4, 15.0, 1.2);
+    fill.position.set(x, 3.95, 2.4);
+    fill.name = `platFill${i + 1}`;
+    stationEnvGroup.add(fill);
   });
-
-  // Таблички размещены вдоль изогнутой путевой стены станции
-  [-17.4, -13.0, -8.6, -4.2, 0.0, 4.2, 8.6, 13.0, 17.4].forEach(px => {
-    const signMesh = new THREE.Mesh(signGeom, signMat);
-    signMesh.position.set(px, 1.45, -3.05);
-    stationEnvGroup.add(signMesh);
+  // ... и мягкий неоновый ореол лайтбоксов с мемами
+  [[-7.5, 0x00e5ff], [-0.55, 0xffaa00], [2.85, 0x00ffd0], [5.2, 0xff6644]].forEach(([x, color]) => {
+    const glow = new THREE.PointLight(color, 0.45, 3.2);
+    glow.position.set(x, 1.65, 4.53);
+    stationEnvGroup.add(glow);
   });
-
-  // 1.5 Щебеночный балласт под вагоном (расположен глубоко под тележками, Y = -0.50)
-  const ballastGeom = new THREE.BoxGeometry(trackWallW, 0.15, 2.40);
-  const ballastMat = new THREE.MeshStandardMaterial({
-    color: 0x181a1f,
-    roughness: 0.95,
-    metalness: 0.10
-  });
-  const ballast = new THREE.Mesh(ballastGeom, ballastMat);
-  ballast.position.set(0, -0.50, -1.80);
-  stationEnvGroup.add(ballast);
-
-  // 1.5.2 Стальные ходовые рельсы Р-65 и шпалы на щебеночном балласте (объединенные меши)
-  const railMat = new THREE.MeshStandardMaterial({
-    color: 0xc8cdd6,
-    roughness: 0.14,
-    metalness: 0.95
-  });
-  const sleeperMat = new THREE.MeshStandardMaterial({
-    color: 0x242220,
-    roughness: 0.88,
-    metalness: 0.08
-  });
-
-  const railGeoms = [];
-  [-1.96, -0.44].forEach((railZ) => {
-    const rHead = new THREE.BoxGeometry(trackWallW, 0.045, 0.07);
-    rHead.translate(0, -0.38, railZ);
-    railGeoms.push(rHead);
-  });
-  stationEnvGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(railGeoms), railMat));
-
-  const sleeperGeoms = [];
-  for (let sx = -trackWallW / 2 + 0.35; sx < trackWallW / 2; sx += 0.70) {
-    const slpG = new THREE.BoxGeometry(0.25, 0.10, 2.20);
-    slpG.translate(sx, -0.44, -1.20);
-    sleeperGeoms.push(slpG);
-  }
-  stationEnvGroup.add(new THREE.Mesh(BufferGeometryUtils.mergeGeometries(sleeperGeoms), sleeperMat));
-
-  // =========================================================================
-  // 2. СТОРОНА A: АУТЕНТИЧНЫЙ 3-ЗОННЫЙ ПОЛ ПЛАТФОРМЫ ПАРИЖСКОГО МЕТРО
-  // (Белая плитка -> Фактурная плитка для слепых с пупырышками -> Темносерая плитка)
-  // =========================================================================
-  const platformW = 52.0; // Полностью перекрывает всю станцию (46м) и заходит в порталы
-
-  // 2.1 ЗОНА 1: Белая бордюрная плитка края платформы (Z in [0.055, 0.475], ширина 0.42м)
-  // Зазор безопасности между кузовом поезда (Z = 0.048м) и платформой составляет 7мм (исключает любое наложение и мерцание текстур)
-  const whiteCurbPBR = getPlatformWhiteCurbTextures();
-  const whiteCurbMat = new THREE.MeshStandardMaterial({
-    map: whiteCurbPBR.colorMap,
-    normalMap: whiteCurbPBR.normalMap,
-    normalScale: new THREE.Vector2(0.95, 0.95),
-    roughnessMap: whiteCurbPBR.roughnessMap,
-    roughness: 0.38,
-    metalness: 0.04
-  });
-  const whiteCurbGeom = new THREE.BoxGeometry(platformW, 0.12, 0.42);
-  const whiteCurbMesh = new THREE.Mesh(whiteCurbGeom, whiteCurbMat);
-  whiteCurbMesh.position.set(0, -0.06, 0.265); // Верхняя грань строго на Y = 0.00
-  stationEnvGroup.add(whiteCurbMesh);
-
-  // 2.2 ЗОНА 2: Фактурная желтая плитка для слепых (Bande podotactile, Z in [0.475, 0.895], ширина 0.42м)
-  // Рельефные объемные полусферические пупырышки с запеченными 3D-нормалями и контрастным сигнальным цветом
-  const tactilePBR = getPlatformTactileTextures();
-  const tactileMat = new THREE.MeshStandardMaterial({
-    map: tactilePBR.colorMap,
-    normalMap: tactilePBR.normalMap,
-    normalScale: new THREE.Vector2(1.85, 1.85), // Ощутимый рельеф каждого пупырышка
-    roughnessMap: tactilePBR.roughnessMap,
-    roughness: 0.52,
-    metalness: 0.02
-  });
-  const tactileGeom = new THREE.BoxGeometry(platformW, 0.12, 0.42);
-  const tactileMesh = new THREE.Mesh(tactileGeom, tactileMat);
-  tactileMesh.position.set(0, -0.06, 0.685); // Верхняя грань на Y = 0.00
-  stationEnvGroup.add(tactileMesh);
-
-  // 2.3 ЗОНА 3: Темносерая плитка основного полотна станции (Z in [0.895, 4.80], ширина 3.905м)
-  // Гранитные плиты 60x60см со швами и кварцевой крошкой
-  const darkTilePBR = getPlatformDarkTileTextures();
-  const darkTileMat = new THREE.MeshStandardMaterial({
-    map: darkTilePBR.colorMap,
-    normalMap: darkTilePBR.normalMap,
-    normalScale: new THREE.Vector2(0.95, 0.95),
-    roughnessMap: darkTilePBR.roughnessMap,
-    roughness: 0.42,
-    metalness: 0.12
-  });
-  const darkTileGeom = new THREE.BoxGeometry(platformW, 0.12, 3.905);
-  const darkTileMesh = new THREE.Mesh(darkTileGeom, darkTileMat);
-  darkTileMesh.position.set(0, -0.06, 2.8475); // Верхняя грань на Y = 0.00
-  stationEnvGroup.add(darkTileMesh);
-
-  // 2.4 Вертикальный гранитный откос платформы в сторону путей (бордюр над балластом на Z = 0.055)
-  const curbDropGeom = new THREE.PlaneGeometry(platformW, 0.42);
-  const curbDropMat = new THREE.MeshStandardMaterial({
-    color: 0x14161a,
-    roughness: 0.88,
-    metalness: 0.10
-  });
-  const curbDropMesh = new THREE.Mesh(curbDropGeom, curbDropMat);
-  curbDropMesh.position.set(0, -0.21, 0.055);
-  stationEnvGroup.add(curbDropMesh);
-
-  // 2.3 Архитектурные колонны платформы (объединены в 2 меша для экономии 28 draw calls)
-  const colMat = new THREE.MeshStandardMaterial({
-    color: 0xf2f5fa,
-    roughness: 0.18,
-    metalness: 0.10
-  });
-  const cuffMat = new THREE.MeshStandardMaterial({
-    color: 0xc8ccd4,
-    roughness: 0.20,
-    metalness: 0.95
-  });
-
-  const shaftGeoms = [];
-  const cuffGeoms = [];
-  const colH = 4.45;
-  [-19.4, -15.0, -10.6, -6.2, -1.8, 2.6, 7.0, 11.4, 15.8, 20.2].forEach(cx => {
-    // Основной ствол колонны (от Y = 0.0 до свода Y = 4.45)
-    const shaftG = new THREE.BoxGeometry(0.52, colH, 0.52);
-    shaftG.translate(cx, colH / 2, 2.60);
-    shaftGeoms.push(shaftG);
-
-    // Стальной отбойник цоколя
-    const baseCuffG = new THREE.BoxGeometry(0.56, 0.35, 0.56);
-    baseCuffG.translate(cx, 0.175, 2.60);
-    cuffGeoms.push(baseCuffG);
-
-    // Капитель под сводчатым потолком
-    const capitalG = new THREE.BoxGeometry(0.58, 0.12, 0.58);
-    capitalG.translate(cx, colH - 0.06, 2.60);
-    cuffGeoms.push(capitalG);
-  });
-
-  const mergedShafts = BufferGeometryUtils.mergeGeometries(shaftGeoms);
-  mergedShafts.clearGroups();
-  stationEnvGroup.add(new THREE.Mesh(mergedShafts, colMat));
-
-  const mergedCuffs = BufferGeometryUtils.mergeGeometries(cuffGeoms);
-  mergedCuffs.clearGroups();
-  stationEnvGroup.add(new THREE.Mesh(mergedCuffs, cuffMat));
-
-  // Задняя стена станции и арочный потолок теперь формируются единым
-  // архитектурным сводом Station_Vault_Arch из парижской плитки с синей затиркой.
-
-  // 2.5.2 Торцевые порталы станции на краях X = -23.0 и X = +23.0 (вход поезда из тоннеля)
-  const stationEndWallMat = new THREE.MeshStandardMaterial({
-    color: 0x14161a,
-    roughness: 0.85,
-    metalness: 0.20,
-    side: THREE.DoubleSide
-  });
-  [-23.0, 23.0].forEach((ex) => {
-    // 1. Торцевая глухая стена платформы (от Z = 0.15 до 4.80)
-    const platEndWall = new THREE.Mesh(new THREE.PlaneGeometry(4.65, 3.6), stationEndWallMat);
-    platEndWall.rotation.y = ex < 0 ? Math.PI / 2 : -Math.PI / 2;
-    platEndWall.position.set(ex, 1.70, 2.475);
-    stationEnvGroup.add(platEndWall);
-
-    // 2. Перемычка портала тоннеля над путями (от Y = 2.75 до 3.50, поезд проходит снизу)
-    const lintel = new THREE.Mesh(new THREE.PlaneGeometry(3.10, 0.80), stationEndWallMat);
-    lintel.rotation.y = ex < 0 ? Math.PI / 2 : -Math.PI / 2;
-    lintel.position.set(ex, 3.10, -1.20);
-    stationEnvGroup.add(lintel);
-
-    // 3. Светопоглощающий темный тоннельный короб (вагон заходит на 1.5м вглубь тоннеля)
-    const tunnelVoidMat = new THREE.MeshBasicMaterial({ color: 0x020304, side: THREE.BackSide });
-    const tunnelVoid = new THREE.Mesh(new THREE.BoxGeometry(4.0, 3.2, 3.4), tunnelVoidMat);
-    tunnelVoid.position.set(ex + (ex > 0 ? 2.0 : -2.0), 1.40, -1.20);
-    stationEnvGroup.add(tunnelVoid);
-  });
-
-  // Обрамление портала эскалатора (пилоны, притолока, паруса и архивольт)
-  // монолитно создаются с субмиллиметровой точностью в createInstantEscalator (subwayExterior.js)
-
-  // Скамейки платформы заменены на аутентичные кресла Парижского метро Coquille/Motte (Paris_Metro_Seats_Red),
-  // установленные вдоль стены платформы под постерами-мемами.
-
-  // 2.7 Светящиеся рекламные лайтбоксы-постеры на стене платформы (мемы пользователя)
-  // В парижском метро (станция Liège) постеры и их обрамление точно повторяют цилиндрический свод арки
-  const posterHousingMat = new THREE.MeshStandardMaterial({
-    color: 0x111317,
-    roughness: 0.25,
-    metalness: 0.90,
-    side: THREE.DoubleSide
-  });
-
-  const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.18,
-    roughness: 0.04,
-    reflectivity: 0.85,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.04,
-    side: THREE.DoubleSide
-  });
-
-  // Архитектурный вертикальный профиль арочного свода станции (Y -> Z)
-  const ARCH_PROFILE = [
-    [0.000, 4.820],
-    [0.300, 4.812],
-    [0.730, 4.801],
-    [1.200, 4.782],
-    [1.650, 4.750],
-    [2.060, 4.711],
-    [2.460, 4.664],
-    [2.850, 4.598],
-    [3.200, 4.500],
-    [3.510, 4.378],
-    [3.780, 4.234],
-    [4.030, 4.049]
-  ];
-
-  function getArchWallZ(y) {
-    if (y <= ARCH_PROFILE[0][0]) return ARCH_PROFILE[0][1];
-    for (let i = 0; i < ARCH_PROFILE.length - 1; i++) {
-      const [y0, z0] = ARCH_PROFILE[i];
-      const [y1, z1] = ARCH_PROFILE[i + 1];
-      if (y >= y0 && y <= y1) {
-        const frac = (y - y0) / (y1 - y0);
-        return z0 + frac * (z1 - z0);
-      }
-    }
-    return ARCH_PROFILE[ARCH_PROFILE.length - 1][1];
-  }
-
-  // Генератор геометрии, изогнутой строго по радиусу арочного свода стены метро
-  function createCurvedArchGeometry(w, h, segX, segY, offsetForward, centerY, centerZ) {
-    const geom = new THREE.PlaneGeometry(w, h, segX, segY);
-    geom.scale(-1, 1, 1); // Лицевая сторона обращена в сторону платформы (-Z)
-    const pos = geom.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const ly = pos.getY(i);
-      const wy = centerY + ly;
-      const wz = getArchWallZ(wy);
-      const lz = (wz - centerZ) - offsetForward;
-      pos.setZ(i, lz);
-    }
-    geom.computeVertexNormals();
-    return geom;
-  }
-
-  // 4 мема от пользователя, сгармонизированные с двумя скамейками и вендинговым автоматом:
-  // - Постер 2 (Обезьяна) строго над левой скамейкой (X = -0.55), НИКАКИХ наложений на эскалатор (он заканчивается на X = -1.65)
-  // - Постер 3 (Дельфины) строго над правой скамейкой (X = +2.85)
-  // - Между ними (X = 1.15) стоит вендинговый автомат Necta Melodia
-  // - Постеры 1 (Муравей, X = -7.5) и 4 (Лев, X = +5.2) на боковых крыльях платформы
-  const memePosters = [
-    { url: 'assets/images/meme_ant.jpg', w: 1.66, h: 1.48, x: -7.5, neon: 0x00e5ff },      // 1. Грустный муравей с узелком (неоновый ледяной циан)
-    { url: 'assets/images/meme_monkey.jpg', w: 1.50, h: 1.48, x: -0.55, neon: 0xffaa00 },  // 2. Задумавшаяся обезьяна (над левой скамейкой, свободна от эскалатора!)
-    { url: 'assets/images/meme_dolphins.jpg', w: 1.76, h: 1.36, x: 2.85, neon: 0x00ffd0 }, // 3. Рыбак и дельфины (над правой скамейкой)
-    { url: 'assets/images/meme_lion.jpg', w: 1.57, h: 1.48, x: 5.2, neon: 0xff6644 }       // 4. Лысый лев схватился за голову (неоновый кораллово-оранжевый)
-  ];
-
-  const posterCenterY = 1.65;
-  const posterCenterZ = getArchWallZ(posterCenterY); // ~4.750
-
-  memePosters.forEach((item) => {
-    const posterGroup = new THREE.Group();
-    const frameW = item.w + 0.12;
-    const frameH = item.h + 0.12;
-
-    // 1. Изогнутый каркас / задник лайтбокса
-    const housingGeom = createCurvedArchGeometry(frameW, frameH, 16, 32, 0.008, posterCenterY, posterCenterZ);
-    const housing = new THREE.Mesh(housingGeom, posterHousingMat);
-    posterGroup.add(housing);
-
-    // 2. Изогнутая неоновая контурная окантовка
-    const neonMat = new THREE.MeshBasicMaterial({ color: item.neon });
-    const hw = frameW / 2;
-    const hh = frameH / 2;
-    const tubeThick = 0.016;
-
-    // Верхняя и нижняя горизонтальные трубки
-    const topWy = posterCenterY + hh;
-    const topWz = getArchWallZ(topWy);
-    const topLz = (topWz - posterCenterZ) - 0.030;
-    const neonTop = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeThick), neonMat);
-    neonTop.position.set(0, hh, topLz);
-    posterGroup.add(neonTop);
-
-    const btmWy = posterCenterY - hh;
-    const btmWz = getArchWallZ(btmWy);
-    const btmLz = (btmWz - posterCenterZ) - 0.030;
-    const neonBottom = new THREE.Mesh(new THREE.BoxGeometry(frameW + tubeThick, tubeThick, tubeThick), neonMat);
-    neonBottom.position.set(0, -hh, btmLz);
-    posterGroup.add(neonBottom);
-
-    // Левая и правая вертикальные трубки изогнуты по дуге свода
-    const neonLeftGeom = createCurvedArchGeometry(tubeThick, frameH, 1, 32, 0.030, posterCenterY, posterCenterZ);
-    const neonLeft = new THREE.Mesh(neonLeftGeom, neonMat);
-    neonLeft.position.set(-hw, 0, 0);
-    posterGroup.add(neonLeft);
-
-    const neonRightGeom = createCurvedArchGeometry(tubeThick, frameH, 1, 32, 0.030, posterCenterY, posterCenterZ);
-    const neonRight = new THREE.Mesh(neonRightGeom, neonMat);
-    neonRight.position.set(hw, 0, 0);
-    posterGroup.add(neonRight);
-
-    // Мягкий рассеянный неоновый свет на стену и платформу
-    const posterGlow = new THREE.PointLight(item.neon, 0.45, 3.2);
-    posterGlow.position.set(0, 0, -0.22);
-    posterGroup.add(posterGlow);
-
-    // 3. Изогнутое полотно постера-мема с текстурой
-    const tex = texLoader.load(item.url);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.generateMipmaps = true;
-    tex.minFilter = THREE.LinearMipmapLinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-
-    const posterFaceGeom = createCurvedArchGeometry(item.w, item.h, 16, 32, 0.018, posterCenterY, posterCenterZ);
-    const posterMat = new THREE.MeshStandardMaterial({
-      map: tex,
-      emissive: new THREE.Color(0xffffff),
-      emissiveMap: tex,
-      emissiveIntensity: 0.95,
-      roughness: 0.18,
-      metalness: 0.05,
-      side: THREE.DoubleSide
-    });
-    const posterFace = new THREE.Mesh(posterFaceGeom, posterMat);
-    posterGroup.add(posterFace);
-
-    // 4. Изогнутое антибликовое защитное стекло лайтбокса
-    const glassGeom = createCurvedArchGeometry(item.w, item.h, 16, 32, 0.024, posterCenterY, posterCenterZ);
-    const glass = new THREE.Mesh(glassGeom, glassMat);
-    posterGroup.add(glass);
-
-    posterGroup.position.set(item.x, posterCenterY, posterCenterZ);
-    stationEnvGroup.add(posterGroup);
-  });
-
-  // Кессонный потолок станции, скрытое освещение, навигационные лайтбоксы и ограждение конкорса
-  setupStationCeilingAndArchitecture(stationEnvGroup);
 
   scene.add(stationEnvGroup);
+}
 
-  // СИНХРОННАЯ ИНИЦИАЛИЗАЦИЯ СОСТАВА МЕТРО (Frame 0):
-  // Полный внешний кузов Car 1 и прицепные вагоны Car 0 и Car 2 сразу размещаются на путях.
-  // Исключает появление пустых рельс даже до загрузки внутренней GLTF-модели вагона!
-  setupSubwayExterior(scene);
+// Общий загрузчик GLB с Draco-декодером
+let sharedDracoLoader = null;
+function createGLTFLoader() {
+  if (!sharedDracoLoader) {
+    sharedDracoLoader = new DRACOLoader();
+    sharedDracoLoader.setDecoderPath('./js/vendor/draco/');
+  }
+  const loader = new GLTFLoader();
+  loader.setDRACOLoader(sharedDracoLoader);
+  return loader;
 }
 
 
@@ -887,572 +447,45 @@ function setupVideoTextures() {
 // ЗАГРУЗКА И НАСТРОЙКА 3D МОДЕЛИ ВАГОНА МЕТРО
 // =============================================================================
 function loadSubwayModel() {
-  const loader = new GLTFLoader();
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath('./js/vendor/draco/');
-  loader.setDRACOLoader(dracoLoader);
+  const loader = createGLTFLoader();
 
   const progressBar = document.getElementById('loader-progress-bar');
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261031_0025',
+    'assets/models/subway.glb?v=20261121c',
     (gltf) => {
       subwayModel = gltf.scene;
 
-      // Инициализируем текстуры видео только перед связыванием с материалами
+      // Геометрия, материалы и двери полностью заданы в assets/models/subway.blend.
+      // В рантайме остаётся только подключить видео к экранам 1-4 и найти створки для анимации.
       setupVideoTextures();
+      const videoTextures = [videoTexture1, videoTexture2, videoTexture3, videoTexture4];
 
-      // Инициализация фотореалистичных PBR-текстур на основе реальной фотографии вагона
-      const wallPBR = getPhotoWallTextures();
-      const doorPBR = getPhotoDoorTextures();
-      const floorPBR = getPhotoFloorTextures();
-      const fiberNormTex = getFiberglassTextures();
-      const ventGrilleTex = getPhotoVentGrilleTexture();
-      const ceilingLightTex = getPhotoCeilingLightTexture();
-      const tilePBR = getStationTileTextures();
-      const granitePBR = getPlatformGraniteTextures();
-
-      // Единый материал сатинированной шлифованной стали для стен и дверей (100% совпадение фактуры и отклика)
-      const wallSteelMat = new THREE.MeshStandardMaterial({
-        map: wallPBR.colorMap,
-        normalMap: wallPBR.normalMap,
-        normalScale: new THREE.Vector2(0.55, 0.55),
-        roughnessMap: wallPBR.roughnessMap,
-        roughness: 0.28,
-        metalness: 0.85,
-        side: THREE.DoubleSide
-      });
-
-      // Настройка материалов для фотореалистичного интерьера вагона по фото
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
-
-        // 1. Интерактивные экраны (1-2 видео на стене A, 3-8 плейсхолдеры)
-        if (child.name.startsWith('Screen_') && child.name.endsWith('_Display')) {
-          const sIdx = parseInt(child.name.split('_')[1], 10);
-          screenMeshes[sIdx] = child;
-          if (sIdx === 1) {
-            screen1Mesh = child;
-            if (videoTexture1) {
-              child.material = new THREE.MeshStandardMaterial({
-                map: videoTexture1, emissive: new THREE.Color(0xffffff), emissiveMap: videoTexture1,
-                emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
-              });
-            }
-          } else if (sIdx === 2) {
-            screen2Mesh = child;
-            if (videoTexture2) {
-              child.material = new THREE.MeshStandardMaterial({
-                map: videoTexture2, emissive: new THREE.Color(0xffffff), emissiveMap: videoTexture2,
-                emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
-              });
-            }
-          } else if (sIdx === 3) {
-            screen3Mesh = child;
-            if (videoTexture3) {
-              child.material = new THREE.MeshStandardMaterial({
-                map: videoTexture3, emissive: new THREE.Color(0xffffff), emissiveMap: videoTexture3,
-                emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
-              });
-            }
-          } else if (sIdx === 4) {
-            screen4Mesh = child;
-            if (videoTexture4) {
-              child.material = new THREE.MeshStandardMaterial({
-                map: videoTexture4, emissive: new THREE.Color(0xffffff), emissiveMap: videoTexture4,
-                emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
-              });
-            }
-          } else {
-            const numStr = sIdx < 10 ? `0${sIdx}` : `${sIdx}`;
-            const projectTitles = {
-              5: 'РИТМ',
-              6: 'СВЕТОТЕНЬ',
-              7: 'ЛИЦА',
-              8: 'МОУШН'
-            };
-            const titleStr = projectTitles[sIdx] || `ПРОЕКТ ${numStr}`;
-            const pTex = getPlaceholderScreenTexture(THREE, numStr, titleStr);
-            child.material = new THREE.MeshStandardMaterial({
-              map: pTex, emissive: new THREE.Color(0xffffff), emissiveMap: pTex,
-              emissiveIntensity: 0.85, roughness: 0.20, metalness: 0.05, side: THREE.DoubleSide
-            });
-          }
-          child.renderOrder = 2;
-          return;
-        }
-
-        // 2. Рамки экранов
-        if (child.name.startsWith('Screen_') && child.name.endsWith('_Housing')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x111317), roughness: 0.18, metalness: 0.92
-          });
-          return;
-        }
-
-        // 3. Предупреждающие наклейки «Не прислоняться» на стеклах дверей
-        if (child.name.includes('Decal_NoLean')) {
-          const decalTex = getNoLeanDecalTexture(THREE);
-          child.material = new THREE.MeshBasicMaterial({
-            map: decalTex, transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide
-          });
-          child.renderOrder = 3;
-          return;
-        }
-
-        // 4. Лайтбокс со схемой линий метро на стене станции
-        if (child.name === 'Platform_Map_Display') {
-          platformMapMesh = child;
-          const mapTex = getSubwayMapTexture(THREE);
-          mapTex.repeat.x = -1;
-          mapTex.offset.x = 1;
-          child.material = new THREE.MeshStandardMaterial({
-            map: mapTex,
-            emissive: new THREE.Color(0xffffff),
-            emissiveMap: mapTex,
-            emissiveIntensity: 0.92,
-            roughness: 0.25,
-            metalness: 0.05,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        if (child.name === 'Platform_Map_Housing') {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x14161a),
-            roughness: 0.45,
-            metalness: 0.75
-          });
-          return;
-        }
-
-        if (child.name === 'Platform_Map_Header_Trim') {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xd21b28),
-            emissive: new THREE.Color(0xd21b28),
-            emissiveIntensity: 0.25,
-            roughness: 0.35,
-            metalness: 0.40
-          });
-          return;
-        }
-
-        if (child.name.includes('Platform_Tile_Wall') || child.name.includes('Platform_Mosaic_Band') || child.name.includes('Platform_Floor')) {
-          child.visible = false;
-          return;
-        }
-
-        // Скрыть любые остаточные поручни перед сиденьями и ненужные наклейки
-        if (child.name.includes('Handrail') || child.name.includes('Waist') || child.name.includes('Partition_Loop') || child.name.includes('Decal_Red')) {
-          child.visible = false;
-          return;
-        }
-
-        const matName = child.material ? child.material.name : '';
-
-        // 5. Стекла окон и дверей: кристальная прозрачность
-        if (child.name.includes('Glass') || matName === 'Mat_Glass') {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xcde8fc),
-            transparent: true,
-            opacity: 0.16,
-            roughness: 0.04,
-            metalness: 0.10,
-            side: THREE.DoubleSide,
-            depthWrite: false
-          });
-          return;
-        }
-
-        // 6. Резиновые уплотнители створок, стекол и межвагонные сильфоны-гармошки
-        if (child.name.includes('WindowGasket') || child.name.includes('RubberEdge') || child.name.includes('Bellow') || child.name.includes('Gasket') || matName === 'Mat_Rubber_Black') {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x18181b),
-            roughness: 0.88,
-            metalness: 0.05
-          });
-          return;
-        }
-
-        // 7. Пороги дверей вагона
-        if (child.name.includes('Threshold')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xced3dc),
-            roughness: 0.25,
-            metalness: 0.90,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // 8. Дверные ручки
-        if (child.name.includes('Door') && (child.name.includes('Handle') || child.name.includes('RecessedHandle'))) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xdce0e6),
-            roughness: 0.20,
-            metalness: 0.95
-          });
-          return;
-        }
-
-        // 9. Створки дверей вагона (единый стиль сатинированной стали со стенами)
-        if (child.name.startsWith('Door_Left_Photo') || child.name.startsWith('Door_Right_Photo') || child.name.startsWith('Door_Screen')) {
-          child.material = wallSteelMat;
-          return;
-        }
-
-        // 10. Архитектурная отделка окон и резиновых уплотнителей
-        if (child.name.includes('Window_Frame') || child.name.includes('Gasket')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x18191c), // плотный черный резиновый уплотнитель окна
-            roughness: 0.85,
-            metalness: 0.05,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        if (child.name.includes('Window_Sill_Ledge') || child.name.includes('Frieze') || child.name.includes('Window_Transom_Bar') || child.name.includes('Window_Surround_Bezel')) {
-          child.material = wallSteelMat;
-          return;
-        }
-
-        // 11. Стены вагона, торцевые переборки, притолоки дверей и торцевые двери (сатинированная сталь высокого разрешения)
-        if (child.name.includes('Wall') || child.name.includes('Bulkhead') || child.name.includes('Lintel') || child.name.includes('Intercar') || child.name.includes('Door_Header_Housing') || (child.name.includes('Plate') && !child.name.includes('Screen'))) {
-          child.material = wallSteelMat;
-          return;
-        }
-
-        // 12. Вентиляционные решетки и цоколи сидений
-        if (child.name.includes('Grille') || child.name.includes('Vent')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: ventGrilleTex,
-            roughness: 0.42,
-            metalness: 0.80,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // Цоколи сидений гармонично согласованы с полом и стенами в единый ансамбль
-        if (child.name.includes('Plinth') || (child.name.includes('Bench') && !child.name.startsWith('Seat_'))) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: floorPBR.colorMap,
-            normalMap: floorPBR.normalMap,
-            normalScale: new THREE.Vector2(0.40, 0.40),
-            roughnessMap: floorPBR.roughnessMap,
-            roughness: 0.35,
-            metalness: 0.22,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // 13. Высококачественный согласованный пол вагона (транзитный графитовый кварц-терраццо)
-        if (child.name === 'Car_Floor' || (child.name.includes('Floor') && !child.name.includes('Platform')) || matName === 'Mat_Subway_Floor' || matName === 'Mat_Dark_Floor') {
-          child.material = new THREE.MeshStandardMaterial({
-            map: floorPBR.colorMap,
-            normalMap: floorPBR.normalMap,
-            normalScale: new THREE.Vector2(0.65, 0.65),
-            roughnessMap: floorPBR.roughnessMap,
-            roughness: 0.35,
-            metalness: 0.18,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // 13b. Металлические каркасы сидений и опорные кронштейны
-        if (child.name.includes('Titanium') || matName === 'Mat_Titanium_Frame' || child.name.includes('Seat_Frame')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0x2d323e),
-            roughness: 0.32,
-            metalness: 0.88,
-            side: THREE.FrontSide
-          });
-          return;
-        }
-
-        // 14. Желтые сиденья вагона: аутентичный формованный стеклопластик (глубокий янтарный лак)
-        if (child.name.includes('Yellow') || matName === 'Mat_Fiberglass_Yellow' || matName === 'Mat_Seat_Yellow') {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xfba804),
-            normalMap: fiberNormTex,
-            normalScale: new THREE.Vector2(0.20, 0.20),
-            roughness: 0.15,
-            metalness: 0.0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.03,
-            reflectivity: 0.65,
-            side: THREE.FrontSide
-          });
-          return;
-        }
-
-        // 15. Оранжевые сиденья вагона: аутентичный формованный стеклопластик (глубокий терракотовый лак)
-        if (child.name.includes('Orange') || matName === 'Mat_Fiberglass_Orange' || matName === 'Mat_Seat_Orange') {
-          child.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xe94d0a),
-            normalMap: fiberNormTex,
-            normalScale: new THREE.Vector2(0.20, 0.20),
-            roughness: 0.15,
-            metalness: 0.0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.03,
-            reflectivity: 0.65,
-            side: THREE.FrontSide
-          });
-          return;
-        }
-
-        // 16. Потолочные светильники, призматические рассеиватели и световые табло переходов (3000K)
-        if (matName === 'Mat_Fluorescent_Light' || child.name.includes('Diffuser') || child.name.includes('Sign_Indicator') || child.name.includes('Next_Car_Ceiling_Light')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: ceilingLightTex,
-            emissive: new THREE.Color(0xffc882),
-            emissiveMap: ceilingLightTex,
-            emissiveIntensity: 2.8,
-            roughness: 0.18
-          });
-          return;
-        }
-
-        // 17. Потолок вагона
-        if (child.name.includes('Ceiling')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xdce0e7),
-            normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.20, 0.20),
-            roughness: 0.42,
-            metalness: 0.25,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
-
-        // 18. Металлические полированные поручни и вертикальные стойки
-        if (child.name.includes('Pole') || child.name.includes('Handle') || child.name.includes('Rail') || child.name.includes('Flange') || child.name.includes('Hanger') || matName === 'Mat_Chrome' || matName === 'Mat_Metal_Pole') {
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0xdde1e8),
-            roughness: 0.14,
-            metalness: 0.96
-          });
-          return;
-        }
-
-        // 19. Корпуса светильников и алюминиевые стойки
-        if (matName === 'Mat_Aluminum' || child.name.includes('Post') || child.name.includes('Housing') || child.name.includes('Frame')) {
-          child.material = new THREE.MeshStandardMaterial({
-            map: wallPBR.colorMap,
-            normalMap: wallPBR.normalMap,
-            normalScale: new THREE.Vector2(0.3, 0.3),
-            roughness: 0.38,
-            metalness: 0.75,
-            side: THREE.DoubleSide
-          });
-          return;
-        }
+        const match = child.name.match(/^Screen_(\d+)_Display$/);
+        if (!match) return;
+        const sIdx = parseInt(match[1], 10);
+        const tex = videoTextures[sIdx - 1];
+        if (!tex) return; // экраны 5-8 — выключенные, материал из модели
+        screenMeshes[sIdx] = child;
+        child.material = new THREE.MeshStandardMaterial({
+          map: tex, emissive: new THREE.Color(0xffffff), emissiveMap: tex,
+          emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
+        });
+        child.renderOrder = 2;
       });
 
-      // Находим створки дверей вагона и устанавливаем их изначально ОТКРЫТЫМИ на Дверях 1
-      doorLeft = subwayModel.getObjectByName('Door_Left_Photo') || subwayModel.getObjectByName('Door_ScreenLeft');
-      doorRight = subwayModel.getObjectByName('Door_Right_Photo') || subwayModel.getObjectByName('Door_ScreenRight');
-      if (doorLeft && doorRight) {
-        doorLeft.position.x = DOOR_LEFT_OPEN_X;
-        doorLeft.position.z = 0.026;
-        doorRight.position.x = DOOR_RIGHT_OPEN_X;
-        doorRight.position.z = 0.026;
-      }
-
-      // Позиционирование створок остальных дверных проемов вагона (Двери 2, 3, 4) строго по направляющим стен
+      // Створки дверей 1 (вход) и 2 (выход к контактам) анимируются; изначально двери 1 открыты
+      doorLeft = subwayModel.getObjectByName('Door_Left_Photo');
+      doorRight = subwayModel.getObjectByName('Door_Right_Photo');
       doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
       doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
-      if (doorLeftD2 && doorRightD2) {
-        doorLeftD2.position.set(4.070, 0.99, 0.026);
-        doorRightD2.position.set(3.460, 0.99, 0.026);
+      if (doorLeft && doorRight) {
+        doorLeft.position.x = DOOR_LEFT_OPEN_X;
+        doorRight.position.x = DOOR_RIGHT_OPEN_X;
       }
-
-      const doorLeftD3 = subwayModel.getObjectByName('Door_Left_Photo_D3');
-      const doorRightD3 = subwayModel.getObjectByName('Door_Right_Photo_D3');
-      if (doorLeftD3 && doorRightD3) {
-        doorLeftD3.position.set(-3.460, 0.99, -2.426);
-        doorRightD3.position.set(-4.070, 0.99, -2.426);
-      }
-
-      const doorLeftD4 = subwayModel.getObjectByName('Door_Left_Photo_D4');
-      const doorRightD4 = subwayModel.getObjectByName('Door_Right_Photo_D4');
-      if (doorLeftD4 && doorRightD4) {
-        doorLeftD4.position.set(4.070, 0.99, -2.426);
-        doorRightD4.position.set(3.460, 0.99, -2.426);
-      }
-
-      // Задаем выверенную ширину створок (0.635м) для герметичного притвора без щелей к косякам
-      [doorLeft, doorRight, doorLeftD2, doorRightD2, doorLeftD3, doorRightD3, doorLeftD4, doorRightD4].forEach((dObj) => {
-        if (!dObj) return;
-        dObj.scale.set(0.635, 1.98, 0.038);
-      });
-
-      // Гарантируем наличие и точное позиционирование стекол, ручек и уплотнителей для всех створок (Двери 2, 3, 4)
-      const ensureDoorFittings = (targetDoor, sourceDoor) => {
-        if (!targetDoor || !sourceDoor) return;
-        const hasGlass = targetDoor.children.some(c => c.name.includes('Glass'));
-        if (!hasGlass) {
-          sourceDoor.children.forEach(c => {
-            if (c.name.includes('Glass') || c.name.includes('WindowGasket') || c.name.includes('Handle')) {
-              const clone = c.clone();
-              clone.position.copy(c.position);
-              clone.rotation.copy(c.rotation);
-              clone.scale.copy(c.scale);
-              targetDoor.add(clone);
-            }
-          });
-        }
-      };
-
-      ensureDoorFittings(doorLeftD2, doorLeft);
-      ensureDoorFittings(doorRightD2, doorRight);
-      ensureDoorFittings(doorLeftD3, doorLeft);
-      ensureDoorFittings(doorRightD3, doorRight);
-      ensureDoorFittings(doorLeftD4, doorLeft);
-      ensureDoorFittings(doorRightD4, doorRight);
-
-      // Строго фиксируем компактные физические габариты ручек (4.5см x 18см) и координаты на всех створках дверей
-      subwayModel.traverse((child) => {
-        if (child.name.includes('Handle') && child.name.includes('Photo')) {
-          const isLeft = child.name.includes('Left');
-          child.position.set(isLeft ? -0.3833 : 0.3833, -0.12, -0.45);
-          child.scale.set(0.075, 0.0909, 0.35);
-        }
-      });
-
-      // Предупреждающая надпись трафаретом «НЕ ПРИСЛОНЯТЬСЯ» (чистый белый текст) строго в пределах стекла дверей
-      const doorDecalTex = getNoLeanDecalTexture(THREE);
-      const doorDecalMat = new THREE.MeshBasicMaterial({
-        map: doorDecalTex,
-        transparent: true,
-        opacity: 0.95,
-        depthWrite: false,
-        side: THREE.DoubleSide
-      });
-      // Стекло створки имеет ширину 0.27м, плашка 0.24x0.06м строго укладывается в стекло с запасом по краям
-      const doorDecalGeom = new THREE.PlaneGeometry(0.24, 0.060);
-
-      const attachDoorDecal = (doorObj) => {
-        if (!doorObj) return;
-        const decalMesh = new THREE.Mesh(doorDecalGeom, doorDecalMat);
-        const sx = Math.abs(doorObj.scale.x) || 1;
-        const sy = Math.abs(doorObj.scale.y) || 1;
-        const sz = Math.abs(doorObj.scale.z) || 1;
-        // Отрицательный scale.x разворачивает текст так, чтобы он читался слева направо изнутри вагона
-        // Полностью компенсируем неравномерный масштаб створки двери [0.60, 1.98, 0.038]
-        decalMesh.scale.set(-1 / sx, 1 / sy, -1 / sz);
-        // Центр створки на Y = 0.99, смещение +0.38м поднимает надпись на уровень глаз (Y ~ 1.37м)
-        // Смещение Z = -0.016м позиционирует надпись строго на внутренней поверхности стекла внутри салона
-        decalMesh.position.set(0, 0.38 / sy, -0.016 / sz);
-        decalMesh.renderOrder = 4;
-        doorObj.add(decalMesh);
-      };
-
-      // Аутентичная внешняя двухцветная обшивка дверей Alstom Line 18 (белый низ + синий верх)
-      // Используем FrontSide: снаружи видна ливрея Alstom, изнутри салон видит только благородную сатинированную сталь!
-      const doorExtWhiteMat = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xf4f6fa),
-        roughness: 0.22,
-        metalness: 0.08,
-        clearcoat: 0.80,
-        clearcoatRoughness: 0.06,
-        side: THREE.FrontSide
-      });
-      const doorExtBlueMat = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x2ca0e6),
-        roughness: 0.20,
-        metalness: 0.12,
-        clearcoat: 0.85,
-        clearcoatRoughness: 0.06,
-        side: THREE.FrontSide
-      });
-      const doorExtPinMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(0x141822),
-        roughness: 0.35,
-        metalness: 0.80,
-        side: THREE.FrontSide
-      });
-
-      const attachDoorExteriorSkin = (doorObj, isSideB = false) => {
-        if (!doorObj) return;
-        const sx = Math.abs(doorObj.scale.x) || 1;
-        const sy = Math.abs(doorObj.scale.y) || 1;
-        const sz = Math.abs(doorObj.scale.z) || 1;
-        const invScale = new THREE.Vector3(1 / sx, 1 / sy, 1 / sz);
-
-        // Для створок Стороны A наружная грань находится при Z > 0 (+Z в сторону платформы, rotY = 0)
-        // Для створок Стороны B (уже развернутых на 180° в glTF модели) локальный +Z строго направлен наружу в сторону тоннеля (-Z в мире), rotY = 0
-        const zPos = 0.021;
-        const rotY = 0;
-        const skinGroup = new THREE.Group();
-
-        // 1. Нижняя белая панель створки (от Y = 0 до Y = 0.94m в мире, в двери от -0.99 до -0.05)
-        const whitePanel = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.94), doorExtWhiteMat);
-        whitePanel.position.set(0, -0.52, zPos);
-        whitePanel.rotation.y = rotY;
-        skinGroup.add(whitePanel);
-
-        // 2. Разделительный кант (Y = 0.94 - 0.96m, в двери от -0.05 до -0.03)
-        const pinPanel = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.02), doorExtPinMat);
-        pinPanel.position.set(0, -0.04, zPos);
-        pinPanel.rotation.y = rotY;
-        skinGroup.add(pinPanel);
-
-        // 3. Верхние голубые планки вокруг стекла двери (стекло 0.27m x 0.88m по центру)
-        const blueL = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.02), doorExtBlueMat);
-        blueL.position.set(-0.225, 0.48, zPos);
-        blueL.rotation.y = rotY;
-        skinGroup.add(blueL);
-
-        const blueR = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.02), doorExtBlueMat);
-        blueR.position.set(0.225, 0.48, zPos);
-        blueR.rotation.y = rotY;
-        skinGroup.add(blueR);
-
-        const blueTop = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.16), doorExtBlueMat);
-        blueTop.position.set(0, 0.91, zPos);
-        blueTop.rotation.y = rotY;
-        skinGroup.add(blueTop);
-
-        const blueBot = new THREE.Mesh(new THREE.PlaneGeometry(0.630, 0.06), doorExtBlueMat);
-        blueBot.position.set(0, 0.00, zPos);
-        blueBot.rotation.y = rotY;
-        skinGroup.add(blueBot);
-
-        skinGroup.scale.copy(invScale);
-        doorObj.add(skinGroup);
-      };
-
-      // Двери 1 (Вход, Wall A)
-      attachDoorDecal(doorLeft);
-      attachDoorDecal(doorRight);
-      attachDoorExteriorSkin(doorLeft, false);
-      attachDoorExteriorSkin(doorRight, false);
-
-      // Двери 2 (Выход, Wall A)
-      attachDoorDecal(doorLeftD2);
-      attachDoorDecal(doorRightD2);
-      attachDoorExteriorSkin(doorLeftD2, false);
-      attachDoorExteriorSkin(doorRightD2, false);
-
-      // Двери 3 (Сторона B)
-      attachDoorDecal(doorLeftD3);
-      attachDoorDecal(doorRightD3);
-      attachDoorExteriorSkin(doorLeftD3, true);
-      attachDoorExteriorSkin(doorRightD3, true);
-
-      // Двери 4 (Сторона B)
-      attachDoorDecal(doorLeftD4);
-      attachDoorDecal(doorRightD4);
-      attachDoorExteriorSkin(doorLeftD4, true);
-      attachDoorExteriorSkin(doorRightD4, true);
 
       scene.add(subwayModel);
       isSubwayLoaded = true;
@@ -1492,13 +525,17 @@ function loadSubwayModel() {
 // =============================================================================
 // GSAP SCROLLTRIGGER: УПРАВЛЕНИЕ КАМЕРОЙ ПО СКРОЛЛУ
 // =============================================================================
+let scrollTriggersReady = false;
+
 function initScrollTriggers() {
+  if (scrollTriggersReady) return;
   if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
     console.warn('GSAP или ScrollTrigger не обнаружены');
     return;
   }
 
   gsap.registerPlugin(ScrollTrigger);
+  scrollTriggersReady = true;
 
   const isMobile = () => window.innerWidth < 768;
   const getWaypoint = (idx) => CAMERA_WAYPOINTS[idx][isMobile() ? 'mobile' : 'desktop'];
@@ -1567,12 +604,6 @@ function initScrollTriggers() {
       trainSpeed = 0.0;
 
 
-      // Обновление светодиодного индикатора маршрута в шапке
-      const trackFill = document.getElementById('route-track-fill');
-      const trackDot = document.getElementById('route-track-car-dot');
-      if (trackFill) trackFill.style.width = `${p * 100}%`;
-      if (trackDot) trackDot.style.left = `${p * 100}%`;
-
       const currentSectionIndex = Math.min(Math.round(scaledP), NUM_SEGMENTS);
       if (currentSectionIndex !== activeStage) {
         setActiveStage(currentSectionIndex);
@@ -1605,13 +636,6 @@ function setActiveStage(stageIndex) {
     }
   }
   activeStage = stageIndex;
-
-  // Обновление навигационных кнопок в шапке
-  const navBtns = document.querySelectorAll('.stage-nav-pill');
-  navBtns.forEach((btn) => {
-    const target = parseInt(btn.dataset.stage, 10);
-    btn.classList.toggle('active', target === stageIndex);
-  });
 
   // Обновление HUD элементов
   const stageElements = document.querySelectorAll('.story-stage');
@@ -1859,8 +883,7 @@ function setupEventListeners() {
           resetScreenZoom();
         } else {
           const sIdx = screenMeshes.indexOf(hit);
-          const stageMap = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 1, 6: 2, 7: 3, 8: 4 };
-          const targetStage = stageMap[sIdx] || Math.max(1, Math.min(activeStage, 4));
+          const targetStage = sIdx >= 1 && sIdx <= 4 ? sIdx : Math.max(1, Math.min(activeStage, 4));
           zoomToScreen(targetStage);
         }
       }
@@ -1871,7 +894,7 @@ function setupEventListeners() {
 
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по элементам интерфейса
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .project-modal')) return;
     handleScreenInteract(e.clientX, e.clientY);
   });
 
@@ -1880,14 +903,14 @@ function setupEventListeners() {
 
   // Двойной клик для приближения к экрану
   window.addEventListener('dblclick', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .project-modal')) return;
     toggleScreenZoom();
   });
 
   // Двойной тап для мобильных устройств
   let lastTouchEndTime = 0;
   window.addEventListener('touchend', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .emergency-banner, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .project-modal')) return;
     const now = performance.now();
     if (now - lastTouchEndTime < 350 && now - lastTouchEndTime > 50) {
       toggleScreenZoom();
@@ -2117,38 +1140,7 @@ function animate() {
 
       // Завершение спуска и вход в вагон
       if (easedP >= 0.999 && isSubwayLoaded) {
-        isDescentActive = false;
-        if (preloader) {
-          preloader.style.opacity = '0';
-          preloader.style.display = 'none';
-          preloader.classList.add('fade-out');
-        }
-        document.body.classList.remove('is-preloading');
-        stopEscalatorAudio(0.8);
-        if (!isGlobalMuted) {
-          playArrivalChime();
-        }
-
-        // Эскалатор остается видимым сквозь окна вагона для максимального реализма станции
-        if (escalatorGroup) {
-          escalatorGroup.visible = true;
-        }
-
-        // Фиксируем позицию камеры строго на Stage 0 внутри вагона
-        const isMob = window.innerWidth < 768;
-        const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
-        camCurrentPos.copy(wp0.pos);
-        camTargetPos.copy(wp0.pos);
-        camCurrentTarget.copy(wp0.target);
-        camTargetLookAt.copy(wp0.target);
-        camera.position.copy(camCurrentPos);
-        camera.lookAt(camCurrentTarget);
-
-        if (video1 && video1.paused) {
-          video1.play().catch(() => {});
-        }
-
-        initScrollTriggers();
+        finishDescent({ audioFade: 0.8 });
       }
     } else {
       // Пока модель эскалатора подгружается (<100мс), держим камеру строго на старте спуска
@@ -2345,7 +1337,11 @@ export function getVideos() {
   return { video1, video2, video3, video4 };
 }
 
-export function skipDescent() {
+/**
+ * Единая точка завершения спуска на эскалаторе: скрывает прелоадер,
+ * ставит камеру на Stage 0 и включает ScrollTrigger (ровно один раз).
+ */
+function finishDescent({ audioFade = 0.3, placeCamera = true, chime = true } = {}) {
   if (!isDescentActive) return;
   isDescentActive = false;
   const preloader = document.getElementById('scene-preloader');
@@ -2355,27 +1351,34 @@ export function skipDescent() {
     preloader.classList.add('fade-out');
   }
   document.body.classList.remove('is-preloading');
-  stopEscalatorAudio(0.3);
-  if (!isGlobalMuted) {
+  stopEscalatorAudio(audioFade);
+  if (chime && !isGlobalMuted) {
     playArrivalChime();
   }
+  // Эскалатор остается видимым сквозь окна вагона
   if (escalatorGroup) {
     escalatorGroup.visible = true;
   }
-  const isMob = window.innerWidth < 768;
-  const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
-  camCurrentPos.copy(wp0.pos);
-  camTargetPos.copy(wp0.pos);
-  camCurrentTarget.copy(wp0.target);
-  camTargetLookAt.copy(wp0.target);
-  if (camera) {
-    camera.position.copy(camCurrentPos);
-    camera.lookAt(camCurrentTarget);
+  if (placeCamera) {
+    const isMob = window.innerWidth < 768;
+    const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
+    camCurrentPos.copy(wp0.pos);
+    camTargetPos.copy(wp0.pos);
+    camCurrentTarget.copy(wp0.target);
+    camTargetLookAt.copy(wp0.target);
+    if (camera) {
+      camera.position.copy(camCurrentPos);
+      camera.lookAt(camCurrentTarget);
+    }
   }
   if (video1 && video1.paused) {
     video1.play().catch(() => {});
   }
   initScrollTriggers();
+}
+
+export function skipDescent() {
+  finishDescent({ audioFade: 0.3 });
 }
 window.skipDescent = skipDescent;
 window.setDoorCloseRatio = (r) => { targetDoorCloseRatio = r; currentDoorCloseRatio = r; };
@@ -2391,21 +1394,8 @@ function onFreeRoamToggled(isActive) {
     if (storyTab) storyTab.classList.remove('is-active');
     if (freeRoamTab) freeRoamTab.classList.add('is-active');
 
-    // Если прелоадер или спуск был активен, мгновенно завершаем его
-    if (isDescentActive) {
-      isDescentActive = false;
-      const preloader = document.getElementById('scene-preloader');
-      if (preloader) {
-        preloader.style.opacity = '0';
-        preloader.style.display = 'none';
-        preloader.classList.add('fade-out');
-      }
-      document.body.classList.remove('is-preloading');
-      stopEscalatorAudio(0.3);
-      if (video1 && video1.paused) {
-        video1.play().catch(() => {});
-      }
-    }
+    // Если спуск был активен, завершаем его (камерой дальше управляет Free Room)
+    finishDescent({ audioFade: 0.3, placeCamera: false, chime: false });
 
     if (escalatorGroup) {
       escalatorGroup.visible = true;
@@ -2421,6 +1411,11 @@ function onFreeRoamToggled(isActive) {
     camTargetPos.copy(wp.pos);
     camCurrentTarget.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(4));
     camTargetLookAt.copy(wp.target);
+
+    // Триггеры могли быть созданы, пока сюжетный трек был скрыт: пересчитываем позиции
+    if (scrollTriggersReady && typeof ScrollTrigger !== 'undefined') {
+      ScrollTrigger.refresh();
+    }
   }
 }
 

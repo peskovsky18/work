@@ -7,41 +7,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-capable" content="yes">
   
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-
-  <script>
-    // Универсальный самоисцеляющийся сброс кэша PWA / Service Worker для ВСЕХ устройств (смартфоны, планшеты, ПК)
-    (function() {
-      var CURRENT_BUILD = '20261030_1910';
-      var lastBuild = localStorage.getItem('subway_portfolio_version');
-      var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-      if (lastBuild !== CURRENT_BUILD || isLocal) {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(regs) {
-            for (var i = 0; i < regs.length; i++) {
-              regs[i].unregister();
-            }
-          });
-        }
-        if ('caches' in window) {
-          caches.keys().then(function(keys) {
-            for (var i = 0; i < keys.length; i++) {
-              caches.delete(keys[i]);
-            }
-          });
-        }
-        localStorage.setItem('subway_portfolio_version', CURRENT_BUILD);
-        // Если устройство застряло на старой версии, после сброса выполняем чистую перезагрузку
-        if (lastBuild && lastBuild !== CURRENT_BUILD && !isLocal) {
-          window.location.reload(true);
-        }
-      }
-    })();
-  </script>
-  
   <title>Александр Песковский | Режиссура и медиа</title>
   <meta name="description" content="Интерактивное кинематографичное 3D-путешествие в вагоне метро через авторские видеоработы Александра Песковского.">
   <meta name="keywords" content="Александр Песковский, режиссер, оператор, видеопродакшн, iPhone Log, медиа, портфолио">
@@ -71,7 +36,7 @@
   </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css?v=20261030_1910">
+  <link rel="stylesheet" href="css/style.css?v=20261121">
 
   <!-- GSAP & ScrollTrigger -->
   <script src="js/vendor/gsap.min.js"></script>
@@ -104,7 +69,7 @@
       <div class="preloader-bar-wrap">
         <div id="loader-progress-bar" class="preloader-bar-fill"></div>
       </div>
-      <button id="preloader-skip-btn" class="preloader-skip-btn" type="button" aria-label="Пропустить спуск" onclick="window.skipDescent && window.skipDescent()">
+      <button id="preloader-skip-btn" class="preloader-skip-btn" type="button" aria-label="Пропустить спуск">
         <span>Войти в вагон ➔</span>
       </button>
     </div>
@@ -163,24 +128,6 @@
 
     </div>
   </header>
-
-  <!-- Экстренное оповещение: Стоп-кран активирован в вагоне -->
-  <aside id="emergency-alert-banner" class="emergency-banner" aria-hidden="true" role="alert">
-    <div class="emergency-banner-content">
-      <span class="emergency-pill-tag">⚠️ СТОП-КРАН АКТИВИРОВАН</span>
-      <span class="emergency-msg">Экстренная остановка: прямое соединение с режиссером</span>
-      <div class="emergency-actions">
-        <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn em-mail-btn">Email ✉️</a>
-      </div>
-    </div>
-  </aside>
-
-
-
-  <!-- Всплывающее уведомление (Apple Frosted Glass Toast) -->
-  <div id="app-toast" class="app-toast" aria-hidden="true">
-    <span id="app-toast-text">Ссылка скопирована в буфер</span>
-  </div>
 
   <!-- =========================================================================
        SCROLLYTELLING ТРЕК: 4 ЭТАПА ПОГРУЖЕНИЯ В ПРОСТРАНСТВО
@@ -428,6 +375,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261031_0025"></script>
+  <script type="module" src="js/main.js?v=20261121"></script>
 </body>
 </html>

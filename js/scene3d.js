@@ -303,7 +303,7 @@ export function initSubwayScene() {
   isDescentActive = true;
   escalatorGroup = new THREE.Group();
   escalatorGroup.name = 'Escalator';
-  const escFillLight = new THREE.PointLight(0xfff4ea, 2.2, 16.0, 1.2);
+  const escFillLight = new THREE.PointLight(0xfff4ea, LIGHTING.escFill, 16.0, 1.2);
   escFillLight.position.set(-3.765, 5.2, 11.0);
   escalatorGroup.add(escFillLight);
   scene.add(escalatorGroup);
@@ -321,8 +321,9 @@ export function initSubwayScene() {
     isEscalatorLoaded = true;
     descentStartTime = performance.now();
     loadRestOfScene();
+    buildEnvironmentMaps();
   };
-  createGLTFLoader().load('assets/models/escalator_system.glb?v=20261122', (gltf) => {
+  createGLTFLoader().load('assets/models/escalator_system.glb?v=20261123', (gltf) => {
     escalatorGroup.add(gltf.scene);
     startDescent();
   }, undefined, (err) => {
@@ -349,54 +350,36 @@ export function initSubwayScene() {
 // =============================================================================
 // ОСВЕЩЕНИЕ ВАГОНА МЕТРО (APPLE DARK CINEMATIC)
 // =============================================================================
-let trainSpeed = 0.0;
-let tunnelGroup, oppTrainGroup;
-const tunnelLights = [];
 const ceilingLamps = [];
-let windowPassingLight, windowPassingLight2, station1Light, station2Light;
 
 let stationEnvGroup;
 
+// Баланс освещения. Мягкие тени запечены в модели (occlusionTexture), отражения и
+// рассеянный свет окружения дают карты окружения из самой сцены (см. buildEnvironmentMaps).
+// Живых источников немного: общий свет, полоса светильников вагона, свечение экранов,
+// заполняющий свет станции и эскалатора, неон у постеров.
+const LIGHTING = {
+  ambient: 0.75,
+  carLed: 2.6,
+  platFill: 1.9,
+  escFill: 2.0,
+  envIntensity: 0.7,
+  envSize: 128,
+};
+
 function setupSubwayLighting() {
-  // 1. Теплый архитектурный свет вагона и станции (3000K Warm White)
-  const ambient = new THREE.AmbientLight(0xffe4cc, 1.45);
+  const ambient = new THREE.AmbientLight(0xffe4cc, LIGHTING.ambient);
   scene.add(ambient);
 
-  // 2. Оптимизированная центральная LED-световая линия вагона (3 ключевых источника вместо 9)
+  // Центральная LED-линия вагона (3000K)
   [-3.75, 0.0, 3.75].forEach(px => {
-    const centralLed = new THREE.PointLight(0xffc882, 3.2, 9.5, 1.1);
+    const centralLed = new THREE.PointLight(0xffc882, LIGHTING.carLed, 9.5, 1.1);
     centralLed.position.set(px, 2.22, -1.192);
     scene.add(centralLed);
     ceilingLamps.push(centralLed);
   });
 
-  // 3. Направленный скользящий свет 3000K — подчеркивает текстуру сатинированной стали и жаккарда
-  const rakingLightA = new THREE.DirectionalLight(0xffdfc2, 1.25);
-  rakingLightA.position.set(0, 3.2, -1.2);
-  rakingLightA.target.position.set(0, 1.2, 0.0);
-  scene.add(rakingLightA);
-  scene.add(rakingLightA.target);
-
-  const rakingLightB = new THREE.DirectionalLight(0xffd9b8, 1.10);
-  rakingLightB.position.set(0, 3.2, -1.2);
-  rakingLightB.target.position.set(0, 1.2, -2.4);
-  scene.add(rakingLightB);
-  scene.add(rakingLightB.target);
-
-  // 4. Освещение платформы станции снаружи дверей (3000K)
-  station1Light = new THREE.PointLight(0xffe8d2, 2.8, 18.0, 1.1);
-  station1Light.position.set(-3.765, 2.4, 2.2);
-  scene.add(station1Light);
-
-  const stationExitLight = new THREE.PointLight(0xffe8d2, 2.8, 18.0, 1.1);
-  stationExitLight.position.set(3.765, 2.4, 2.2);
-  scene.add(stationExitLight);
-
-  // 5. Освещение белой плиточной путевой стены станции снаружи окон (Сторона B)
-  station2Light = new THREE.PointLight(0xffedd8, 2.6, 16.0, 1.0);
-  station2Light.position.set(0.0, 2.4, -3.0);
-  scene.add(station2Light);
-
+  // Свечение экранов с видео (интенсивность следует за воспроизведением, см. animate)
   screenLight1 = new THREE.PointLight(0xfff0df, 0.75, 3.5, 1.5);
   screenLight1.position.set(-2.675, 1.40, -0.28);
   scene.add(screenLight1);
@@ -404,14 +387,42 @@ function setupSubwayLighting() {
   screenLight2 = new THREE.PointLight(0xfff0df, 0.75, 3.5, 1.5);
   screenLight2.position.set(-2.675, 1.40, -2.10);
   scene.add(screenLight2);
+}
 
-  windowPassingLight = new THREE.PointLight(0xffe9d5, 0.6, 9.0, 1.2);
-  windowPassingLight.position.set(1.595, 1.45, 0.65);
-  scene.add(windowPassingLight);
-
-  windowPassingLight2 = new THREE.PointLight(0xffe9d5, 0.6, 9.0, 1.2);
-  windowPassingLight2.position.set(1.595, 1.45, -1.85);
-  scene.add(windowPassingLight2);
+// Карты окружения: сцена рендерится в куб из вагона и со станции, когда загружены все части
+let isStationLoaded = false;
+let environmentReady = false;
+function buildEnvironmentMaps() {
+  if (environmentReady || !isSubwayLoaded || !isStationLoaded || !isEscalatorLoaded || !renderer) return;
+  environmentReady = true;
+  const t0 = performance.now();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const capture = (x, y, z) => {
+    const target = new THREE.WebGLCubeRenderTarget(LIGHTING.envSize, { type: THREE.HalfFloatType });
+    const cubeCamera = new THREE.CubeCamera(0.05, 60, target);
+    cubeCamera.position.set(x, y, z);
+    cubeCamera.update(renderer, scene);
+    const env = pmrem.fromCubemap(target.texture).texture;
+    target.dispose();
+    return env;
+  };
+  const carEnv = capture(0, 1.45, -1.2);
+  const stationEnv = capture(0, 1.8, 2.6);
+  pmrem.dispose();
+  scene.environment = carEnv;
+  const applyEnv = (group, env) => group && group.traverse((o) => {
+    if (!o.isMesh) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+      if (!m || m.isMeshBasicMaterial) return;
+      if (env) m.envMap = env;
+      m.envMapIntensity = LIGHTING.envIntensity;
+      m.needsUpdate = true;
+    });
+  });
+  applyEnv(subwayModel, null);
+  applyEnv(stationEnvGroup, stationEnv);
+  applyEnv(escalatorGroup, stationEnv);
+  window.__envBuildMs = Math.round(performance.now() - t0);
 }
 
 function setupStationEnvironment() {
@@ -419,16 +430,19 @@ function setupStationEnvironment() {
   stationEnvGroup.name = 'Station';
 
   // Геометрия и материалы станции заданы в assets/models/station.blend (экспорт station.glb)
-  createGLTFLoader().load('assets/models/station.glb?v=20261122t', (gltf) => {
+  createGLTFLoader().load('assets/models/station.glb?v=20261123', (gltf) => {
     stationEnvGroup.add(gltf.scene);
+    isStationLoaded = true;
+    buildEnvironmentMaps();
   }, undefined, (err) => {
     console.error('Ошибка загрузки station.glb:', err);
+    isStationLoaded = true;
   });
 
   // Свет станции остаётся в коде:
   // заполняющие лампы под сводом (выключаются, пока камера в вагоне, см. animate) ...
   [-10.0, 0.0, 10.0].forEach((x, i) => {
-    const fill = new THREE.PointLight(0xffe8d2, 2.4, 15.0, 1.2);
+    const fill = new THREE.PointLight(0xffe8d2, LIGHTING.platFill, 15.0, 1.2);
     fill.position.set(x, 3.95, 2.4);
     fill.name = `platFill${i + 1}`;
     stationEnvGroup.add(fill);
@@ -511,7 +525,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261122t',
+    'assets/models/subway.glb?v=20261123',
     (gltf) => {
       subwayModel = gltf.scene;
 
@@ -546,6 +560,7 @@ function loadSubwayModel() {
 
       scene.add(subwayModel);
       isSubwayLoaded = true;
+      buildEnvironmentMaps();
       if (isReturningVisitor) finishDescent({ audioFade: 0.3, chime: false });
 
       // Если спуск на эскалаторе уже завершился или отключен, активируем ScrollTrigger и скрываем лоадер
@@ -642,7 +657,6 @@ function initScrollTriggers() {
       }
 
       // Поезд стоит на станции (0.0): нулевая нагрузка на GPU/CPU, стабильные 60 FPS
-      trainSpeed = 0.0;
 
 
       const currentSectionIndex = Math.min(Math.round(scaledP), NUM_SEGMENTS);
@@ -1274,50 +1288,6 @@ function animate() {
     doorRightD2.position.x = THREE.MathUtils.lerp(3.460, 2.850, currentDoor2OpenRatio);
   }
 
-  // 2.3 Движение тоннельных огней и отблески в окнах на обеих сторонах
-  if (trainSpeed > 0.01) {
-    const rushSpeed = trainSpeed * 34.0 * dt;
-    let windowFlashSide1 = 0.0;
-    let windowFlashSide2 = 0.0;
-    for (let i = 0; i < tunnelLights.length; i++) {
-      const item = tunnelLights[i];
-      item.mesh.position.x -= rushSpeed;
-      if (item.mesh.position.x < -30.0) {
-        item.mesh.position.x += 60.0;
-      }
-      item.light.position.x = item.mesh.position.x;
-
-      const isNearWin = Math.abs(item.mesh.position.x - 1.595) < 1.4 || Math.abs(item.mesh.position.x - (-1.595)) < 1.4;
-      if (isNearWin) {
-        if (item.sideZ > -1.0) {
-          windowFlashSide1 = Math.max(windowFlashSide1, 1.25);
-        } else {
-          windowFlashSide2 = Math.max(windowFlashSide2, 1.25);
-        }
-      }
-    }
-    if (windowPassingLight) {
-      windowPassingLight.intensity += (windowFlashSide1 * trainSpeed - windowPassingLight.intensity) * 0.18;
-    }
-    if (windowPassingLight2) {
-      windowPassingLight2.intensity += (windowFlashSide2 * trainSpeed - windowPassingLight2.intensity) * 0.18;
-    }
-  } else {
-    if (windowPassingLight) windowPassingLight.intensity += (0.0 - windowPassingLight.intensity) * 0.1;
-    if (windowPassingLight2) windowPassingLight2.intensity += (0.0 - windowPassingLight2.intensity) * 0.1;
-  }
-
-  // 2.3b Кинематографическая виньетка в тоннеле
-  if (trainSpeed > 0.15) {
-    if (!document.body.classList.contains('tunnel-speed-active')) {
-      document.body.classList.add('tunnel-speed-active');
-    }
-  } else {
-    if (document.body.classList.contains('tunnel-speed-active')) {
-      document.body.classList.remove('tunnel-speed-active');
-    }
-  }
-
   // 2.3c Мягкое акцентное свечение экранов при воспроизведении видео
   if (screenLight1 && stageVideos[1]) {
     const base1 = stageVideos[1].paused ? 0.60 : 0.85;
@@ -1362,15 +1332,7 @@ function animate() {
   }
 
   // 2.4 Движение встречного поезда в тоннеле за окнами
-  if (oppTrainGroup && trainSpeed > 0.25) {
-    oppTrainGroup.position.x += (trainSpeed * 22.0 + 36.0) * dt;
-    if (oppTrainGroup.position.x > -14.0 && oppTrainGroup.position.x < 14.0 && !isGlobalMuted) {
-      playPassingTrainWhoosh();
-    }
-    if (oppTrainGroup.position.x > 50.0) {
-      oppTrainGroup.position.x = -130.0 - Math.random() * 80.0;
-    }
-  }
+
 
   // 3. Синхронизация полосы прогресса видео (троттлинг 10 FPS, без DOM layout thrashing)
   if (!isDescentActive) {
@@ -1378,7 +1340,7 @@ function animate() {
   }
 
   // 5. Синхронизация звука поезда со скоростью
-  updateSubwayAudio(trainSpeed, isGlobalMuted);
+  updateSubwayAudio(0, isGlobalMuted);
 
   // 6. Рендер кадра
   renderer.render(scene, camera);

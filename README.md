@@ -27,15 +27,21 @@
 
 ## 3D-модели
 
-Вся геометрия и материалы сцены задаются в Blender, сайт загружает экспорт в GLB:
+Вся сцена — один файл Blender: `assets/models/scene.blend`. Коллекции верхнего уровня экспортируются в отдельные GLB, чтобы сайт грузил их по очереди (эскалатор первым, тогда спуск стартует быстро):
 
-| Исходник | Экспорт | Что внутри |
+| Коллекция | Экспорт | Что внутри |
 |---|---|---|
-| `assets/models/subway.blend` | `subway.glb` | салон, двери, кузов и два прицепных вагона |
-| `assets/models/station.blend` | `station.glb` | станция: свод, платформа, пути, постеры, автомат |
-| `assets/models/escalator_system.blend` | `escalator_system.glb` | эскалатор спуска |
+| `Escalator` | `escalator_system.glb` | эскалатор спуска и его тоннель |
+| `Station` | `station.glb` | станция: свод, платформа, пути, постеры, автомат |
+| `Train` | `subway.glb` | вагон: салон (`Train/Interior`), двери, экраны, кузов и прицепные вагоны |
 
-После правок в Blender запустите в открытом файле [`tools/blender/export_glb.py`](tools/blender/export_glb.py). Он сохранит рядом `.glb` со сжатием Draco и текстурами WebP.
+Экспорт (Draco-геометрия, WebP-текстуры):
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender -b assets/models/scene.blend --python tools/blender/export_glb.py
+```
+
+Пересборка частей сцены — скрипты в [`tools/blender/`](tools/blender/): `build_train_interior.py` (салон), `build_train_exterior.py` (кузов и прицепные вагоны), `build_station.py` (станция), `build_escalator.py` (поручни, балюстрады, площадки), текстуры — `generate_textures.py`. Освещение: `tune_materials.py` (шероховатость под отражения) и `bake_lighting.py` (запекание мягких теней в атласы). Запекание применяет модификаторы, поэтому правки геометрии делаются в `assets/models/scene_prebake.blend`, затем он копируется в `scene.blend`, запекается и экспортируется. Имена `Door_*` и `Screen_N_Display` использует код сайта, их нельзя переименовывать.
 
 В JS остаются свет, анимация дверей, видео на экранах, камера и прокрутка.
 

@@ -127,6 +127,58 @@ def platform(tex, prefix, seed):
     save(f'{tex}/{prefix}_roughness.png', gray(rough), False)
 
 
+def worley(h, w, cells, seed):
+    """Бесшовный ячеистый шум: расстояние до ближайшей и второй точки, номер ячейки."""
+    rng = np.random.default_rng(seed)
+    pts = rng.random((cells, cells, 2))
+    yy, xx = np.mgrid[0:h, 0:w]
+    gy, gx = yy * cells / h, xx * cells / w
+    cy, cx = np.floor(gy).astype(int), np.floor(gx).astype(int)
+    d1 = np.full((h, w), 9.0)
+    d2 = np.full((h, w), 9.0)
+    cid = np.zeros((h, w), dtype=np.int64)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            ny, nx = (cy + dy) % cells, (cx + dx) % cells
+            p = pts[ny, nx]
+            px = cx + dx + p[..., 0]
+            py = cy + dy + p[..., 1]
+            d = np.hypot(gx - px, gy - py)
+            closer = d < d1
+            d2 = np.where(closer, d1, np.minimum(d2, d))
+            cid = np.where(closer, ny * cells + nx, cid)
+            d1 = np.where(closer, d, d1)
+    return d1, d2, cid
+
+
+def ballast(tex):
+    """Щебень: камни разного оттенка с тёмными промежутками (цвет, нормали, шероховатость)."""
+    h = w = 256                                            # виден издалека — 256 px хватает
+    d1, d2, cid = worley(h, w, 22, 51)
+    rng = np.random.default_rng(52)
+    tone = rng.uniform(0.55, 1.15, 22 * 22)[cid]
+    warm = rng.uniform(-0.04, 0.04, 22 * 22)[cid]
+    edge = np.clip((d2 - d1) * 3.0, 0, 1)                 # 0 на стыке камней
+    height = np.sqrt(edge) + 0.15 * periodic_noise(h, w, falloff=1.2, seed=53)
+    base = np.array([0.30, 0.29, 0.27])
+    grit = 0.08 * periodic_noise(h, w, falloff=1.0, seed=54)
+    color = base[None, None, :] * (tone[..., None] + grit[..., None]) * (0.35 + 0.65 * np.sqrt(edge)[..., None])
+    color[..., 0] += warm * 0.3
+    save(f'{tex}/ballast_color.png', color, True)
+    save(f'{tex}/ballast_normal.png', normal_from_height(height, 3.0), False)
+    save(f'{tex}/ballast_roughness.png', gray(0.85 + 0.1 * (1 - edge)), False)
+
+
+def escalator_cleats(tex):
+    """Рифление проступи и подступенка: рельеф из яркости готовых текстур (тёмные полосы — канавки)."""
+    for name, strength in (('esc_step_tread', 4.0), ('esc_step_riser', 3.0)):
+        col = load(f'{tex}/{name}.png')[:, :, :3]
+        lum = col.mean(axis=2)
+        lum = (lum - lum.min()) / (lum.max() - lum.min() + 1e-6)
+        height = blur(lum, 0.8)
+        save(f'{tex}/{name}_normal.png', normal_from_height(height, strength), False)
+
+
 def run(project_dir):
     subway = os.path.join(project_dir, 'assets/models/subway_textures')
     station = os.path.join(project_dir, 'assets/models/station_textures')
@@ -135,4 +187,5 @@ def run(project_dir):
     fiberglass(subway)
     platform(station, 'platform_dark', 31)
     platform(station, 'platform_curb', 41)
+    ballast(station)
     return 'ok'

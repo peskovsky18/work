@@ -44,9 +44,22 @@
   <!-- Стили -->
   <link rel="stylesheet" href="css/style.css?v=20261122">
 
-  <!-- GSAP & ScrollTrigger -->
-  <script src="js/vendor/gsap.min.js"></script>
-  <script src="js/vendor/ScrollTrigger.min.js"></script>
+  <!-- GSAP & ScrollTrigger (defer: не блокируют разбор страницы, выполняются до модулей) -->
+  <script src="js/vendor/gsap.min.js" defer></script>
+  <script src="js/vendor/ScrollTrigger.min.js" defer></script>
+
+  <!-- Критический путь первого кадра: модули сцены, декодер Draco и эскалатор грузятся параллельно -->
+  <link rel="modulepreload" href="js/scene3d.js">
+  <link rel="modulepreload" href="js/vendor/three.module.js">
+  <link rel="modulepreload" href="js/vendor/GLTFLoader.js">
+  <link rel="modulepreload" href="js/vendor/DRACOLoader.js">
+  <link rel="modulepreload" href="js/utils/BufferGeometryUtils.js">
+  <link rel="modulepreload" href="js/projects-data.js">
+  <link rel="modulepreload" href="js/freeRoam.js">
+  <link rel="modulepreload" href="js/subwayAudio.js">
+  <link rel="preload" href="js/vendor/draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
+  <link rel="preload" href="js/vendor/draco/draco_decoder.wasm" as="fetch" crossorigin>
+  <link rel="preload" href="assets/models/escalator_system.glb?v=20261122" as="fetch" crossorigin>
 
   <!-- Three.js Import Map (полностью автономные локальные файлы) -->
   <script type="importmap">
@@ -192,6 +205,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261122"></script>
+  <script type="module" src="js/main.js?v=20261122c"></script>
 </body>
 </html>

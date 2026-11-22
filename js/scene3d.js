@@ -80,7 +80,13 @@ let isEscalatorLoaded = false;
 let isSubwayLoaded = false;
 let isDescentActive = true;
 let descentStartTime = 0;
-const DESCENT_DURATION = 16000; // 16.0 секунд медитативного кинематографичного спуска в метро (плавно и без спешки)
+const DESCENT_DURATION = 9000; // 9 секунд спуска по эскалатору
+
+// Вернувшиеся посетители попадают в вагон сразу, как только он загрузился
+const DESCENT_SEEN_KEY = 'portfolio_descent_seen';
+const isReturningVisitor = (() => {
+  try { return localStorage.getItem(DESCENT_SEEN_KEY) === '1'; } catch { return false; }
+})();
 const escalatorLights = [];
 
 
@@ -241,11 +247,22 @@ export function initSubwayScene() {
   escFillLight.position.set(-3.765, 5.2, 11.0);
   escalatorGroup.add(escFillLight);
   scene.add(escalatorGroup);
+  // Порядок загрузки: декодер Draco и эскалатор (нужны для первого кадра),
+  // затем станция и вагон — чтобы они не отнимали канал у спуска
+  getDracoLoader().preload();
+  let restStarted = false;
+  const loadRestOfScene = () => {
+    if (restStarted) return;
+    restStarted = true;
+    setupStationEnvironment();
+    loadSubwayModel();
+  };
   const startDescent = () => {
     isEscalatorLoaded = true;
     descentStartTime = performance.now();
+    loadRestOfScene();
   };
-  createGLTFLoader().load('assets/models/escalator_system.glb?v=20261121', (gltf) => {
+  createGLTFLoader().load('assets/models/escalator_system.glb?v=20261122', (gltf) => {
     escalatorGroup.add(gltf.scene);
     startDescent();
   }, undefined, (err) => {
@@ -266,12 +283,6 @@ export function initSubwayScene() {
   // 8. Прогрессивное фоновое подключение остальных систем без микрофризов
   requestAnimationFrame(() => {
     setupSubwayLighting();
-    setupStationEnvironment();
-
-    // Загрузка модели вагона в фоновом потоке без конкуренции за кадр
-    setTimeout(() => {
-      loadSubwayModel();
-    }, 400);
   });
 }
 
@@ -348,7 +359,7 @@ function setupStationEnvironment() {
   stationEnvGroup.name = 'Station';
 
   // Геометрия и материалы станции заданы в assets/models/station.blend (экспорт station.glb)
-  createGLTFLoader().load('assets/models/station.glb?v=20261121', (gltf) => {
+  createGLTFLoader().load('assets/models/station.glb?v=20261122', (gltf) => {
     stationEnvGroup.add(gltf.scene);
   }, undefined, (err) => {
     console.error('Ошибка загрузки station.glb:', err);
@@ -374,13 +385,18 @@ function setupStationEnvironment() {
 
 // Общий загрузчик GLB с Draco-декодером
 let sharedDracoLoader = null;
-function createGLTFLoader() {
+function getDracoLoader() {
   if (!sharedDracoLoader) {
     sharedDracoLoader = new DRACOLoader();
     sharedDracoLoader.setDecoderPath('./js/vendor/draco/');
+    sharedDracoLoader.setDecoderConfig({ type: 'wasm' });
   }
+  return sharedDracoLoader;
+}
+
+function createGLTFLoader() {
   const loader = new GLTFLoader();
-  loader.setDRACOLoader(sharedDracoLoader);
+  loader.setDRACOLoader(getDracoLoader());
   return loader;
 }
 
@@ -400,8 +416,8 @@ function setupVideoTextures() {
     v.volume = 0;
     v.playsInline = true;
     v.loop = true;
-    // Первые 2 экрана кэшируются сразу, остальные подгружают метаданные
-    v.preload = stage <= 2 ? 'auto' : 'metadata';
+    // Видео не грузятся заранее: превью этапа качается, когда посетитель до него дошёл
+    v.preload = 'none';
 
     const tex = new THREE.VideoTexture(v);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -435,7 +451,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261121c',
+    'assets/models/subway.glb?v=20261122',
     (gltf) => {
       subwayModel = gltf.scene;
 
@@ -470,6 +486,7 @@ function loadSubwayModel() {
 
       scene.add(subwayModel);
       isSubwayLoaded = true;
+      if (isReturningVisitor) finishDescent({ audioFade: 0.3, chime: false });
 
       // Если спуск на эскалаторе уже завершился или отключен, активируем ScrollTrigger и скрываем лоадер
       if (!isDescentActive) {
@@ -635,9 +652,9 @@ function setActiveStage(stageIndex) {
       if (v.paused) v.play().catch(() => {});
     } else {
       if (!v.paused) v.pause();
-      // Упреждающая предзагрузка метаданных для соседнего этапа (±1)
-      if (Math.abs(stageIndex - targetStage) === 1 && v.preload === 'none') {
-        v.preload = 'metadata';
+      // Следующий этап начинает подгружаться заранее
+      if (targetStage === stageIndex + 1 && v.preload === 'none') {
+        v.preload = 'auto';
       }
     }
   });
@@ -1302,6 +1319,7 @@ export function getStageVideo(stageIndex) {
 function finishDescent({ audioFade = 0.3, placeCamera = true, chime = true } = {}) {
   if (!isDescentActive) return;
   isDescentActive = false;
+  try { localStorage.setItem(DESCENT_SEEN_KEY, '1'); } catch { /* приватный режим */ }
   const preloader = document.getElementById('scene-preloader');
   if (preloader) {
     preloader.style.opacity = '0';

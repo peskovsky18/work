@@ -19,7 +19,7 @@ def run():
         export_lights=False,
         export_extras=False,
         export_image_format='WEBP',
-        export_image_quality=90,
+        export_image_quality=82,
         export_draco_mesh_compression_enable=True,
         export_draco_mesh_compression_level=6,
         export_draco_position_quantization=14,

@@ -61,7 +61,7 @@ function renderWorks() {
     // Скрытый источник превью для текстуры экрана в вагоне
     videoSources.appendChild(el('video', {
       id: `video-stage-${stage}`, src: work.preview, playsinline: '', 'webkit-playsinline': '',
-      loop: '', muted: '', preload: stage === 1 ? 'metadata' : 'none', crossorigin: 'anonymous'
+      loop: '', muted: '', preload: 'none', crossorigin: 'anonymous'
     }));
 
     const titleCapsule = el('div', { class: 'glass-capsule title-capsule' }, [

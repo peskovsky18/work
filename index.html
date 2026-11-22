@@ -17,11 +17,17 @@
   <meta property="og:title" content="Александр Песковский | Режиссура и медиа">
   <meta property="og:description" content="Интерактивное кинематографичное 3D-путешествие в вагоне метро через авторские видеоработы.">
   <meta property="og:site_name" content="Александр Песковский">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:image" content="https://peskovsky18.github.io/work/assets/images/og-cover.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Салон вагона метро с экранами, на которых идут видеоработы">
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Александр Песковский | Режиссура и медиа">
   <meta name="twitter:description" content="Интерактивное кинематографичное 3D-путешествие в вагоне метро через авторские видеоработы.">
+  <meta name="twitter:image" content="https://peskovsky18.github.io/work/assets/images/og-cover.jpg">
 
   <!-- Favicon & PWA Manifest -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5a623'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 3v2h2V7H6zm4 0v2h2V7h-2zm4 0v2h2V7h-2zm4 0v2h2V7h-2z'/%3E%3C/svg%3E">
@@ -36,7 +42,7 @@
   </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css?v=20261121">
+  <link rel="stylesheet" href="css/style.css?v=20261122">
 
   <!-- GSAP & ScrollTrigger -->
   <script src="js/vendor/gsap.min.js"></script>
@@ -84,12 +90,8 @@
   <!-- =========================================================================
        СКРЫТЫЕ ИСТОЧНИКИ ВИДЕО ДЛЯ THREE.VIDEOTEXTURE
        ========================================================================= -->
-  <div class="video-texture-sources" aria-hidden="true">
-    <video id="video-swag" src="assets/videos/preview_swag.mp4" playsinline webkit-playsinline loop muted preload="metadata" crossorigin="anonymous"></video>
-    <video id="video-mini-swag" src="assets/videos/preview_mini_swag.mp4" playsinline webkit-playsinline loop muted preload="none" crossorigin="anonymous"></video>
-    <video id="video-tunnel" src="assets/videos/preview_tunnel.mp4" playsinline webkit-playsinline loop muted preload="none" crossorigin="anonymous"></video>
-    <video id="video-industry" src="assets/videos/preview_industry.mp4" playsinline webkit-playsinline loop muted preload="none" crossorigin="anonymous"></video>
-  </div>
+  <!-- Заполняется из js/projects-data.js -->
+  <div class="video-texture-sources" id="video-texture-sources" aria-hidden="true"></div>
 
   <!-- =========================================================================
        ВЕРХНЯЯ ШАПКА: БРЕНД, НАВИГАЦИЯ ПО ВАГОНУ И КНОПКИ СВЯЗИ
@@ -130,7 +132,7 @@
   </header>
 
   <!-- =========================================================================
-       SCROLLYTELLING ТРЕК: 4 ЭТАПА ПОГРУЖЕНИЯ В ПРОСТРАНСТВО
+       SCROLLYTELLING ТРЕК: ВХОД, РАБОТЫ, КОНТАКТЫ
        ========================================================================= -->
   <main class="scroll-story" id="scroll-story">
 
@@ -145,174 +147,12 @@
       </div>
     </section>
 
-    <!-- -----------------------------------------------------------------------
-         ЭТАП 1: ЭКРАН 1 («СВЭГ»)
-         ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-video" id="stage-1" data-stage-index="1">
-      <div class="stage-container">
-        
-        <!-- Верхняя капсула заголовка -->
-        <div class="floating-hud-top">
-          <div class="glass-capsule title-capsule">
-            <span class="hud-category-label">Видео</span>
-            <span class="hud-item-title">Свэг</span>
-            <span class="hud-badge">Shot on iPhone</span>
-          </div>
-        </div>
-
-        <!-- Нижняя капсула плеера (только таймлайн, пауза и звук) -->
-        <div class="floating-hud-bottom">
-          <div class="glass-capsule player-capsule">
-            
-            <button class="player-icon-btn play-pause-btn" id="play-btn-stage1" aria-label="Воспроизвести / пауза" title="Воспроизвести / пауза">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-            </button>
-
-            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage1" title="Перемотка">
-              <div class="timeline-bar-bg">
-                <div class="timeline-bar-fill" id="timeline-progress-stage1"></div>
-              </div>
-            </div>
-
-            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук" title="Включить / выключить звук">
-              <span class="sound-btn-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-              </span>
-            </button>
-
-          </div>
-        </div>
-
-      </div>
-    </section>
+    <!-- Этапы с работами (1..N) создаются из js/projects-data.js перед контактами -->
 
     <!-- -----------------------------------------------------------------------
-         ЭТАП 2: ЭКРАН 2 («МИНИ СВЭГ»)
+         ФИНАЛЬНЫЙ ЭТАП: ПРИБЫТИЕ НА СТАНЦИЮ (КОНТАКТЫ), НОМЕР ЗАДАЁТСЯ ИЗ ДАННЫХ
          ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-video" id="stage-2" data-stage-index="2">
-      <div class="stage-container">
-        
-        <!-- Верхняя капсула заголовка -->
-        <div class="floating-hud-top">
-          <div class="glass-capsule title-capsule">
-            <span class="hud-category-label">Видео</span>
-            <span class="hud-item-title">Мини свэг</span>
-            <span class="hud-badge">Shot on iPhone</span>
-          </div>
-        </div>
-
-        <!-- Нижняя капсула плеера (только таймлайн, пауза и звук) -->
-        <div class="floating-hud-bottom">
-          <div class="glass-capsule player-capsule">
-            
-            <button class="player-icon-btn play-pause-btn" id="play-btn-stage2" aria-label="Воспроизвести / пауза" title="Воспроизвести / пауза">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-            </button>
-
-            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage2" title="Перемотка">
-              <div class="timeline-bar-bg">
-                <div class="timeline-bar-fill" id="timeline-progress-stage2"></div>
-              </div>
-            </div>
-
-            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук" title="Включить / выключить звук">
-              <span class="sound-btn-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-              </span>
-            </button>
-
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- -----------------------------------------------------------------------
-         ЭТАП 3: ЭКРАН 3 («НОЧНОЙ ТОННЕЛЬ»)
-         ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-video" id="stage-3" data-stage-index="3">
-      <div class="stage-container">
-        
-        <!-- Верхняя капсула заголовка -->
-        <div class="floating-hud-top">
-          <div class="glass-capsule title-capsule">
-            <span class="hud-category-label">Видео</span>
-            <span class="hud-item-title">Ночной тоннель</span>
-            <span class="hud-badge">Shot on iPhone</span>
-          </div>
-        </div>
-
-        <!-- Нижняя капсула плеера (только таймлайн, пауза и звук) -->
-        <div class="floating-hud-bottom">
-          <div class="glass-capsule player-capsule">
-            
-            <button class="player-icon-btn play-pause-btn" id="play-btn-stage3" aria-label="Воспроизвести / пауза" title="Воспроизвести / пауза">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-            </button>
-
-            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage3" title="Перемотка">
-              <div class="timeline-bar-bg">
-                <div class="timeline-bar-fill" id="timeline-progress-stage3"></div>
-              </div>
-            </div>
-
-            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук" title="Включить / выключить звук">
-              <span class="sound-btn-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-              </span>
-            </button>
-
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- -----------------------------------------------------------------------
-         ЭТАП 4: ЭКРАН 4 («ИНДУСТРИЯ»)
-         ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-video" id="stage-4" data-stage-index="4">
-      <div class="stage-container">
-        
-        <!-- Верхняя капсула заголовка -->
-        <div class="floating-hud-top">
-          <div class="glass-capsule title-capsule">
-            <span class="hud-category-label">Видео</span>
-            <span class="hud-item-title">Индустрия</span>
-            <span class="hud-badge">Shot on iPhone</span>
-          </div>
-        </div>
-
-        <!-- Нижняя капсула плеера (только таймлайн, пауза и звук) -->
-        <div class="floating-hud-bottom">
-          <div class="glass-capsule player-capsule">
-            
-            <button class="player-icon-btn play-pause-btn" id="play-btn-stage4" aria-label="Воспроизвести / пауза" title="Воспроизвести / пауза">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-            </button>
-
-            <div class="timeline-scrubber-wrap" id="timeline-wrap-stage4" title="Перемотка">
-              <div class="timeline-bar-bg">
-                <div class="timeline-bar-fill" id="timeline-progress-stage4"></div>
-              </div>
-            </div>
-
-            <button class="player-icon-btn sound-toggle-btn" aria-label="Переключить звук" title="Включить / выключить звук">
-              <span class="sound-btn-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-              </span>
-            </button>
-
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- -----------------------------------------------------------------------
-         ЭТАП 5: ФИНАЛЬНЫЙ ПЛАН И ПРИБЫТИЕ НА СТАНЦИЮ (КОНТАКТЫ)
-         ----------------------------------------------------------------------- -->
-    <section class="story-stage stage-contact" id="stage-5" data-stage-index="5">
+    <section class="story-stage stage-contact" id="stage-contacts">
       <div class="stage-container contact-layout">
         <div class="contact-glass-card">
           <h2 class="contact-card-title">Александр Песковский</h2>
@@ -333,48 +173,25 @@
 
   </main>
 
-  <!-- Интерактивная схема маршрута метро (клик по схеме на станции) -->
-  <div id="map-modal" class="project-modal" aria-hidden="true">
-    <div class="modal-backdrop" id="map-modal-backdrop"></div>
-    <div class="modal-sheet map-modal-sheet">
-      <button class="modal-close-btn" id="map-modal-close-btn" aria-label="Закрыть">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-      <div class="modal-body">
-        <span class="modal-badge">МАРШРУТ И ПРОЕКТЫ</span>
-        <h3 class="modal-title">Линия Александра Песковского</h3>
-        <p class="modal-desc">Интерактивная карта проектов. Нажмите на любую станцию, чтобы переместиться к ней в вагоне.</p>
-        <div class="metro-map-route">
-          <div class="map-station-node" data-goto-stage="0">
-            <span class="station-ring ring-start"></span>
-            <div class="station-info"><strong class="st-name">Вход на станцию</strong><span class="st-sub">Платформа 1</span></div>
-          </div>
-          <div class="map-station-node" data-goto-stage="1">
-            <span class="station-ring ring-video"></span>
-            <div class="station-info"><strong class="st-name">Свэг</strong><span class="st-sub">Видео 01</span></div>
-          </div>
-          <div class="map-station-node" data-goto-stage="2">
-            <span class="station-ring ring-video"></span>
-            <div class="station-info"><strong class="st-name">Мини свэг</strong><span class="st-sub">Видео 02</span></div>
-          </div>
-          <div class="map-station-node" data-goto-stage="3">
-            <span class="station-ring ring-tunnel"></span>
-            <div class="station-info"><strong class="st-name">Проект 03 • Ночной тоннель</strong><span class="st-sub">Разгон состава</span></div>
-          </div>
-          <div class="map-station-node" data-goto-stage="4">
-            <span class="station-ring ring-tunnel"></span>
-            <div class="station-info"><strong class="st-name">Проект 04 • Индустрия</strong><span class="st-sub">Screen 04</span></div>
-          </div>
-          <div class="map-station-node" data-goto-stage="5">
-            <span class="station-ring ring-finish"></span>
-            <div class="station-info"><strong class="st-name">Контакты</strong><span class="st-sub">Конечная станция • Прибытие</span></div>
-          </div>
+  <!-- Полноэкранный просмотр полной версии работы -->
+  <div id="work-viewer" class="work-viewer" role="dialog" aria-modal="true" aria-labelledby="work-viewer-title" aria-hidden="true" hidden>
+    <div class="work-viewer-backdrop" data-viewer-close></div>
+    <div class="work-viewer-sheet">
+      <div class="work-viewer-head">
+        <div class="work-viewer-heading">
+          <span class="hud-category-label" id="work-viewer-category"></span>
+          <h3 class="work-viewer-title" id="work-viewer-title"></h3>
+          <p class="work-viewer-meta" id="work-viewer-meta"></p>
         </div>
+        <button class="modal-close-btn work-viewer-close" type="button" data-viewer-close aria-label="Закрыть">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
+      <video class="work-viewer-video" id="work-viewer-video" controls playsinline preload="none"></video>
     </div>
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261121"></script>
+  <script type="module" src="js/main.js?v=20261122"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { DRACOLoader } from './vendor/DRACOLoader.js';
 import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime, startEscalatorAudio, stopEscalatorAudio } from './subwayAudio.js';
 import { FreeRoamController } from './freeRoam.js';
+import { WORKS, stageSlug } from './projects-data.js';
 
 // =============================================================================
 // КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
@@ -45,14 +46,19 @@ const CAMERA_WAYPOINTS = [
   }
 ];
 
+// Точки камеры: вход, по одной на каждый экран с работой, контакты
+if (CAMERA_WAYPOINTS.length !== WORKS.length + 2) {
+  console.warn(`Работ ${WORKS.length}, а точек камеры для экранов ${CAMERA_WAYPOINTS.length - 2}: в вагоне ровно 4 экрана`);
+}
+
 // Глобальное состояние
 let scene, camera, renderer, clock;
 let freeRoamController = null;
 let subwayModel;
 const screenMeshes = [];
-let platformMapMesh;
-let video1, video2, video3, video4;
-let videoTexture1, videoTexture2, videoTexture3, videoTexture4;
+// Превью-видео и их текстуры по номеру этапа (1..WORKS.length), источник — js/projects-data.js
+const stageVideos = [];
+const stageVideoTextures = [];
 let screenLight1, screenLight2;
 let activeStage = 0;
 let isGlobalMuted = true;
@@ -383,57 +389,33 @@ function createGLTFLoader() {
 // ВИДЕОТЕКСТУРЫ ДЛЯ ЭКРАНОВ ВАГОНА (ОПТИМИЗИРОВАННАЯ ФОНОВАЯ ИНИЦИАЛИЗАЦИЯ)
 // =============================================================================
 function setupVideoTextures() {
-  if (video1) return; // предотвращаем повторную инициализацию
+  if (stageVideos.length) return; // предотвращаем повторную инициализацию
 
-  const initVideo = (id) => {
-    const v = document.getElementById(id);
-    if (!v) return null;
+  WORKS.forEach((work, i) => {
+    const stage = i + 1;
+    const v = document.getElementById(`video-stage-${stage}`);
+    if (!v) return;
     v.defaultMuted = true;
     v.muted = true;
     v.volume = 0;
     v.playsInline = true;
-    v.setAttribute('playsinline', '');
-    v.setAttribute('webkit-playsinline', '');
     v.loop = true;
-    // Только первые 2 экрана кэшируются сразу, остальные подгружают метаданные
-    v.preload = (id === 'video-swag' || id === 'video-mini-swag') ? 'auto' : 'metadata';
+    // Первые 2 экрана кэшируются сразу, остальные подгружают метаданные
+    v.preload = stage <= 2 ? 'auto' : 'metadata';
 
     const tex = new THREE.VideoTexture(v);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
     tex.generateMipmaps = false;
-    return { video: v, texture: tex };
-  };
-
-  const v1 = initVideo('video-swag');
-  if (v1) {
-    video1 = v1.video;
-    videoTexture1 = v1.texture;
-  }
-
-  const v2 = initVideo('video-mini-swag');
-  if (v2) {
-    video2 = v2.video;
-    videoTexture2 = v2.texture;
-  }
-
-  const v3 = initVideo('video-tunnel');
-  if (v3) {
-    video3 = v3.video;
-    videoTexture3 = v3.texture;
-  }
-
-  const v4 = initVideo('video-industry');
-  if (v4) {
-    video4 = v4.video;
-    videoTexture4 = v4.texture;
-  }
+    stageVideos[stage] = v;
+    stageVideoTextures[stage] = tex;
+  });
 
   // Разблокировка видео при первом любом касании, клике, скролле пользователя (Safari / iOS)
   const unlockVideos = () => {
-    const cur = activeStage;
-    const targetVideo = cur === 1 ? video1 : (cur === 2 ? video2 : (cur === 3 ? video3 : (cur === 4 ? video4 : video1)));
+    if (document.body.classList.contains('viewer-open')) return;
+    const targetVideo = stageVideos[activeStage] || stageVideos[1];
     if (targetVideo && targetVideo.paused) {
       targetVideo.play().then(() => updatePlayButtonsUI()).catch(() => {});
     }
@@ -458,16 +440,15 @@ function loadSubwayModel() {
       subwayModel = gltf.scene;
 
       // Геометрия, материалы и двери полностью заданы в assets/models/subway.blend.
-      // В рантайме остаётся только подключить видео к экранам 1-4 и найти створки для анимации.
+      // В рантайме остаётся только подключить видео к экранам и найти створки для анимации.
       setupVideoTextures();
-      const videoTextures = [videoTexture1, videoTexture2, videoTexture3, videoTexture4];
 
       subwayModel.traverse((child) => {
         if (!child.isMesh) return;
         const match = child.name.match(/^Screen_(\d+)_Display$/);
         if (!match) return;
         const sIdx = parseInt(match[1], 10);
-        const tex = videoTextures[sIdx - 1];
+        const tex = stageVideoTextures[sIdx];
         if (!tex) return; // экраны 5-8 — выключенные, материал из модели
         screenMeshes[sIdx] = child;
         child.material = new THREE.MeshStandardMaterial({
@@ -647,10 +628,8 @@ function setActiveStage(stageIndex) {
   syncAudioForActiveStage();
 
   // Интеллектуальная ленивая предзагрузка и воспроизведение видео экранов
-  const allVideos = [video1, video2, video3, video4];
-  allVideos.forEach((v, vIdx) => {
+  stageVideos.forEach((v, targetStage) => {
     if (!v) return;
-    const targetStage = vIdx + 1;
     if (stageIndex === targetStage) {
       if (v.preload !== 'auto') v.preload = 'auto';
       if (v.paused) v.play().catch(() => {});
@@ -665,8 +644,7 @@ function setActiveStage(stageIndex) {
   updatePlayButtonsUI();
 
   // Синхронизация хэша в адресной строке
-  const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 3: 'project-03', 4: 'project-04', 5: 'contacts' };
-  const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;
+  const hashStr = stageSlug(stageIndex);
   if (history.replaceState && window.location.hash !== `#${hashStr}`) {
     history.replaceState(null, '', `#${hashStr}`);
   }
@@ -714,7 +692,7 @@ function fadeVideoVolume(video, targetVolume, duration = 260) {
 }
 
 function syncAudioForActiveStage() {
-  const allVideos = [video1, video2, video3, video4];
+  const allVideos = stageVideos.filter(Boolean);
 
   if (isGlobalMuted) {
     allVideos.forEach((v) => {
@@ -791,8 +769,7 @@ export function scrollToStage(stageIndex) {
   const stageEls = document.querySelectorAll('.story-stage');
   if (stageEls[stageIndex]) {
     stageEls[stageIndex].scrollIntoView({ behavior: 'smooth' });
-    const slugMap = { 0: 'intro', 1: 'swag', 2: 'mini-swag', 3: 'project-03', 4: 'project-04', 5: 'contacts' };
-    const hashStr = slugMap[stageIndex] || `stage-${stageIndex}`;
+    const hashStr = stageSlug(stageIndex);
     if (history.replaceState) {
       history.replaceState(null, '', `#${hashStr}`);
     }
@@ -815,7 +792,6 @@ function setupEventListeners() {
     if (now - lastRaycast > 60 && !isDescentActive && camera) {
       lastRaycast = now;
       const validScreens = screenMeshes.filter(Boolean);
-      if (platformMapMesh) validScreens.push(platformMapMesh);
       if (validScreens.length > 0) {
         raycaster.setFromCamera(mouseVec, camera);
         const intersects = raycaster.intersectObjects(validScreens, false);
@@ -872,20 +848,15 @@ function setupEventListeners() {
     );
     raycaster.setFromCamera(clickVec, camera);
     const screenTargets = screenMeshes.filter(Boolean);
-    if (platformMapMesh) screenTargets.push(platformMapMesh);
     const intersects = raycaster.intersectObjects(screenTargets, false);
     if (intersects.length > 0) {
       const hit = intersects[0].object;
-      if (hit === platformMapMesh) {
-        window.dispatchEvent(new CustomEvent('open-map-modal'));
+      if (isZoomedToScreen) {
+        resetScreenZoom();
       } else {
-        if (isZoomedToScreen) {
-          resetScreenZoom();
-        } else {
-          const sIdx = screenMeshes.indexOf(hit);
-          const targetStage = sIdx >= 1 && sIdx <= 4 ? sIdx : Math.max(1, Math.min(activeStage, 4));
-          zoomToScreen(targetStage);
-        }
+        const sIdx = screenMeshes.indexOf(hit);
+        const targetStage = sIdx >= 1 && sIdx <= WORKS.length ? sIdx : Math.max(1, Math.min(activeStage, WORKS.length));
+        zoomToScreen(targetStage);
       }
     } else if (isZoomedToScreen) {
       resetScreenZoom();
@@ -894,7 +865,7 @@ function setupEventListeners() {
 
   window.addEventListener('click', (e) => {
     // Не срабатывать, если клик был по элементам интерфейса
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .work-viewer')) return;
     handleScreenInteract(e.clientX, e.clientY);
   });
 
@@ -903,14 +874,14 @@ function setupEventListeners() {
 
   // Двойной клик для приближения к экрану
   window.addEventListener('dblclick', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .work-viewer')) return;
     toggleScreenZoom();
   });
 
   // Двойной тап для мобильных устройств
   let lastTouchEndTime = 0;
   window.addEventListener('touchend', (e) => {
-    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .project-modal')) return;
+    if (e.target.closest('button, a, input, .glass-capsule, .site-header, .work-viewer')) return;
     const now = performance.now();
     if (now - lastTouchEndTime < 350 && now - lastTouchEndTime > 50) {
       toggleScreenZoom();
@@ -931,13 +902,13 @@ function setupEventListeners() {
 let isZoomedToScreen = false;
 
 export function zoomToScreen(stage) {
-  const maxStage = CAMERA_WAYPOINTS.length - 2; // Экран 4 (Index 4)
+  const maxStage = WORKS.length; // последний экран с работой
   const targetStage = Math.max(1, Math.min(stage || activeStage, maxStage));
   isZoomedToScreen = true;
   playHapticChime();
 
   activeStage = targetStage;
-  updateActiveStage(targetStage);
+  setActiveStage(targetStage);
 
   const isMobile = window.innerWidth < 768;
   const currentWp = CAMERA_WAYPOINTS[targetStage][isMobile ? 'mobile' : 'desktop'];
@@ -979,20 +950,14 @@ function toggleVideoPlay(video) {
 }
 
 function updatePlayButtonsUI() {
-  const playBtns = [
-    document.getElementById('play-btn-stage1'),
-    document.getElementById('play-btn-stage2'),
-    document.getElementById('play-btn-stage3'),
-    document.getElementById('play-btn-stage4')
-  ];
-  const videos = [video1, video2, video3, video4];
 
   const getPlaySvg = (isPaused) => isPaused
     ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`
     : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`;
 
-  playBtns.forEach((btn, idx) => {
-    if (btn && videos[idx]) btn.innerHTML = getPlaySvg(videos[idx].paused);
+  stageVideos.forEach((v, stage) => {
+    const btn = document.getElementById(`play-btn-stage${stage}`);
+    if (btn && v) btn.innerHTML = getPlaySvg(v.paused);
   });
 }
 
@@ -1224,24 +1189,20 @@ function animate() {
   }
 
   // 2.3c Мягкое акцентное свечение экранов при воспроизведении видео
-  if (screenLight1 && video1) {
-    const base1 = video1.paused ? 0.60 : 0.85;
+  if (screenLight1 && stageVideos[1]) {
+    const base1 = stageVideos[1].paused ? 0.60 : 0.85;
     screenLight1.intensity += (base1 - screenLight1.intensity) * 0.15;
   }
-  if (screenLight2 && video2) {
-    const base2 = video2.paused ? 0.60 : 0.85;
+  if (screenLight2 && stageVideos[2]) {
+    const base2 = stageVideos[2].paused ? 0.60 : 0.85;
     screenLight2.intensity += (base2 - screenLight2.intensity) * 0.15;
   }
 
   // 2.3d Интеллектуальное обновление кадров видеотекстур:
   // Обновляем ТОЛЬКО текстуру текущего активного этапа и ТОЛЬКО если кадр действительно сменился!
   if (!isDescentActive) {
-    let curV = null;
-    let curTex = null;
-    if (activeStage === 1) { curV = video1; curTex = videoTexture1; }
-    else if (activeStage === 2) { curV = video2; curTex = videoTexture2; }
-    else if (activeStage === 3) { curV = video3; curTex = videoTexture3; }
-    else if (activeStage === 4) { curV = video4; curTex = videoTexture4; }
+    const curV = stageVideos[activeStage];
+    const curTex = stageVideoTextures[activeStage];
 
     if (curV && curTex && !curV.paused && curV.readyState >= 2) {
       if (curV._lastUploadedTime !== curV.currentTime) {
@@ -1303,16 +1264,13 @@ function syncScrubberUI() {
   lastScrubberUpdateTime = now;
 
   if (!cachedScrubbers) {
-    cachedScrubbers = [1, 2, 3, 4].map((idx) => ({
+    cachedScrubbers = WORKS.map((_, i) => i + 1).map((idx) => ({
       progressEl: document.getElementById(`timeline-progress-stage${idx}`),
       timeText: document.getElementById(`time-text-stage${idx}`)
     }));
   }
 
-  const v = (activeStage === 1) ? video1 :
-            (activeStage === 2) ? video2 :
-            (activeStage === 3) ? video3 :
-            (activeStage === 4) ? video4 : null;
+  const v = stageVideos[activeStage] || null;
 
   if (v && v.duration) {
     const item = cachedScrubbers[activeStage - 1];
@@ -1333,8 +1291,8 @@ function formatTime(seconds) {
 }
 
 // Экспорт для управления воспроизведением из внешнего UI
-export function getVideos() {
-  return { video1, video2, video3, video4 };
+export function getStageVideo(stageIndex) {
+  return stageVideos[stageIndex] || null;
 }
 
 /**
@@ -1371,10 +1329,11 @@ function finishDescent({ audioFade = 0.3, placeCamera = true, chime = true } = {
       camera.lookAt(camCurrentTarget);
     }
   }
-  if (video1 && video1.paused) {
-    video1.play().catch(() => {});
+  if (stageVideos[1] && stageVideos[1].paused) {
+    stageVideos[1].play().catch(() => {});
   }
   initScrollTriggers();
+  window.dispatchEvent(new CustomEvent('descent-finished'));
 }
 
 export function skipDescent() {

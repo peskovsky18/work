@@ -1,57 +1,110 @@
 /**
- * Александр Песковский — 2026
- * Основная точка входа: UI логика и связка с 3D сценой
+ * Александр Песковский — портфолио
+ * Точка входа: этапы с работами из js/projects-data.js, UI плееров и связка с 3D-сценой
  */
 
-import { initSubwayScene, scrollToStage, toggleGlobalSound, getVideos, resetScreenZoom, toggleScreenZoom, getActiveStage, toggleFreeRoam, isFreeRoamActive } from './scene3d.js';
+import { initSubwayScene, scrollToStage, toggleGlobalSound, getStageVideo, resetScreenZoom, toggleScreenZoom, getActiveStage, toggleFreeRoam, isFreeRoamActive } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
+import { WORKS, CONTACT_STAGE, LEGACY_HASHES, stageSlug } from './projects-data.js';
 
 function startApp() {
-  // Expose methods for testing, automation, and external controls
+  // Доступ для отладки и автоматических проверок
   window.scrollToStage = scrollToStage;
   window.getActiveStage = getActiveStage;
   window.toggleFreeRoam = toggleFreeRoam;
   window.isFreeRoamActive = isFreeRoamActive;
 
-  // 1. Немедленная инициализация 3D сцены метро (кадр 0 рендерится мгновенно)
+  // 0. Этапы с работами и источники видео создаются из данных до старта сцены
+  renderWorks();
+
+  // 1. 3D-сцена (кадр 0 рендерится сразу)
   initSubwayScene();
 
-  // 2. Инициализация навигации по этапам
   initNavigation();
-
-  // 2.1 Инициализация переключения режимов (Проекты / Free Roam)
   initFreeRoamNavigation();
-
-  // 3. Инициализация контролов плеера для обоих экранов
   initPlayerControls();
-
-  // 4. Горячие клавиши
+  initWorkViewer();
   initKeyboardShortcuts();
-
-  // 5. Схема линии метро (клик по схеме на станции)
-  initMapModal();
-
-  // 6. Снятие устаревшего Service Worker
   initServiceWorker();
-
-  // 7. Обработка прямых ссылок (URL Hash Routing)
   initHashRouting();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp);
-} else {
-  startApp();
+const isViewerOpen = () => document.body.classList.contains('viewer-open');
+
+// =============================================================================
+// ЭТАПЫ С РАБОТАМИ (ИЗ js/projects-data.js)
+// =============================================================================
+const ICON_PLAY = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
+const ICON_PAUSE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>';
+const ICON_MUTED = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+const ICON_EXPAND = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  Object.entries(attrs).forEach(([key, value]) => {
+    if (key === 'text') node.textContent = value;
+    else if (key === 'html') node.innerHTML = value;
+    else node.setAttribute(key, value);
+  });
+  children.filter(Boolean).forEach((child) => node.appendChild(child));
+  return node;
+}
+
+function renderWorks() {
+  const story = document.getElementById('scroll-story');
+  const contact = document.getElementById('stage-contacts');
+  const videoSources = document.getElementById('video-texture-sources');
+
+  WORKS.forEach((work, i) => {
+    const stage = i + 1;
+
+    // Скрытый источник превью для текстуры экрана в вагоне
+    videoSources.appendChild(el('video', {
+      id: `video-stage-${stage}`, src: work.preview, playsinline: '', 'webkit-playsinline': '',
+      loop: '', muted: '', preload: stage === 1 ? 'metadata' : 'none', crossorigin: 'anonymous'
+    }));
+
+    const titleCapsule = el('div', { class: 'glass-capsule title-capsule' }, [
+      el('span', { class: 'hud-category-label', text: work.category }),
+      el('span', { class: 'hud-item-title', text: work.title }),
+      work.badge ? el('span', { class: 'hud-badge', text: work.badge }) : null
+    ]);
+
+    const playerCapsule = el('div', { class: 'glass-capsule player-capsule' }, [
+      el('button', { class: 'player-icon-btn play-pause-btn', id: `play-btn-stage${stage}`, type: 'button', 'aria-label': 'Воспроизвести / пауза', title: 'Воспроизвести / пауза', html: ICON_PLAY }),
+      el('div', { class: 'timeline-scrubber-wrap', id: `timeline-wrap-stage${stage}`, title: 'Перемотка' }, [
+        el('div', { class: 'timeline-bar-bg' }, [el('div', { class: 'timeline-bar-fill', id: `timeline-progress-stage${stage}` })])
+      ]),
+      el('button', { class: 'player-icon-btn sound-toggle-btn', type: 'button', 'aria-label': 'Переключить звук', title: 'Включить / выключить звук' }, [
+        el('span', { class: 'sound-btn-icon', html: ICON_MUTED })
+      ]),
+      work.full ? el('button', { class: 'watch-full-btn', type: 'button', 'data-work': String(i), 'aria-label': `Смотреть «${work.title}» полностью` }, [
+        el('span', { class: 'watch-full-icon', html: ICON_EXPAND }),
+        el('span', { class: 'watch-full-label', text: 'Смотреть полностью' })
+      ]) : null
+    ]);
+
+    const section = el('section', { class: 'story-stage stage-video', id: `stage-${stage}`, 'data-stage-index': String(stage) }, [
+      el('div', { class: 'stage-container' }, [
+        el('div', { class: 'floating-hud-top' }, [titleCapsule]),
+        el('div', { class: 'floating-hud-bottom' }, [playerCapsule])
+      ])
+    ]);
+    story.insertBefore(section, contact);
+  });
+
+  contact.id = `stage-${CONTACT_STAGE}`;
+  contact.dataset.stageIndex = String(CONTACT_STAGE);
 }
 
 // =============================================================================
-// НАВИГАЦИЯ ПО СЕКЦИЯМ
+// НАВИГАЦИЯ ПО ЭТАПАМ
 // =============================================================================
 function initNavigation() {
-  // Горизонтальные свайпы на смартфонах для быстрого переключения этапов (только в сюжетном режиме)
+  // Горизонтальные свайпы на смартфонах (только в сюжетном режиме)
   let touchStartX = 0, touchStartY = 0;
   window.addEventListener('touchstart', (e) => {
-    if (document.body.classList.contains('is-free-roam')) return;
+    if (document.body.classList.contains('is-free-roam') || isViewerOpen()) return;
     if (e.touches.length === 1) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
@@ -59,13 +112,13 @@ function initNavigation() {
   }, { passive: true });
 
   window.addEventListener('touchend', (e) => {
-    if (document.body.classList.contains('is-free-roam')) return;
+    if (document.body.classList.contains('is-free-roam') || isViewerOpen()) return;
     if (e.changedTouches.length === 1) {
       const dx = e.changedTouches[0].clientX - touchStartX;
       const dy = e.changedTouches[0].clientY - touchStartY;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
         const cur = getActiveStage();
-        if (dx < 0 && cur < 5) {
+        if (dx < 0 && cur < CONTACT_STAGE) {
           playNavTick();
           scrollToStage(cur + 1);
         } else if (dx > 0 && cur > 0) {
@@ -87,7 +140,7 @@ function initNavigation() {
 }
 
 // =============================================================================
-// НАВИГАЦИЯ МЕЖДУ РЕЖИМАМИ (ПРОЕКТЫ / FREE ROAM)
+// РЕЖИМЫ: ПРОЕКТЫ / FREE ROOM
 // =============================================================================
 function initFreeRoamNavigation() {
   const storyTab = document.getElementById('mode-story-tab');
@@ -111,128 +164,146 @@ function initFreeRoamNavigation() {
 }
 
 // =============================================================================
-// УПРАВЛЕНИЕ ПЛЕЕРАМИ (КНОПКИ, СКРУББЕРЫ, ЗВУК)
+// ПЛЕЕРЫ ЭКРАНОВ (КНОПКИ, СКРУББЕРЫ, ЗВУК)
 // =============================================================================
 function initPlayerControls() {
-  const { video1, video2, video3, video4 } = getVideos();
-
-  // Кнопки глобального переключения звука
-  const globalSoundBtns = document.querySelectorAll('.sound-toggle-btn');
-  globalSoundBtns.forEach((btn) => {
+  document.querySelectorAll('.sound-toggle-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleGlobalSound();
     });
   });
 
-  // ЭКРАН 1: Свэг
-  setupStagePlayer(1, video1);
+  // Один общий обработчик перемотки пальцем для всех скрубберов
+  let scrubbing = null;
+  window.addEventListener('touchmove', (e) => {
+    if (scrubbing && e.touches && e.touches[0]) scrubbing(e.touches[0].clientX);
+  }, { passive: true });
+  window.addEventListener('touchend', () => { scrubbing = null; });
 
-  // ЭКРАН 2: Мини свэг
-  setupStagePlayer(2, video2);
+  WORKS.forEach((_, i) => {
+    const stage = i + 1;
+    const video = document.getElementById(`video-stage-${stage}`);
+    const playBtn = document.getElementById(`play-btn-stage${stage}`);
+    const timelineWrap = document.getElementById(`timeline-wrap-stage${stage}`);
+    const progressEl = document.getElementById(`timeline-progress-stage${stage}`);
 
-  // ЭКРАН 3: Ночной тоннель
-  setupStagePlayer(3, video3);
-
-  // ЭКРАН 4: Индустрия
-  setupStagePlayer(4, video4);
-}
-
-function setupStagePlayer(stageIndex, videoEl) {
-  const playBtn = document.getElementById(`play-btn-stage${stageIndex}`);
-  const timelineWrap = document.getElementById(`timeline-wrap-stage${stageIndex}`);
-  const progressEl = document.getElementById(`timeline-progress-stage${stageIndex}`);
-
-  const getVideo = () => {
-    const videos = getVideos();
-    return stageIndex === 1 ? videos.video1 : (stageIndex === 2 ? videos.video2 : (stageIndex === 3 ? videos.video3 : videos.video4));
-  };
-
-  // Play / Pause с надежной обработкой промиса и синхронизацией
-  if (playBtn) {
     playBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const v = getVideo();
-      if (!v) return;
-
-      if (v.paused) {
-        v.play().then(() => updatePlayIcon(playBtn, false)).catch(() => {});
-      } else {
-        v.pause();
-        updatePlayIcon(playBtn, true);
-      }
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
     });
-  }
+    video.addEventListener('play', () => { playBtn.innerHTML = ICON_PAUSE; });
+    video.addEventListener('pause', () => { playBtn.innerHTML = ICON_PLAY; });
 
-  // Привязка событий видео (play, pause) для обновления иконки кнопки
-  const v = getVideo();
-  if (v) {
-    v.addEventListener('play', () => {
-      if (playBtn) updatePlayIcon(playBtn, false);
-    });
-    v.addEventListener('pause', () => {
-      if (playBtn) updatePlayIcon(playBtn, true);
-    });
-  }
-
-  // Скруббер (клик и плавная перемотка пальцем / курсором)
-  if (timelineWrap) {
-    let isScrubbing = false;
-
-    const handleSeek = (clientX) => {
-      const v = getVideo();
-      if (!v || !v.duration) return;
-
+    const seek = (clientX) => {
+      if (!video.duration) return;
       const rect = timelineWrap.getBoundingClientRect();
       const pct = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-      v.currentTime = pct * v.duration;
-      if (progressEl) {
-        progressEl.style.width = `${pct * 100}%`;
-      }
+      video.currentTime = pct * video.duration;
+      progressEl.style.width = `${pct * 100}%`;
     };
-
     timelineWrap.addEventListener('click', (e) => {
       e.stopPropagation();
-      handleSeek(e.clientX);
+      seek(e.clientX);
     });
-
     timelineWrap.addEventListener('touchstart', (e) => {
       e.stopPropagation();
       if (e.touches && e.touches[0]) {
-        isScrubbing = true;
-        handleSeek(e.touches[0].clientX);
+        scrubbing = seek;
+        seek(e.touches[0].clientX);
       }
     }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-      if (isScrubbing && e.touches && e.touches[0]) {
-        handleSeek(e.touches[0].clientX);
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchend', () => {
-      isScrubbing = false;
-    });
-  }
-
-}
-
-function updatePlayIcon(button, isPaused) {
-  if (!button) return;
-  button.innerHTML = isPaused
-    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`
-    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`;
+  });
 }
 
 // =============================================================================
-// ГОРЯЧИЕ КЛАВИШИ (SPACE - PLAY/PAUSE, M - MUTE)
+// ПОЛНОЭКРАННЫЙ ПРОСМОТР ПОЛНОЙ ВЕРСИИ РАБОТЫ
+// =============================================================================
+function initWorkViewer() {
+  const viewer = document.getElementById('work-viewer');
+  const video = document.getElementById('work-viewer-video');
+  const titleEl = document.getElementById('work-viewer-title');
+  const categoryEl = document.getElementById('work-viewer-category');
+  const metaEl = document.getElementById('work-viewer-meta');
+  const closeBtn = viewer.querySelector('.work-viewer-close');
+  let returnFocus = null;
+  let pausedPreview = null;
+
+  const open = (index, trigger) => {
+    const work = WORKS[index];
+    if (!work || !work.full) return;
+    returnFocus = trigger || null;
+
+    titleEl.textContent = work.title;
+    categoryEl.textContent = work.category;
+    const meta = [work.year, work.role, work.client, work.badge].filter(Boolean).join(' · ');
+    metaEl.textContent = meta;
+    metaEl.hidden = !meta;
+
+    if (video.dataset.src !== work.full) {
+      video.dataset.src = work.full;
+      video.src = work.full;
+      if (work.poster) video.poster = work.poster;
+      else video.removeAttribute('poster');
+    }
+
+    // Превью на экране вагона ставим на паузу, пока смотрят полную версию
+    pausedPreview = getStageVideo(index + 1);
+    if (pausedPreview && !pausedPreview.paused) pausedPreview.pause();
+    else pausedPreview = null;
+
+    viewer.hidden = false;
+    viewer.setAttribute('aria-hidden', 'false');
+    document.documentElement.classList.add('viewer-open');
+    document.body.classList.add('viewer-open');
+    requestAnimationFrame(() => viewer.classList.add('open'));
+    video.muted = false;
+    video.play().catch(() => {});
+    closeBtn.focus({ preventScroll: true });
+  };
+
+  const close = () => {
+    if (!isViewerOpen()) return;
+    video.pause();
+    viewer.classList.remove('open');
+    viewer.setAttribute('aria-hidden', 'true');
+    document.documentElement.classList.remove('viewer-open');
+    document.body.classList.remove('viewer-open');
+    setTimeout(() => { if (!isViewerOpen()) viewer.hidden = true; }, 300);
+    if (pausedPreview) pausedPreview.play().catch(() => {});
+    pausedPreview = null;
+    if (returnFocus) returnFocus.focus({ preventScroll: true });
+  };
+
+  document.querySelectorAll('.watch-full-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      open(parseInt(btn.dataset.work, 10), btn);
+    });
+  });
+  viewer.querySelectorAll('[data-viewer-close]').forEach((node) => node.addEventListener('click', close));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isViewerOpen()) {
+      e.preventDefault();
+      close();
+    }
+  });
+}
+
+// =============================================================================
+// ГОРЯЧИЕ КЛАВИШИ
 // =============================================================================
 function initKeyboardShortcuts() {
   window.addEventListener('keydown', (e) => {
-    // Не перехватывать при вводе в текстовые поля
     if (['input', 'textarea'].includes(document.activeElement?.tagName?.toLowerCase())) return;
+    // Пока открыт полный плеер, клавиши управляют им (стандартные контролы видео)
+    if (isViewerOpen()) return;
     // В режиме Free Room стрелки и цифры управляют ходьбой, а не этапами
     if (isFreeRoamActive()) return;
+
+    const cur = getActiveStage();
+    const onWork = cur >= 1 && cur <= WORKS.length;
 
     if (e.code === 'Escape') {
       resetScreenZoom();
@@ -242,78 +313,34 @@ function initKeyboardShortcuts() {
     } else if (e.code === 'KeyM') {
       e.preventDefault();
       toggleGlobalSound();
-    } else if (e.code === 'KeyF') {
-      const cur = getActiveStage();
-      if (cur >= 1 && cur <= 4) {
-        e.preventDefault();
-        toggleScreenZoom();
+    } else if (e.code === 'KeyF' && onWork) {
+      e.preventDefault();
+      toggleScreenZoom();
+    } else if (e.code === 'Enter' && onWork && WORKS[cur - 1].full) {
+      e.preventDefault();
+      document.querySelector(`.watch-full-btn[data-work="${cur - 1}"]`)?.click();
+    } else if (e.code === 'Space' && onWork) {
+      e.preventDefault();
+      const v = getStageVideo(cur);
+      if (v) {
+        if (v.paused) v.play().catch(() => {});
+        else v.pause();
       }
-    } else if (e.code === 'Space') {
-      const cur = getActiveStage();
-      if (cur >= 1 && cur <= 4) {
-        e.preventDefault();
-        const videos = getVideos();
-        const v = cur === 1 ? videos.video1 : (cur === 2 ? videos.video2 : (cur === 3 ? videos.video3 : videos.video4));
-        if (v) {
-          if (v.paused) v.play().catch(() => {});
-          else v.pause();
-        }
-      }
-    } else if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
-      const cur = getActiveStage();
-      if (cur < 5) {
-        e.preventDefault();
-        playNavTick();
-        scrollToStage(cur + 1);
-      }
-    } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
-      const cur = getActiveStage();
-      if (cur > 0) {
-        e.preventDefault();
-        playNavTick();
-        scrollToStage(cur - 1);
-      }
+    } else if ((e.code === 'ArrowRight' || e.code === 'ArrowDown') && cur < CONTACT_STAGE) {
+      e.preventDefault();
+      playNavTick();
+      scrollToStage(cur + 1);
+    } else if ((e.code === 'ArrowLeft' || e.code === 'ArrowUp') && cur > 0) {
+      e.preventDefault();
+      playNavTick();
+      scrollToStage(cur - 1);
     } else if (e.code.startsWith('Digit')) {
       const num = parseInt(e.code.replace('Digit', ''), 10);
-      if (num >= 0 && num <= 5) {
+      if (num >= 0 && num <= CONTACT_STAGE) {
         playNavTick();
         scrollToStage(num);
       }
     }
-  });
-}
-
-// =============================================================================
-// СХЕМА ЛИНИИ МЕТРО (ВЫЗЫВАЕТСЯ КЛИКОМ ПО СХЕМЕ НА СТЕНЕ СТАНЦИИ)
-// =============================================================================
-function initMapModal() {
-  const mapModal = document.getElementById('map-modal');
-  if (!mapModal) return;
-  const mapCloseBtn = document.getElementById('map-modal-close-btn');
-  const mapBackdrop = document.getElementById('map-modal-backdrop');
-
-  const closeMap = () => {
-    mapModal.classList.remove('open');
-    mapModal.setAttribute('aria-hidden', 'true');
-  };
-  if (mapCloseBtn) mapCloseBtn.addEventListener('click', closeMap);
-  if (mapBackdrop) mapBackdrop.addEventListener('click', closeMap);
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && mapModal.classList.contains('open')) closeMap();
-  });
-
-  window.addEventListener('open-map-modal', () => {
-    mapModal.classList.add('open');
-    mapModal.setAttribute('aria-hidden', 'false');
-  });
-
-  mapModal.querySelectorAll('.map-station-node').forEach((node) => {
-    node.addEventListener('click', () => {
-      const stage = parseInt(node.dataset.gotoStage, 10);
-      playNavTick();
-      closeMap();
-      scrollToStage(stage);
-    });
   });
 }
 
@@ -331,30 +358,36 @@ function initServiceWorker() {
 }
 
 // =============================================================================
-// ОБРАБОТКА ПРЯМЫХ ССЫЛОК (URL HASH ROUTING)
+// ПРЯМЫЕ ССЫЛКИ НА ЭТАПЫ (#slug)
 // =============================================================================
-const HASH_MAP = {
-  '#intro': 0, '#stage-0': 0,
-  '#swag': 1, '#stage-1': 1, '#project-01': 1,
-  '#mini-swag': 2, '#stage-2': 2, '#project-02': 2,
-  '#03': 3, '#stage-3': 3, '#project-03': 3, '#tunnel': 3,
-  '#04': 4, '#stage-4': 4, '#project-04': 4, '#industry': 4,
-  '#contacts': 5, '#stage-5': 5, '#stage-9': 5
-};
+function buildHashMap() {
+  const map = {};
+  for (let stage = 0; stage <= CONTACT_STAGE; stage++) {
+    map[`#${stageSlug(stage)}`] = stage;
+    map[`#stage-${stage}`] = stage;
+  }
+  Object.entries(LEGACY_HASHES).forEach(([slug, stage]) => {
+    if (!(`#${slug}` in map)) map[`#${slug}`] = stage;
+  });
+  return map;
+}
 
 function initHashRouting() {
+  const hashMap = buildHashMap();
   const applyHash = () => {
     const hash = window.location.hash.toLowerCase();
-    if (hash && HASH_MAP[hash] !== undefined) {
-      const targetStage = HASH_MAP[hash];
-      scrollToStage(targetStage);
-    }
+    if (hash && hashMap[hash] !== undefined) scrollToStage(hashMap[hash]);
   };
 
-  // Проверка при первом входе после скрытия прелоадера
-  window.addEventListener('load', () => {
-    setTimeout(applyHash, 650);
-  });
+  // При первом входе переходим к этапу из ссылки, когда закончился спуск и включилась прокрутка
+  window.addEventListener('descent-finished', () => requestAnimationFrame(applyHash), { once: true });
 
   window.addEventListener('hashchange', applyHash);
+}
+
+// Запуск после объявления всех констант модуля
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
 }

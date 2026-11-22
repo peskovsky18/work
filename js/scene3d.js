@@ -430,7 +430,7 @@ function setupStationEnvironment() {
   stationEnvGroup.name = 'Station';
 
   // Геометрия и материалы станции заданы в assets/models/station.blend (экспорт station.glb)
-  createGLTFLoader().load('assets/models/station.glb?v=20261123', (gltf) => {
+  createGLTFLoader().load('assets/models/station.glb?v=20261123p', (gltf) => {
     stationEnvGroup.add(gltf.scene);
     isStationLoaded = true;
     buildEnvironmentMaps();
@@ -525,7 +525,7 @@ function loadSubwayModel() {
   const preloader = document.getElementById('scene-preloader');
 
   loader.load(
-    'assets/models/subway.glb?v=20261123',
+    'assets/models/subway.glb?v=20261123p',
     (gltf) => {
       subwayModel = gltf.scene;
 

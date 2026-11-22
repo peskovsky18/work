@@ -129,14 +129,6 @@ function initNavigation() {
     }
   }, { passive: true });
 
-  // Кнопка быстрого пропуска спуска в прелоадере
-  const skipBtn = document.getElementById('preloader-skip-btn');
-  if (skipBtn) {
-    skipBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (window.skipDescent) window.skipDescent();
-    });
-  }
 }
 
 // =============================================================================
@@ -379,8 +371,8 @@ function initHashRouting() {
     if (hash && hashMap[hash] !== undefined) scrollToStage(hashMap[hash]);
   };
 
-  // При первом входе переходим к этапу из ссылки, когда закончился спуск и включилась прокрутка
-  window.addEventListener('descent-finished', () => requestAnimationFrame(applyHash), { once: true });
+  // При первом входе переходим к этапу из ссылки, когда сцена показана и включилась прокрутка
+  window.addEventListener('scene-ready', () => requestAnimationFrame(applyHash), { once: true });
 
   window.addEventListener('hashchange', applyHash);
 }

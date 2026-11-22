@@ -50,14 +50,12 @@ body.dark-cinema-body {
 .scene-preloader {
   position: fixed;
   inset: 0;
-  background: transparent;
   z-index: 9999;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   align-items: center;
-  padding: clamp(24px, 5vh, 48px) 24px clamp(32px, 6vh, 56px);
-  pointer-events: none;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse 80% 60% at 50% 45%, #161922 0%, #08090c 70%);
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
 }
 
@@ -85,15 +83,10 @@ body.is-preloading #scroll-story {
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
 }
 
-.preloader-top-brand {
+.preloader-center {
+  width: 100%;
+  max-width: 320px;
   text-align: center;
-  background: rgba(14, 16, 22, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  padding: 14px 28px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
 .preloader-title {
@@ -101,47 +94,23 @@ body.is-preloading #scroll-story {
   font-weight: 800;
   letter-spacing: -0.5px;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  color: #fff;
 }
 
-.preloader-bottom-hud {
-  width: 100%;
-  max-width: 380px;
-  background: rgba(14, 16, 22, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
-  padding: 14px 20px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-}
-
-.preloader-status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.preloader-hint {
+.preloader-subtitle {
+  margin-top: 6px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
-  color: #fff;
-  display: flex;
-  align-items: center;
-}
-
-.preloader-percent {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--accent-amber);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .preloader-bar-wrap {
   width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.12);
+  height: 3px;
+  margin-top: 32px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -151,37 +120,28 @@ body.is-preloading #scroll-story {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-amber), #fff);
   border-radius: 999px;
-  transition: width 0.15s ease-out;
+  transition: width 0.25s ease-out;
 }
 
-.preloader-skip-btn {
+.preloader-status-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  width: 100%;
-  margin-top: 14px;
-  padding: 9px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  color: #fff;
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  margin-top: 12px;
 }
 
-.preloader-skip-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
+.preloader-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.preloader-skip-btn:active {
-  transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.22);
+.preloader-percent {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-amber);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================

@@ -42,24 +42,11 @@
   </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css?v=20261122">
+  <link rel="stylesheet" href="css/style.css?v=20261122d">
 
   <!-- GSAP & ScrollTrigger (defer: не блокируют разбор страницы, выполняются до модулей) -->
   <script src="js/vendor/gsap.min.js" defer></script>
   <script src="js/vendor/ScrollTrigger.min.js" defer></script>
-
-  <!-- Критический путь первого кадра: модули сцены, декодер Draco и эскалатор грузятся параллельно -->
-  <link rel="modulepreload" href="js/scene3d.js">
-  <link rel="modulepreload" href="js/vendor/three.module.js">
-  <link rel="modulepreload" href="js/vendor/GLTFLoader.js">
-  <link rel="modulepreload" href="js/vendor/DRACOLoader.js">
-  <link rel="modulepreload" href="js/utils/BufferGeometryUtils.js">
-  <link rel="modulepreload" href="js/projects-data.js">
-  <link rel="modulepreload" href="js/freeRoam.js">
-  <link rel="modulepreload" href="js/subwayAudio.js">
-  <link rel="preload" href="js/vendor/draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
-  <link rel="preload" href="js/vendor/draco/draco_decoder.wasm" as="fetch" crossorigin>
-  <link rel="preload" href="assets/models/escalator_system.glb?v=20261123" as="fetch" crossorigin>
 
   <!-- Three.js Import Map (полностью автономные локальные файлы) -->
   <script type="importmap">
@@ -70,27 +57,102 @@
     }
   }
   </script>
+
+  <!-- Критический путь: модули сцены и декодер Draco грузятся параллельно с моделями -->
+  <link rel="modulepreload" href="js/scene3d.js">
+  <link rel="modulepreload" href="js/vendor/three.module.js">
+  <link rel="modulepreload" href="js/vendor/GLTFLoader.js">
+  <link rel="modulepreload" href="js/vendor/DRACOLoader.js">
+  <link rel="modulepreload" href="js/utils/BufferGeometryUtils.js">
+  <link rel="modulepreload" href="js/projects-data.js">
+  <link rel="modulepreload" href="js/freeRoam.js">
+  <link rel="modulepreload" href="js/subwayAudio.js">
+  <link rel="preload" href="js/vendor/draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
+  <link rel="preload" href="js/vendor/draco/draco_decoder.wasm" as="fetch" crossorigin>
+
+  <!-- Модели сцены начинают качаться сразу, не дожидаясь JS-модулей; прогресс по байтам
+       выводится на экран загрузки. js/scene3d.js берёт готовые буферы из window.__sceneLoad -->
+  <script>
+    (function () {
+      var models = {
+        subway: ['assets/models/subway.glb?v=20261123p', 996092],
+        station: ['assets/models/station.glb?v=20261123p', 905160],
+        escalator: ['assets/models/escalator_system.glb?v=20261123', 252056]
+      };
+      var state = { parts: {}, shown: 0, hint: null };
+      function paint() {
+        var bar = document.getElementById('loader-progress-bar');
+        var num = document.getElementById('loader-percent-num');
+        var hint = document.getElementById('loader-hint');
+        if (bar) bar.style.width = state.shown + '%';
+        if (num) num.textContent = state.shown + '%';
+        if (hint && state.hint) hint.textContent = state.hint;
+      }
+      // Прогресс только растёт: загрузка файлов — до 90%, подготовка сцены — остальное
+      state.setProgress = function (percent, hint) {
+        state.shown = Math.max(state.shown, Math.min(100, Math.round(percent)));
+        if (hint) state.hint = hint;
+        paint();
+      };
+      function update() {
+        var loaded = 0, total = 0;
+        for (var k in state.parts) {
+          loaded += Math.min(state.parts[k].loaded, state.parts[k].total);
+          total += state.parts[k].total;
+        }
+        state.setProgress(loaded / total * 90);
+      }
+      Object.keys(models).forEach(function (name) {
+        var part = { url: models[name][0], loaded: 0, total: models[name][1] };
+        state.parts[name] = part;
+        part.buffer = fetch(part.url).then(function (res) {
+          if (!res.ok) throw new Error(res.status + ' ' + part.url);
+          var len = parseInt(res.headers.get('Content-Length'), 10);
+          if (len > 0) part.total = len;
+          if (!res.body || !res.body.getReader) return res.arrayBuffer();
+          var reader = res.body.getReader(), chunks = [], size = 0;
+          return (function pump() {
+            return reader.read().then(function (r) {
+              if (r.done) {
+                var out = new Uint8Array(size), at = 0;
+                chunks.forEach(function (c) { out.set(c, at); at += c.length; });
+                return out.buffer;
+              }
+              chunks.push(r.value);
+              size += r.value.length;
+              part.loaded = size;
+              update();
+              return pump();
+            });
+          })();
+        }).then(function (buf) {
+          part.loaded = part.total;
+          update();
+          return buf;
+        });
+      });
+      document.addEventListener('DOMContentLoaded', paint);
+      window.__sceneLoad = state;
+    })();
+  </script>
+
 </head>
 <body class="dark-cinema-body is-preloading">
 
   <!-- =========================================================================
-       ПРЕЛОАДЕР 3D СЦЕНЫ: ИНТЕРАКТИВНЫЙ СПУСК НА ЭСКАЛАТОРЕ В МЕТРО
+       ЭКРАН ЗАГРУЗКИ: ДЕРЖИТСЯ, ПОКА СЦЕНА НЕ ГОТОВА (js/scene3d.js, revealScene)
        ========================================================================= -->
-  <div id="scene-preloader" class="scene-preloader">
-    <div class="preloader-top-brand">
+  <div id="scene-preloader" class="scene-preloader" role="status" aria-live="polite">
+    <div class="preloader-center">
       <h2 class="preloader-title">Александр Песковский</h2>
-    </div>
-    <div class="preloader-bottom-hud">
-      <div class="preloader-status-row">
-        <span class="preloader-hint">Спуск на станцию</span>
-        <span class="preloader-percent" id="loader-percent-num">0%</span>
-      </div>
+      <p class="preloader-subtitle">Портфолио</p>
       <div class="preloader-bar-wrap">
         <div id="loader-progress-bar" class="preloader-bar-fill"></div>
       </div>
-      <button id="preloader-skip-btn" class="preloader-skip-btn" type="button" aria-label="Пропустить спуск">
-        <span>Войти в вагон ➔</span>
-      </button>
+      <div class="preloader-status-row">
+        <span class="preloader-hint" id="loader-hint">Загрузка вагона</span>
+        <span class="preloader-percent" id="loader-percent-num">0%</span>
+      </div>
     </div>
   </div>
 
@@ -205,6 +267,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261122c"></script>
+  <script type="module" src="js/main.js?v=20261122d"></script>
 </body>
 </html>

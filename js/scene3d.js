@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { DRACOLoader } from './vendor/DRACOLoader.js';
-import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime, startEscalatorAudio, stopEscalatorAudio } from './subwayAudio.js';
+import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime } from './subwayAudio.js';
 import { FreeRoamController } from './freeRoam.js';
 import { WORKS, stageSlug } from './projects-data.js';
 
@@ -80,25 +80,6 @@ function poseOnPath(s, isMobile, out) {
   return out;
 }
 
-// Путь входа в вагон из спуска: через открытую дверь 1 в проход, без шага назад
-const entryCurves = {};
-function getEntryCurve(isMobile) {
-  const key = isMobile ? 'mobile' : 'desktop';
-  if (!entryCurves[key]) {
-    const end = stagePose(0, isMobile);
-    entryCurves[key] = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-3.765, 1.34, 0.60),   // на платформе у двери (конец 2-й части спуска)
-      new THREE.Vector3(-3.765, 1.37, -0.20),  // порог
-      new THREE.Vector3(-3.90, 1.39, -0.82),   // шаг в проход
-      new THREE.Vector3(end.x, end.y, end.z)   // этап 0
-    ], false, 'centripetal');
-  }
-  return entryCurves[key];
-}
-const ENTRY_START_PITCH = THREE.MathUtils.radToDeg(Math.atan2(1.38 - 1.34, 0.60 + 1.192));
-// Доля спуска (по времени), с которой начинается вход в вагон: easedP = 0.86
-const ENTRY_P_START = 1 - Math.cbrt(2 * (1 - 0.86)) / 2;
-
 // Глобальное состояние
 let scene, camera, renderer, clock;
 let freeRoamController = null;
@@ -122,23 +103,13 @@ let currentDoorCloseRatio = 0.0;
 let targetDoor2OpenRatio = 0.0;  // 0.0 = закрыты, 1.0 = открыты (Двери 2)
 let currentDoor2OpenRatio = 0.0;
 
-// Состояние эскалатора (интерактивный 3D-спуск при загрузке)
+// Загрузка: экран загрузки держится, пока не загружены все части сцены,
+// не построены карты окружения и не скомпилированы шейдеры (см. revealScene)
 let escalatorGroup;
-let isEscalatorLoaded = false;
-let isSubwayLoaded = false;
-let isDescentActive = true;
-let descentStartTime = 0;
-const DESCENT_DURATION = 9000; // 9 секунд спуска по эскалатору
+let escFillLight;
+let isSceneReady = false;
 
-// Вернувшиеся посетители попадают в вагон сразу, как только он загрузился
-const DESCENT_SEEN_KEY = 'portfolio_descent_seen';
-const isReturningVisitor = (() => {
-  try { return localStorage.getItem(DESCENT_SEEN_KEY) === '1'; } catch { return false; }
-})();
-const escalatorLights = [];
-
-
-// Векторы камеры во время спуска (части 1–2 задаются позицией и точкой взгляда)
+// Текущие позиция камеры и точка взгляда (обновляются в applyCameraPose, видны в __debug)
 const camCurrentPos = new THREE.Vector3();
 const camCurrentTarget = new THREE.Vector3();
 
@@ -155,7 +126,6 @@ let returnBlend = 1;     // < 1 — плавный возврат на путь 
 const returnFromPos = new THREE.Vector3();
 const cameraPose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0 };
 const cameraEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-const cameraTmpPos = new THREE.Vector3();
 const cameraTmpDir = new THREE.Vector3();
 const PATH_OMEGA = 3.0;      // пружина движения по пути (критическое демпфирование), 1/с
 const TURN_OMEGA = 6.0;      // пружина поворота головы, 1/с
@@ -273,14 +243,8 @@ export function initSubwayScene() {
   const initialFov = isMobile ? 70 : 60;
   camera = new THREE.PerspectiveCamera(initialFov, window.innerWidth / window.innerHeight, 0.1, 70);
   
-  // При старте камера находится на верхнем конце эскалатора (вид спуска по референсу)
-  const ESC_START_POS = new THREE.Vector3(-3.765, 8.65, 17.60);
-  const ESC_START_TARGET = new THREE.Vector3(-3.765, 6.20, 13.00);
-  camera.position.copy(ESC_START_POS);
-  camCurrentPos.copy(ESC_START_POS);
-
-  camCurrentTarget.copy(ESC_START_TARGET);
-  camera.lookAt(camCurrentTarget);
+  // Камера сразу стоит в позе этапа 0; сцену видно только после загрузки (см. revealScene)
+  placeCameraAtStart();
 
   clock = new THREE.Clock();
 
@@ -289,7 +253,7 @@ export function initSubwayScene() {
     getCamera: () => camera,
     getScene: () => scene,
     getRenderer: () => renderer,
-    getState: () => ({ isDescentActive, isEscalatorLoaded, isSubwayLoaded, camPos: camera?.position, camTarget: camCurrentTarget })
+    getState: () => ({ isSceneReady, partsDone: [...partsDone], camPos: camera?.position, camTarget: camCurrentTarget })
   };
   window.__THREE_SCENE__ = scene;
   window.THREE = THREE;
@@ -298,53 +262,26 @@ export function initSubwayScene() {
   freeRoamController = new FreeRoamController(camera, renderer.domElement, onFreeRoamToggled);
   window.__FREE_ROAM__ = freeRoamController;
 
-  // 4. Эскалатор спуска (assets/models/escalator_system.blend). Пока GLB грузится,
-  //    камера стоит на верхней площадке; спуск стартует сразу после загрузки.
-  isDescentActive = true;
+  // 4. Свет и все три части сцены грузятся параллельно под экраном загрузки
+  setupSubwayLighting();
   escalatorGroup = new THREE.Group();
   escalatorGroup.name = 'Escalator';
-  const escFillLight = new THREE.PointLight(0xfff4ea, LIGHTING.escFill, 16.0, 1.2);
+  // Заполняющий свет эскалатора живёт вне группы: число источников не меняется,
+  // когда группа скрыта, и шейдеры не перекомпилируются
+  escFillLight = new THREE.PointLight(0xfff4ea, LIGHTING.escFill, 16.0, 1.2);
   escFillLight.position.set(-3.765, 5.2, 11.0);
-  escalatorGroup.add(escFillLight);
+  scene.add(escFillLight);
   scene.add(escalatorGroup);
-  // Порядок загрузки: декодер Draco и эскалатор (нужны для первого кадра),
-  // затем станция и вагон — чтобы они не отнимали канал у спуска
   getDracoLoader().preload();
-  let restStarted = false;
-  const loadRestOfScene = () => {
-    if (restStarted) return;
-    restStarted = true;
-    setupStationEnvironment();
-    loadSubwayModel();
-  };
-  const startDescent = () => {
-    isEscalatorLoaded = true;
-    descentStartTime = performance.now();
-    loadRestOfScene();
-    buildEnvironmentMaps();
-  };
-  createGLTFLoader().load('assets/models/escalator_system.glb?v=20261123', (gltf) => {
-    escalatorGroup.add(gltf.scene);
-    startDescent();
-  }, undefined, (err) => {
-    console.error('Ошибка загрузки escalator_system.glb:', err);
-    startDescent();
-  });
+  loadScenePart('escalator', (gltf) => escalatorGroup.add(gltf.scene));
+  setupStationEnvironment();
+  loadSubwayModel();
 
-  // 5. Первый кадр рендерится сразу
-  renderer.render(scene, camera);
-  startEscalatorAudio();
-
-  // 6. Слушатели событий
+  // 5. Слушатели событий
   setupEventListeners();
 
-  // 7. Запуск цикла рендеринга
+  // 6. Цикл рендеринга (кадры рисуются после revealScene)
   animate();
-
-  // 8. Прогрессивное фоновое подключение остальных систем без микрофризов
-  requestAnimationFrame(() => {
-    setupSubwayLighting();
-  });
 }
 
 // =============================================================================
@@ -389,11 +326,124 @@ function setupSubwayLighting() {
   scene.add(screenLight2);
 }
 
+// =============================================================================
+// ЗАГРУЗКА СЦЕНЫ: ПРОГРЕСС И ПОКАЗ
+// =============================================================================
+// Файлы моделей начинает качать встроенный скрипт в index.html (window.__sceneLoad):
+// он же рисует прогресс загрузки, здесь буферы только разбираются
+const sceneLoad = window.__sceneLoad;
+const partsDone = new Set();
+
+function setLoaderProgress(percent, hint) {
+  if (sceneLoad) sceneLoad.setProgress(percent, hint);
+}
+
+function loadScenePart(name, onLoad) {
+  const loader = createGLTFLoader();
+  const part = sceneLoad && sceneLoad.parts[name];
+  const finish = () => {
+    partsDone.add(name);
+    if (partsDone.size === Object.keys(sceneLoad.parts).length) revealScene();
+  };
+  const done = (gltf) => { onLoad(gltf); finish(); };
+  const fail = (err) => { console.error(`Ошибка загрузки модели ${name}:`, err); finish(); };
+  part.buffer.then(
+    (buffer) => loader.parse(buffer, 'assets/models/', done, fail),
+    // Если ранняя загрузка не удалась, ещё одна попытка обычным загрузчиком
+    () => loader.load(part.url, done, undefined, fail)
+  );
+}
+
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+// Камера в позе этапа 0 — с неё начинается прокрутка
+function placeCameraAtStart() {
+  scrollStage = 0;
+  zoomStage = null;
+  zoomAmount = 0;
+  returnBlend = 1;
+  poseOnPath(0, window.innerWidth < 768, cameraPose);
+  syncCameraSprings(0, cameraPose.heading, cameraPose.pitch);
+  applyCameraPose(cameraPose, 0);
+}
+
+// Заранее загружает в видеокарту все текстуры, включая те, что видны только в Free Room
+function uploadAllTextures() {
+  const seen = new Set();
+  scene.traverse((o) => {
+    if (!o.material) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+      Object.values(m).forEach((v) => {
+        if (v && v.isTexture && !v.isVideoTexture && !v.isRenderTargetTexture && v.image && !seen.has(v)) {
+          seen.add(v);
+          renderer.initTexture(v);
+        }
+      });
+    });
+  });
+}
+
+async function compileScene() {
+  try {
+    await renderer.compileAsync(scene, camera);
+  } catch (err) {
+    console.warn('Предкомпиляция шейдеров не удалась:', err);
+  }
+}
+
+// Показ сцены: окружение, шейдеры и текстуры готовятся под экраном загрузки,
+// поэтому после его исчезновения кадры идут без подтормаживаний
+let revealStarted = false;
+async function revealScene() {
+  if (revealStarted) return;
+  revealStarted = true;
+  const t0 = performance.now();
+  setLoaderProgress(90, 'Подготовка вагона');
+  const steps = {};
+  const mark = (name) => { steps[name] = Math.round(performance.now() - t0); };
+  await nextFrame();
+  placeCameraAtStart();
+  // Шейдеры компилируются асинхронно (параллельно, если браузер это умеет), поэтому
+  // съёмка окружения ниже не останавливает страницу на компиляции
+  await compileScene();
+  mark('compile1');
+  setLoaderProgress(93);
+  await nextFrame();
+  buildEnvironmentMaps();
+  mark('env');
+  setLoaderProgress(96);
+  await nextFrame();
+  // С картами окружения у материалов другие варианты шейдеров — их тоже заранее
+  await compileScene();
+  mark('compile2');
+  setLoaderProgress(98);
+  await nextFrame();
+  uploadAllTextures();
+  renderer.render(scene, camera);
+  mark('first');
+  setLoaderProgress(100);
+  await nextFrame();
+  window.__revealSteps = steps;
+  window.__revealMs = Math.round(performance.now() - t0);
+
+  isSceneReady = true;
+  document.body.classList.remove('is-preloading');
+  const preloader = document.getElementById('scene-preloader');
+  if (preloader) {
+    preloader.classList.add('fade-out');
+    setTimeout(() => { preloader.style.display = 'none'; }, 900);
+  }
+  if (stageVideos[1] && stageVideos[1].paused) {
+    stageVideos[1].play().catch(() => {});
+  }
+  initScrollTriggers();
+  window.dispatchEvent(new CustomEvent('scene-ready'));
+}
+
 // Карты окружения: сцена рендерится в куб из вагона и со станции, когда загружены все части
-let isStationLoaded = false;
 let environmentReady = false;
 function buildEnvironmentMaps() {
-  if (environmentReady || !isSubwayLoaded || !isStationLoaded || !isEscalatorLoaded || !renderer) return;
+  if (environmentReady || !renderer) return;
   environmentReady = true;
   const t0 = performance.now();
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -430,14 +480,7 @@ function setupStationEnvironment() {
   stationEnvGroup.name = 'Station';
 
   // Геометрия и материалы станции заданы в assets/models/station.blend (экспорт station.glb)
-  createGLTFLoader().load('assets/models/station.glb?v=20261123p', (gltf) => {
-    stationEnvGroup.add(gltf.scene);
-    isStationLoaded = true;
-    buildEnvironmentMaps();
-  }, undefined, (err) => {
-    console.error('Ошибка загрузки station.glb:', err);
-    isStationLoaded = true;
-  });
+  loadScenePart('station', (gltf) => stationEnvGroup.add(gltf.scene));
 
   // Свет станции остаётся в коде:
   // заполняющие лампы под сводом (выключаются, пока камера в вагоне, см. animate) ...
@@ -519,80 +562,40 @@ function setupVideoTextures() {
 // ЗАГРУЗКА И НАСТРОЙКА 3D МОДЕЛИ ВАГОНА МЕТРО
 // =============================================================================
 function loadSubwayModel() {
-  const loader = createGLTFLoader();
+  loadScenePart('subway', (gltf) => {
+    subwayModel = gltf.scene;
 
-  const progressBar = document.getElementById('loader-progress-bar');
-  const preloader = document.getElementById('scene-preloader');
+    // Геометрия, материалы и двери полностью заданы в assets/models/subway.blend.
+    // В рантайме остаётся только подключить видео к экранам и найти створки для анимации.
+    setupVideoTextures();
 
-  loader.load(
-    'assets/models/subway.glb?v=20261123p',
-    (gltf) => {
-      subwayModel = gltf.scene;
-
-      // Геометрия, материалы и двери полностью заданы в assets/models/subway.blend.
-      // В рантайме остаётся только подключить видео к экранам и найти створки для анимации.
-      setupVideoTextures();
-
-      subwayModel.traverse((child) => {
-        if (!child.isMesh) return;
-        const match = child.name.match(/^Screen_(\d+)_Display$/);
-        if (!match) return;
-        const sIdx = parseInt(match[1], 10);
-        const tex = stageVideoTextures[sIdx];
-        if (!tex) return; // экраны 5-8 — выключенные, материал из модели
-        screenMeshes[sIdx] = child;
-        child.material = new THREE.MeshStandardMaterial({
-          map: tex, emissive: new THREE.Color(0xffffff), emissiveMap: tex,
-          emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
-        });
-        child.renderOrder = 2;
+    subwayModel.traverse((child) => {
+      if (!child.isMesh) return;
+      const match = child.name.match(/^Screen_(\d+)_Display$/);
+      if (!match) return;
+      const sIdx = parseInt(match[1], 10);
+      const tex = stageVideoTextures[sIdx];
+      if (!tex) return; // экраны 5-8 — выключенные, материал из модели
+      screenMeshes[sIdx] = child;
+      child.material = new THREE.MeshStandardMaterial({
+        map: tex, emissive: new THREE.Color(0xffffff), emissiveMap: tex,
+        emissiveIntensity: 0.95, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide
       });
+      child.renderOrder = 2;
+    });
 
-      // Створки дверей 1 (вход) и 2 (выход к контактам) анимируются; изначально двери 1 открыты
-      doorLeft = subwayModel.getObjectByName('Door_Left_Photo');
-      doorRight = subwayModel.getObjectByName('Door_Right_Photo');
-      doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
-      doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
-      if (doorLeft && doorRight) {
-        doorLeft.position.x = DOOR_LEFT_OPEN_X;
-        doorRight.position.x = DOOR_RIGHT_OPEN_X;
-      }
-
-      scene.add(subwayModel);
-      isSubwayLoaded = true;
-      buildEnvironmentMaps();
-      if (isReturningVisitor) finishDescent({ audioFade: 0.3, chime: false });
-
-      // Если спуск на эскалаторе уже завершился или отключен, активируем ScrollTrigger и скрываем лоадер
-      if (!isDescentActive) {
-        document.body.classList.remove('is-preloading');
-        initScrollTriggers();
-        if (preloader) {
-          preloader.classList.add('fade-out');
-          setTimeout(() => {
-            preloader.style.display = 'none';
-          }, 850);
-        }
-      }
-    },
-    (xhr) => {
-      if (progressBar) {
-        const percent = xhr.total
-          ? Math.round((xhr.loaded / xhr.total) * 100)
-          : Math.min(Math.round((xhr.loaded / 1800000) * 100), 95);
-        if (!isDescentActive) {
-          progressBar.style.width = `${percent}%`;
-          const pNum = document.getElementById('loader-percent-num');
-          if (pNum) pNum.textContent = `${percent}%`;
-        }
-      }
-    },
-    (err) => {
-      console.error('Ошибка загрузки 3D модели метро:', err);
-      isSubwayLoaded = true;
-      if (preloader) preloader.style.display = 'none';
+    // Створки дверей 1 (вход) и 2 (выход к контактам) анимируются; изначально двери 1 открыты
+    doorLeft = subwayModel.getObjectByName('Door_Left_Photo');
+    doorRight = subwayModel.getObjectByName('Door_Right_Photo');
+    doorLeftD2 = subwayModel.getObjectByName('Door_Left_Photo_D2');
+    doorRightD2 = subwayModel.getObjectByName('Door_Right_Photo_D2');
+    if (doorLeft && doorRight) {
+      doorLeft.position.x = DOOR_LEFT_OPEN_X;
+      doorRight.position.x = DOOR_RIGHT_OPEN_X;
     }
-  );
+
+    scene.add(subwayModel);
+  });
 }
 
 // =============================================================================
@@ -863,7 +866,7 @@ function setupEventListeners() {
     mouseOffset.y = mouseVec.y * 0.04;
 
     const now = performance.now();
-    if (now - lastRaycast > 60 && !isDescentActive && camera) {
+    if (now - lastRaycast > 60 && isSceneReady && camera) {
       lastRaycast = now;
       const validScreens = screenMeshes.filter(Boolean);
       if (validScreens.length > 0) {
@@ -1081,7 +1084,7 @@ function applyCameraPose(pose, parallax = 1) {
   camCurrentTarget.copy(camera.position).add(camera.getWorldDirection(cameraTmpDir));
 }
 
-/** Сбрасывает пружины камеры в текущее положение (после спуска и Free Room). */
+/** Сбрасывает пружины камеры в текущее положение (при показе сцены и после Free Room). */
 function syncCameraSprings(stage, heading, pitch) {
   camStage = stage;
   camStageVel = 0;
@@ -1154,7 +1157,8 @@ function animate() {
   requestAnimationFrame(animate);
 
   const dt = clock ? Math.min(clock.getDelta(), 0.1) : 0.016;
-  const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
+  // Пока идёт загрузка, сцена закрыта экраном загрузки и не рисуется
+  if (!isSceneReady) return;
 
   // Динамический адаптивный FPS Governor (поддержание стабильных 60 FPS на слабых устройствах)
   frameTimes.push(dt);
@@ -1180,98 +1184,10 @@ function animate() {
   }
 
   // =========================================================================
-  // РЕЖИМ СВОБОДНОЙ КАМЕРЫ (FREE ROAM) ИЛИ СПУСК НА ЭСКАЛАТОРЕ / ШТАТНЫЙ СКРОЛЛ
+  // РЕЖИМ СВОБОДНОЙ КАМЕРЫ (FREE ROAM) ИЛИ ШТАТНЫЙ СКРОЛЛ
   // =========================================================================
   if (freeRoamController && freeRoamController.isActive) {
     freeRoamController.update(dt);
-  } else if (isDescentActive) {
-    if (isEscalatorLoaded) {
-      const elapsed = performance.now() - descentStartTime;
-      const rawP = Math.min(1.0, elapsed / DESCENT_DURATION);
-      const maxP = isSubwayLoaded ? 1.0 : 0.82; // если вагон еще подгружается, плавно замедляемся у нижней площадки
-      const p = Math.min(rawP, maxP);
-
-      // Плавный кубический smoothstep
-      const easedP = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-
-      // Обновляем прогресс-бар и процент в HUD
-      const hudPercent = Math.min(100, Math.round(easedP * 100));
-      const pBar = document.getElementById('loader-progress-bar');
-      const pNum = document.getElementById('loader-percent-num');
-      if (pBar) pBar.style.width = `${hudPercent}%`;
-      if (pNum) pNum.textContent = `${hudPercent}%`;
-
-      // Плавное бесшовное угасание оверлея прелоадера при приближении к дверям вагона (исключает перекрытие заголовков)
-      const preloader = document.getElementById('scene-preloader');
-      if (preloader) {
-        if (easedP > 0.82) {
-          const fadeFrac = Math.max(0, (1.0 - easedP) / 0.18);
-          preloader.style.opacity = fadeFrac.toFixed(3);
-        } else {
-          preloader.style.opacity = '1';
-        }
-      }
-
-      if (easedP <= 0.72) {
-        // 1. Поездка вниз по наклону эскалатора (30 градусов) со ступенями и легкой вибрацией
-        const s = easedP / 0.72;
-        const stepVibe = Math.sin(time * 16.0) * 0.0006;
-        camCurrentPos.x = -3.765;
-        camCurrentPos.y = THREE.MathUtils.lerp(8.65, 1.34, s) + stepVibe;
-        camCurrentPos.z = THREE.MathUtils.lerp(17.60, 4.80, s);
-
-        camCurrentTarget.x = -3.765;
-        camCurrentTarget.y = THREE.MathUtils.lerp(6.20, 1.38, s);
-        camCurrentTarget.z = THREE.MathUtils.lerp(13.00, -1.192, s);
-      } else if (easedP <= 0.86) {
-        // 2. Сошествие с гребенки на гранит платформы к открытым дверям вагона
-        const s = (easedP - 0.72) / 0.14;
-        camCurrentPos.x = -3.765;
-        camCurrentPos.y = 1.34;
-        camCurrentPos.z = THREE.MathUtils.lerp(4.80, 0.60, s);
-
-        camCurrentTarget.x = -3.765;
-        camCurrentTarget.y = 1.38;
-        camCurrentTarget.z = -1.192; // взгляд прямо в салон через открытую дверь 1
-      } else {
-        // 3. Вход через открытую дверь 1 в проход по плавной дуге; голова поворачивается
-        //    вдоль вагона с ровной скоростью, без шага назад
-        const u = (easedP - 0.86) / 0.14;
-        // Поворот головы идёт по реальному времени (p линейно), а не по замедляющемуся easedP:
-        // ~2.8 с с ровной скоростью вместо резкого доворота в начале
-        const uTurn = (p - ENTRY_P_START) / (1 - ENTRY_P_START);
-        const isMob = window.innerWidth < 768;
-        const end = stagePose(0, isMob);
-        getEntryCurve(isMob).getPointAt(clamp01(u), cameraTmpPos);
-        cameraPose.x = cameraTmpPos.x;
-        cameraPose.y = cameraTmpPos.y;
-        cameraPose.z = cameraTmpPos.z;
-        cameraPose.heading = lerpAngle(0, end.heading, smoothstep(0.04, 1.0, uTurn));
-        cameraPose.pitch = ENTRY_START_PITCH + (end.pitch - ENTRY_START_PITCH) * smoothstep(0, 1, uTurn);
-      }
-
-      if (easedP > 0.86) {
-        applyCameraPose(cameraPose, 0.3);
-      } else {
-        camera.position.copy(camCurrentPos);
-        camera.lookAt(
-          camCurrentTarget.x + mouseOffsetDamped.x * 0.3,
-          camCurrentTarget.y + mouseOffsetDamped.y * 0.3,
-          camCurrentTarget.z
-        );
-      }
-
-      // Завершение спуска и вход в вагон
-      if (easedP >= 0.999 && isSubwayLoaded) {
-        finishDescent({ audioFade: 0.8 });
-      }
-    } else {
-      // Пока модель эскалатора подгружается (<100мс), держим камеру строго на старте спуска
-      camCurrentPos.set(-3.765, 8.65, 17.60);
-      camCurrentTarget.set(-3.765, 6.20, 13.00);
-      camera.position.copy(camCurrentPos);
-      camera.lookAt(camCurrentTarget);
-    }
   } else {
     updateStoryCamera(dt);
   }
@@ -1300,34 +1216,23 @@ function animate() {
 
   // 2.3d Интеллектуальное обновление кадров видеотекстур:
   // Обновляем ТОЛЬКО текстуру текущего активного этапа и ТОЛЬКО если кадр действительно сменился!
-  if (!isDescentActive) {
-    const curV = stageVideos[activeStage];
-    const curTex = stageVideoTextures[activeStage];
-
-    if (curV && curTex && !curV.paused && curV.readyState >= 2) {
-      if (curV._lastUploadedTime !== curV.currentTime) {
-        curV._lastUploadedTime = curV.currentTime;
-        curTex.needsUpdate = true;
-      }
-    }
+  const curV = stageVideos[activeStage];
+  const curTex = stageVideoTextures[activeStage];
+  if (curV && curTex && !curV.paused && curV.readyState >= 2 && curV._lastUploadedTime !== curV.currentTime) {
+    curV._lastUploadedTime = curV.currentTime;
+    curTex.needsUpdate = true;
   }
 
-  // 2.3e Динамическое отключение объектов и света платформы вне зоны видимости (экономит >200 draw calls)
-  const isInsideCar = !isDescentActive && (!freeRoamController || !freeRoamController.isActive);
+  // 2.3e Пока камера в вагоне, эскалатор скрыт (экономит >200 draw calls), а заполняющий свет
+  //      станции и эскалатора гасится яркостью: число источников постоянно, шейдеры не пересобираются
+  const isInsideCar = !freeRoamController || !freeRoamController.isActive;
   if (escalatorGroup && escalatorGroup.visible !== !isInsideCar) {
     escalatorGroup.visible = !isInsideCar;
-  }
-  if (stationEnvGroup) {
-    if (isInsideCar && stationEnvGroup._fillsVisible !== false) {
+    if (escFillLight) escFillLight.intensity = isInsideCar ? 0 : LIGHTING.escFill;
+    if (stationEnvGroup) {
       stationEnvGroup.traverse((c) => {
-        if (c.isPointLight && c.name && c.name.startsWith('platFill')) c.visible = false;
+        if (c.isPointLight && c.name && c.name.startsWith('platFill')) c.intensity = isInsideCar ? 0 : LIGHTING.platFill;
       });
-      stationEnvGroup._fillsVisible = false;
-    } else if (!isInsideCar && stationEnvGroup._fillsVisible === false) {
-      stationEnvGroup.traverse((c) => {
-        if (c.isPointLight && c.name && c.name.startsWith('platFill')) c.visible = true;
-      });
-      stationEnvGroup._fillsVisible = true;
     }
   }
 
@@ -1335,9 +1240,7 @@ function animate() {
 
 
   // 3. Синхронизация полосы прогресса видео (троттлинг 10 FPS, без DOM layout thrashing)
-  if (!isDescentActive) {
-    syncScrubberUI();
-  }
+  syncScrubberUI();
 
   // 5. Синхронизация звука поезда со скоростью
   updateSubwayAudio(0, isGlobalMuted);
@@ -1387,52 +1290,6 @@ export function getStageVideo(stageIndex) {
   return stageVideos[stageIndex] || null;
 }
 
-/**
- * Единая точка завершения спуска на эскалаторе: скрывает прелоадер,
- * ставит камеру на Stage 0 и включает ScrollTrigger (ровно один раз).
- */
-function finishDescent({ audioFade = 0.3, placeCamera = true, chime = true } = {}) {
-  if (!isDescentActive) return;
-  isDescentActive = false;
-  try { localStorage.setItem(DESCENT_SEEN_KEY, '1'); } catch { /* приватный режим */ }
-  const preloader = document.getElementById('scene-preloader');
-  if (preloader) {
-    preloader.style.opacity = '0';
-    preloader.style.display = 'none';
-    preloader.classList.add('fade-out');
-  }
-  document.body.classList.remove('is-preloading');
-  stopEscalatorAudio(audioFade);
-  if (chime && !isGlobalMuted) {
-    playArrivalChime();
-  }
-  // Эскалатор остается видимым сквозь окна вагона
-  if (escalatorGroup) {
-    escalatorGroup.visible = true;
-  }
-  if (placeCamera) {
-    // Камера встаёт в позу этапа 0 (ей же заканчивается вход в вагон)
-    scrollStage = 0;
-    zoomStage = null;
-    zoomAmount = 0;
-    returnBlend = 1;
-    if (camera) {
-      poseOnPath(0, window.innerWidth < 768, cameraPose);
-      syncCameraSprings(0, cameraPose.heading, cameraPose.pitch);
-      applyCameraPose(cameraPose, 0);
-    }
-  }
-  if (stageVideos[1] && stageVideos[1].paused) {
-    stageVideos[1].play().catch(() => {});
-  }
-  initScrollTriggers();
-  window.dispatchEvent(new CustomEvent('descent-finished'));
-}
-
-export function skipDescent() {
-  finishDescent({ audioFade: 0.3 });
-}
-window.skipDescent = skipDescent;
 window.setDoorCloseRatio = (r) => { targetDoorCloseRatio = r; currentDoorCloseRatio = r; };
 
 // =============================================================================
@@ -1445,13 +1302,6 @@ function onFreeRoamToggled(isActive) {
   if (isActive) {
     if (storyTab) storyTab.classList.remove('is-active');
     if (freeRoamTab) freeRoamTab.classList.add('is-active');
-
-    // Если спуск был активен, завершаем его (камерой дальше управляет Free Room)
-    finishDescent({ audioFade: 0.3, placeCamera: false, chime: false });
-
-    if (escalatorGroup) {
-      escalatorGroup.visible = true;
-    }
   } else {
     if (storyTab) storyTab.classList.add('is-active');
     if (freeRoamTab) freeRoamTab.classList.remove('is-active');
@@ -1475,7 +1325,7 @@ function onFreeRoamToggled(isActive) {
 }
 
 export function toggleFreeRoam(forceState) {
-  if (freeRoamController) {
+  if (freeRoamController && isSceneReady) {
     freeRoamController.toggle(forceState);
   }
 }

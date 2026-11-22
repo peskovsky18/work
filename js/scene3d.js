@@ -263,6 +263,7 @@ export function initSubwayScene() {
   window.__FREE_ROAM__ = freeRoamController;
 
   // 4. Свет и все три части сцены грузятся параллельно под экраном загрузки
+  if (sceneLoad) sceneLoad.modulesReady();
   setupSubwayLighting();
   escalatorGroup = new THREE.Group();
   escalatorGroup.name = 'Escalator';
@@ -342,6 +343,7 @@ function loadScenePart(name, onLoad) {
   const loader = createGLTFLoader();
   const part = sceneLoad && sceneLoad.parts[name];
   const finish = () => {
+    sceneLoad.partParsed();
     partsDone.add(name);
     if (partsDone.size === Object.keys(sceneLoad.parts).length) revealScene();
   };
@@ -398,7 +400,7 @@ async function revealScene() {
   if (revealStarted) return;
   revealStarted = true;
   const t0 = performance.now();
-  setLoaderProgress(90, 'Подготовка вагона');
+  setLoaderProgress(92, 'Подготовка вагона');
   const steps = {};
   const mark = (name) => { steps[name] = Math.round(performance.now() - t0); };
   await nextFrame();
@@ -407,7 +409,7 @@ async function revealScene() {
   // съёмка окружения ниже не останавливает страницу на компиляции
   await compileScene();
   mark('compile1');
-  setLoaderProgress(93);
+  setLoaderProgress(94);
   await nextFrame();
   buildEnvironmentMaps();
   mark('env');

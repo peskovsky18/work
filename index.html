@@ -70,16 +70,29 @@
   <link rel="preload" href="js/vendor/draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
   <link rel="preload" href="js/vendor/draco/draco_decoder.wasm" as="fetch" crossorigin>
 
-  <!-- Модели сцены начинают качаться сразу, не дожидаясь JS-модулей; прогресс по байтам
-       выводится на экран загрузки. js/scene3d.js берёт готовые буферы из window.__sceneLoad -->
+  <!-- Модели сцены начинают качаться сразу, не дожидаясь JS-модулей. Скрипт же ведёт полосу
+       загрузки: байты моделей (до 70%), JS-файлы (до 85%), разбор моделей (до 92%), подготовка
+       сцены (до 100%, js/scene3d.js). Готовые буферы js/scene3d.js берёт из window.__sceneLoad -->
   <script>
     (function () {
+      // Размеры — несжатые байты файлов (сервер может отдавать их сжатыми)
       var models = {
         subway: ['assets/models/subway.glb?v=20261123p', 996092],
         station: ['assets/models/station.glb?v=20261123p', 905160],
         escalator: ['assets/models/escalator_system.glb?v=20261123', 252056]
       };
-      var state = { parts: {}, shown: 0, hint: null };
+      // Критические JS-файлы и их примерный вес при передаче (КБ, gzip)
+      var scripts = {
+        'js/vendor/three.module.js': 257, 'js/vendor/draco/draco_decoder.wasm': 88,
+        'js/vendor/gsap.min.js': 28, 'js/vendor/GLTFLoader.js': 23, 'js/vendor/ScrollTrigger.min.js': 17,
+        'js/scene3d.js': 17, 'js/vendor/draco/draco_wasm_wrapper.js': 12, 'js/main.js': 5,
+        'js/utils/BufferGeometryUtils.js': 7, 'js/freeRoam.js': 6, 'js/vendor/DRACOLoader.js': 4,
+        'js/subwayAudio.js': 4, 'js/projects-data.js': 1
+      };
+      var state = { parts: {}, shown: 0, hint: null, scriptsDone: {}, parsed: 0 };
+      var scriptsTotal = 0;
+      for (var k in scripts) scriptsTotal += scripts[k];
+
       function paint() {
         var bar = document.getElementById('loader-progress-bar');
         var num = document.getElementById('loader-percent-num');
@@ -88,27 +101,55 @@
         if (num) num.textContent = state.shown + '%';
         if (hint && state.hint) hint.textContent = state.hint;
       }
-      // Прогресс только растёт: загрузка файлов — до 90%, подготовка сцены — остальное
+      // Прогресс только растёт
       state.setProgress = function (percent, hint) {
-        state.shown = Math.max(state.shown, Math.min(100, Math.round(percent)));
+        state.shown = Math.max(state.shown, Math.min(100, Math.floor(percent)));
         if (hint) state.hint = hint;
         paint();
       };
       function update() {
-        var loaded = 0, total = 0;
-        for (var k in state.parts) {
-          loaded += Math.min(state.parts[k].loaded, state.parts[k].total);
-          total += state.parts[k].total;
+        var loaded = 0, total = 0, js = 0, n = 0;
+        for (var name in state.parts) {
+          loaded += Math.min(state.parts[name].loaded, state.parts[name].total);
+          total += state.parts[name].total;
+          n++;
         }
-        state.setProgress(loaded / total * 90);
+        for (var path in state.scriptsDone) js += scripts[path];
+        var unpacking = loaded >= total && state.parsed < n;
+        state.setProgress(70 * loaded / total + 15 * js / scriptsTotal + 7 * state.parsed / n,
+          unpacking ? 'Распаковка моделей' : null);
       }
+      // Вызывает js/scene3d.js: модули уже выполняются, значит JS загружен; модель разобрана
+      state.modulesReady = function () {
+        for (var path in scripts) state.scriptsDone[path] = true;
+        update();
+      };
+      state.partParsed = function () {
+        state.parsed++;
+        update();
+      };
+      if (window.PerformanceObserver) {
+        try {
+          new PerformanceObserver(function (list) {
+            list.getEntries().forEach(function (e) {
+              var path = e.name.split('?')[0];
+              for (var s in scripts) {
+                if (path.slice(-s.length - 1) === '/' + s) state.scriptsDone[s] = true;
+              }
+            });
+            update();
+          }).observe({ type: 'resource', buffered: true });
+        } catch (err) { /* без наблюдателя JS засчитается целиком в modulesReady */ }
+      }
+
       Object.keys(models).forEach(function (name) {
         var part = { url: models[name][0], loaded: 0, total: models[name][1] };
         state.parts[name] = part;
         part.buffer = fetch(part.url).then(function (res) {
           if (!res.ok) throw new Error(res.status + ' ' + part.url);
+          // Content-Length сжатого ответа меньше настоящего размера, тогда остаётся известный
           var len = parseInt(res.headers.get('Content-Length'), 10);
-          if (len > 0) part.total = len;
+          if (len > 0 && !res.headers.get('Content-Encoding')) part.total = len;
           if (!res.body || !res.body.getReader) return res.arrayBuffer();
           var reader = res.body.getReader(), chunks = [], size = 0;
           return (function pump() {

@@ -11,45 +11,93 @@ import { FreeRoamController } from './freeRoam.js';
 import { WORKS, stageSlug } from './projects-data.js';
 
 // =============================================================================
-// КОНФИГУРАЦИЯ СЦЕНЫ И КАМЕРЫ (ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ПО ЦЕНТРАЛЬНОМУ ПРОХОДУ: ВХОД -> ЭКРАНЫ СЛЕВА/СПРАВА -> ВЫХОД)
+// ДВИЖЕНИЕ КАМЕРЫ: «ИДТИ ПО ПРОХОДУ И ПОВОРАЧИВАТЬСЯ К ЭКРАНАМ»
+// Камера описывается позой: позиция + курс + наклон (в градусах).
+// Курс: 0 — вдоль -Z, 90 — вперёд по вагону (+X), 180 — к стене с экранами (+Z, сторона A).
+// Этапы: 0 — вход (в проходе у двери 1), 1..N — напротив экранов, N+1 — у выходной двери.
 // =============================================================================
-const CAMERA_WAYPOINTS = [
-  // 0: Старт из глубокого торца вагона у межвагонной двери (X = -5.50), двери открыты на станции
-  {
-    desktop: { pos: new THREE.Vector3(-5.50, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-5.50, 1.40, -1.250), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
-  },
-  // 1: Проект 1 («Свэг», видео 1, Screen 1 на X = -2.675) — точный центр экрана
-  {
-    desktop: { pos: new THREE.Vector3(-2.675, 1.40, -1.192), target: new THREE.Vector3(-2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-2.675, 1.40, -1.450), target: new THREE.Vector3(-2.675, 1.40, -0.016) }
-  },
-  // 2: Проект 2 («Мини свэг», видео 2, Screen 2 на X = -0.565) — точный центр экрана
-  {
-    desktop: { pos: new THREE.Vector3(-0.565, 1.40, -1.192), target: new THREE.Vector3(-0.565, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(-0.565, 1.40, -1.450), target: new THREE.Vector3(-0.565, 1.40, -0.016) }
-  },
-  // 3: Проект 3 («Ночной тоннель», Screen 3 на X = 0.515) — точный центр экрана
-  {
-    desktop: { pos: new THREE.Vector3(0.515, 1.40, -1.192), target: new THREE.Vector3(0.515, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(0.515, 1.40, -1.450), target: new THREE.Vector3(0.515, 1.40, -0.016) }
-  },
-  // 4: Проект 4 («Индустрия», Screen 4 на X = 2.675) — точный центр экрана
-  {
-    desktop: { pos: new THREE.Vector3(2.675, 1.40, -1.192), target: new THREE.Vector3(2.675, 1.40, -0.016) },
-    mobile:  { pos: new THREE.Vector3(2.675, 1.40, -1.450), target: new THREE.Vector3(2.675, 1.40, -0.016) }
-  },
-  // 5: Прибытие на конечную станцию и выход к контактам (X = 3.765, выходная дверь)
-  {
-    desktop: { pos: new THREE.Vector3(3.765, 1.38, -1.192), target: new THREE.Vector3(3.765, 1.40, 1.800) },
-    mobile:  { pos: new THREE.Vector3(3.765, 1.38, -1.350), target: new THREE.Vector3(3.765, 1.40, 1.800) }
-  }
-];
+const SCREEN_X = [-2.675, -0.565, 0.515, 2.675]; // экраны 1–4 на стене A (z = -0.016)
+const EYE_Y = 1.40;
+const LAST_STAGE = WORKS.length + 1;
 
-// Точки камеры: вход, по одной на каждый экран с работой, контакты
-if (CAMERA_WAYPOINTS.length !== WORKS.length + 2) {
-  console.warn(`Работ ${WORKS.length}, а точек камеры для экранов ${CAMERA_WAYPOINTS.length - 2}: в вагоне ровно 4 экрана`);
+if (WORKS.length !== SCREEN_X.length) {
+  console.warn(`Работ ${WORKS.length}, а экранов в вагоне ${SCREEN_X.length}: показываются только первые ${SCREEN_X.length}`);
 }
+
+const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia
+  ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  : false;
+
+function stagePose(stage, isMobile) {
+  if (stage <= 0) {
+    // Вход: в проходе сразу за дверью 1, взгляд вдоль вагона с лёгким наклоном к первому экрану
+    return { x: -4.05, y: EYE_Y, z: isMobile ? -1.27 : -1.19, heading: isMobile ? 100 : 104, pitch: -1.5 };
+  }
+  if (stage >= LAST_STAGE) {
+    // Контакты: у выходной двери 2, лицом к платформе
+    return { x: 3.765, y: 1.38, z: isMobile ? -0.95 : -0.80, heading: 180, pitch: 0 };
+  }
+  // Экран: по центру прохода напротив экрана, взгляд прямо на него
+  return { x: SCREEN_X[stage - 1], y: EYE_Y, z: isMobile ? -1.45 : -1.192, heading: 180, pitch: 0 };
+}
+
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const smoothstep = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const smootherstep = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+const lerpAngle = (a, b, t) => a + ((((b - a) % 360) + 540) % 360 - 180) * t;
+const damp = (k, dt) => 1 - Math.exp(-k * dt); // доля сближения за кадр, не зависит от FPS
+
+/**
+ * Поза камеры в точке пути s (0..LAST_STAGE, дробная часть — доля пути между этапами).
+ * Позиция идёт по проходу с плавным разгоном и остановкой у экрана; голова по ходу движения
+ * поворачивается вперёд, а к остановке — обратно к экрану. На коротких отрезках поворот меньше.
+ */
+function poseOnPath(s, isMobile, out) {
+  const sc = Math.min(Math.max(s, 0), LAST_STAGE);
+  const i = Math.min(Math.floor(sc), LAST_STAGE - 1);
+  const t = sc - i;
+  const a = stagePose(i, isMobile);
+  const b = stagePose(i + 1, isMobile);
+  const e = smootherstep(t);
+
+  out.x = a.x + (b.x - a.x) * e;
+  out.y = a.y + (b.y - a.y) * e;
+  out.z = a.z + (b.z - a.z) * e;
+  out.heading = lerpAngle(a.heading, b.heading, e);
+  out.pitch = a.pitch + (b.pitch - a.pitch) * e;
+
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const dist = Math.hypot(dx, dz);
+  if (!prefersReducedMotion && dist > 0.05) {
+    const travelHeading = THREE.MathUtils.radToDeg(Math.atan2(dx, -dz));
+    const lookAhead = Math.min(1, dist / 2.4) * 0.85 * smoothstep(0, 0.38, t) * (1 - smoothstep(0.62, 1, t));
+    out.heading = lerpAngle(out.heading, travelHeading, lookAhead);
+    // Едва заметный шаг при ходьбе
+    const steps = Math.max(1, Math.round(dist / 0.7));
+    out.y += 0.006 * Math.sin(Math.PI * e) * Math.sin(2 * Math.PI * steps * e);
+  }
+  return out;
+}
+
+// Путь входа в вагон из спуска: через открытую дверь 1 в проход, без шага назад
+const entryCurves = {};
+function getEntryCurve(isMobile) {
+  const key = isMobile ? 'mobile' : 'desktop';
+  if (!entryCurves[key]) {
+    const end = stagePose(0, isMobile);
+    entryCurves[key] = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-3.765, 1.34, 0.60),   // на платформе у двери (конец 2-й части спуска)
+      new THREE.Vector3(-3.765, 1.37, -0.20),  // порог
+      new THREE.Vector3(-3.90, 1.39, -0.82),   // шаг в проход
+      new THREE.Vector3(end.x, end.y, end.z)   // этап 0
+    ], false, 'centripetal');
+  }
+  return entryCurves[key];
+}
+const ENTRY_START_PITCH = THREE.MathUtils.radToDeg(Math.atan2(1.38 - 1.34, 0.60 + 1.192));
+// Доля спуска (по времени), с которой начинается вход в вагон: easedP = 0.86
+const ENTRY_P_START = 1 - Math.cbrt(2 * (1 - 0.86)) / 2;
 
 // Глобальное состояние
 let scene, camera, renderer, clock;
@@ -90,11 +138,28 @@ const isReturningVisitor = (() => {
 const escalatorLights = [];
 
 
-// Векторы интерполяции камеры
+// Векторы камеры во время спуска (части 1–2 задаются позицией и точкой взгляда)
 const camCurrentPos = new THREE.Vector3();
 const camCurrentTarget = new THREE.Vector3();
-const camTargetPos = new THREE.Vector3();
-const camTargetLookAt = new THREE.Vector3();
+
+// Состояние камеры в вагоне
+let scrollStage = 0;     // цель из прокрутки: 0..LAST_STAGE
+let zoomStage = null;    // экран, к которому приблизились (клик, Z/F)
+let camStage = 0;        // сглаженная точка пути
+let camStageVel = 0;     // скорость по пути, этапов/с
+let camHeading = 0;      // фактический курс камеры, градусы
+let camHeadingVel = 0;   // угловая скорость, градусы/с
+let camPitch = 0;
+let zoomAmount = 0;
+let returnBlend = 1;     // < 1 — плавный возврат на путь после Free Room
+const returnFromPos = new THREE.Vector3();
+const cameraPose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0 };
+const cameraEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+const cameraTmpPos = new THREE.Vector3();
+const cameraTmpDir = new THREE.Vector3();
+const PATH_OMEGA = 3.0;      // пружина движения по пути (критическое демпфирование), 1/с
+const TURN_OMEGA = 6.0;      // пружина поворота головы, 1/с
+const MAX_TURN_SPEED = 60;   // предел угловой скорости, градусы/с
 
 // Параллакс мыши и касаний
 const mouseOffset = { x: 0, y: 0 };
@@ -213,11 +278,6 @@ export function initSubwayScene() {
   const ESC_START_TARGET = new THREE.Vector3(-3.765, 6.20, 13.00);
   camera.position.copy(ESC_START_POS);
   camCurrentPos.copy(ESC_START_POS);
-
-  // Штатная целевая позиция камеры после завершения спуска — СТРОГО вагон метро (Stage 0)
-  const wp0 = CAMERA_WAYPOINTS[0][isMobile ? 'mobile' : 'desktop'];
-  camTargetPos.copy(wp0.pos);
-  camTargetLookAt.copy(wp0.target);
 
   camCurrentTarget.copy(ESC_START_TARGET);
   camera.lookAt(camCurrentTarget);
@@ -535,15 +595,7 @@ function initScrollTriggers() {
   gsap.registerPlugin(ScrollTrigger);
   scrollTriggersReady = true;
 
-  const isMobile = () => window.innerWidth < 768;
-  const getWaypoint = (idx) => CAMERA_WAYPOINTS[idx][isMobile() ? 'mobile' : 'desktop'];
-  
-  // Стартовое положение целевых векторов для ScrollTrigger — строго Stage 0
-  const wp0 = getWaypoint(0);
-  camTargetPos.copy(wp0.pos);
-  camTargetLookAt.copy(wp0.target);
-
-  const NUM_SEGMENTS = CAMERA_WAYPOINTS.length - 1;
+  const NUM_SEGMENTS = LAST_STAGE;
   let hasPlayedDepartureGong = false;
   let hasPlayedDoorChime = false;
   let hasPlayedPAChime = false;
@@ -553,28 +605,19 @@ function initScrollTriggers() {
     trigger: '#scroll-story',
     start: 'top top',
     end: 'bottom bottom',
-    scrub: isMobile() ? 0.8 : 1.8,
+    // Без собственного сглаживания GSAP: камеру сглаживает одна пружина в animate()
+    scrub: true,
     onUpdate: (self) => {
       const p = Math.max(0.0, Math.min(1.0, self.progress));
 
       if (isZoomedToScreen) {
         isZoomedToScreen = false;
+        zoomStage = null;
         document.body.classList.remove('screen-zoomed');
       }
 
       const scaledP = p * NUM_SEGMENTS;
-      const fromIdx = Math.min(Math.floor(scaledP), NUM_SEGMENTS - 1);
-      const toIdx = fromIdx + 1;
-      const localT = scaledP - fromIdx;
-      const easedT = localT * localT * (3 - 2 * localT);
-      const wpFrom = getWaypoint(fromIdx);
-      const wpTo = getWaypoint(toIdx);
-
-      // 1. Позиция камеры
-      camTargetPos.lerpVectors(wpFrom.pos, wpTo.pos, easedT);
-
-      // Плавная интерполяция точки взгляда камеры по центральному проходу вперед
-      camTargetLookAt.lerpVectors(wpFrom.target, wpTo.target, easedT);
+      scrollStage = scaledP;
 
       // Двери 1 (Вход): закрываются при начале скролла (0-8%)
       targetDoorCloseRatio = Math.min(Math.max(p / 0.08, 0.0), 1.0);
@@ -927,11 +970,8 @@ export function zoomToScreen(stage) {
   activeStage = targetStage;
   setActiveStage(targetStage);
 
-  const isMobile = window.innerWidth < 768;
-  const currentWp = CAMERA_WAYPOINTS[targetStage][isMobile ? 'mobile' : 'desktop'];
-  const targetZ = isMobile ? -0.80 : -0.52;
-  camTargetPos.set(currentWp.pos.x, currentWp.pos.y, targetZ);
-  camTargetLookAt.set(currentWp.target.x, currentWp.target.y, currentWp.target.z);
+  // Камера подходит к экрану (по пути, если он не текущий) и приближается к стене
+  zoomStage = targetStage;
   document.body.classList.add('screen-zoomed');
   window.dispatchEvent(new CustomEvent('screen-zoom-toggled', { detail: { isZoomed: true, stage: targetStage } }));
 }
@@ -939,10 +979,7 @@ export function zoomToScreen(stage) {
 export function resetScreenZoom() {
   if (isZoomedToScreen) {
     isZoomedToScreen = false;
-    const isMobile = window.innerWidth < 768;
-    const currentWp = CAMERA_WAYPOINTS[activeStage][isMobile ? 'mobile' : 'desktop'];
-    camTargetPos.copy(currentWp.pos);
-    camTargetLookAt.copy(currentWp.target);
+    zoomStage = null;
     document.body.classList.remove('screen-zoomed');
     window.dispatchEvent(new CustomEvent('screen-zoom-toggled', { detail: { isZoomed: false } }));
   }
@@ -1013,6 +1050,88 @@ function onWindowResize() {
 // Адаптивная динамическая производительность (Adaptive DPR & Performance)
 const frameTimes = [];
 let lastPixelRatioAdjustTime = 0;
+
+// =============================================================================
+// КАМЕРА В ВАГОНЕ
+// =============================================================================
+/** Ставит камеру в позу с поправкой на параллакс мыши/гироскопа (parallax — доля эффекта). */
+function applyCameraPose(pose, parallax = 1) {
+  const k = prefersReducedMotion ? 0.3 * parallax : parallax;
+  const heading = pose.heading + mouseOffsetDamped.x * 55 * k;
+  const pitch = pose.pitch + mouseOffsetDamped.y * 55 * k;
+  camera.position.set(pose.x, pose.y, pose.z);
+  cameraEuler.set(THREE.MathUtils.degToRad(pitch), THREE.MathUtils.degToRad(-heading), 0, 'YXZ');
+  camera.quaternion.setFromEuler(cameraEuler);
+  // Для отладки (__debug.getState)
+  camCurrentPos.copy(camera.position);
+  camCurrentTarget.copy(camera.position).add(camera.getWorldDirection(cameraTmpDir));
+}
+
+/** Сбрасывает пружины камеры в текущее положение (после спуска и Free Room). */
+function syncCameraSprings(stage, heading, pitch) {
+  camStage = stage;
+  camStageVel = 0;
+  camHeading = heading;
+  camHeadingVel = 0;
+  camPitch = pitch;
+}
+
+function updateStoryCamera(dt) {
+  const isMobile = window.innerWidth < 768;
+  mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * damp(4, dt);
+  mouseOffsetDamped.y += (mouseOffset.y - mouseOffsetDamped.y) * damp(4, dt);
+
+  // 1. Движение по пути: пружина второго порядка — разгон с нуля и мягкая остановка у экрана.
+  //    Скорость ограничена; на дальние переходы (ссылка, цифры) предел растёт, чтобы путь занимал ~2–3 с.
+  const target = zoomStage !== null ? zoomStage : scrollStage;
+  const diff = target - camStage;
+  const maxSpeed = Math.max(0.9, Math.abs(diff) / 2.0); // этапов в секунду
+  camStageVel += (PATH_OMEGA * PATH_OMEGA * diff - 2 * PATH_OMEGA * camStageVel) * dt;
+  camStageVel = THREE.MathUtils.clamp(camStageVel, -maxSpeed, maxSpeed);
+  camStage += camStageVel * dt;
+  if (Math.abs(target - camStage) < 1e-4 && Math.abs(camStageVel) < 1e-3) {
+    camStage = target;
+    camStageVel = 0;
+  }
+
+  poseOnPath(camStage, isMobile, cameraPose);
+
+  // 2. Поворот головы: курс догоняет целевой через угловую пружину с пределом скорости,
+  //    поэтому даже при быстрой прокрутке камера не дёргается
+  const headingDiff = (((cameraPose.heading - camHeading) % 360) + 540) % 360 - 180;
+  camHeadingVel += (TURN_OMEGA * TURN_OMEGA * headingDiff - 2 * TURN_OMEGA * camHeadingVel) * dt;
+  camHeadingVel = THREE.MathUtils.clamp(camHeadingVel, -MAX_TURN_SPEED, MAX_TURN_SPEED);
+  camHeading += camHeadingVel * dt;
+  camPitch += (cameraPose.pitch - camPitch) * damp(TURN_OMEGA, dt);
+  cameraPose.heading = camHeading;
+  cameraPose.pitch = camPitch;
+
+  // Приближение к экрану: подходим ближе к стене, когда камера уже напротив него
+  zoomAmount += ((zoomStage !== null ? 1 : 0) - zoomAmount) * damp(4, dt);
+  if (zoomAmount > 0.001 && zoomStage !== null) {
+    const nearScreen = 1 - smoothstep(0.05, 0.6, Math.abs(camStage - zoomStage));
+    cameraPose.z += ((isMobile ? -0.80 : -0.52) - cameraPose.z) * zoomAmount * nearScreen;
+  } else if (zoomAmount > 0.001) {
+    const zoomZ = isMobile ? -0.80 : -0.52;
+    const nearestScreen = Math.round(camStage);
+    if (nearestScreen >= 1 && nearestScreen <= WORKS.length) {
+      const nearScreen = 1 - smoothstep(0.05, 0.6, Math.abs(camStage - nearestScreen));
+      cameraPose.z += (zoomZ - cameraPose.z) * zoomAmount * nearScreen;
+    }
+  }
+
+  // 3. Возврат из Free Room: позиция плавно переходит с места прогулки на путь,
+  //    поворот уже ограничен угловой пружиной
+  if (returnBlend < 1) {
+    returnBlend = Math.min(1, returnBlend + dt / 1.6);
+    const w = smootherstep(returnBlend);
+    cameraPose.x = returnFromPos.x + (cameraPose.x - returnFromPos.x) * w;
+    cameraPose.y = returnFromPos.y + (cameraPose.y - returnFromPos.y) * w;
+    cameraPose.z = returnFromPos.z + (cameraPose.z - returnFromPos.z) * w;
+  }
+
+  applyCameraPose(cameraPose, 1);
+}
 
 // =============================================================================
 // ЦИКЛ РЕНДЕРИНГА (ANIMATE LOOP)
@@ -1101,24 +1220,32 @@ function animate() {
         camCurrentTarget.y = 1.38;
         camCurrentTarget.z = -1.192; // взгляд прямо в салон через открытую дверь 1
       } else {
-        // 3. Бесшовный пролет через открытую дверь 1 в вагон и разворот на позицию Stage 0
-        const s = (easedP - 0.86) / 0.14;
-        const sCurve = s * s * (3.0 - 2.0 * s);
-        camCurrentPos.x = THREE.MathUtils.lerp(-3.765, -5.50, sCurve);
-        camCurrentPos.y = THREE.MathUtils.lerp(1.34, 1.40, sCurve);
-        camCurrentPos.z = THREE.MathUtils.lerp(0.60, -1.192, sCurve);
-
-        camCurrentTarget.x = THREE.MathUtils.lerp(-3.765, -2.675, sCurve);
-        camCurrentTarget.y = 1.40;
-        camCurrentTarget.z = THREE.MathUtils.lerp(-1.192, -0.016, sCurve);
+        // 3. Вход через открытую дверь 1 в проход по плавной дуге; голова поворачивается
+        //    вдоль вагона с ровной скоростью, без шага назад
+        const u = (easedP - 0.86) / 0.14;
+        // Поворот головы идёт по реальному времени (p линейно), а не по замедляющемуся easedP:
+        // ~2.8 с с ровной скоростью вместо резкого доворота в начале
+        const uTurn = (p - ENTRY_P_START) / (1 - ENTRY_P_START);
+        const isMob = window.innerWidth < 768;
+        const end = stagePose(0, isMob);
+        getEntryCurve(isMob).getPointAt(clamp01(u), cameraTmpPos);
+        cameraPose.x = cameraTmpPos.x;
+        cameraPose.y = cameraTmpPos.y;
+        cameraPose.z = cameraTmpPos.z;
+        cameraPose.heading = lerpAngle(0, end.heading, smoothstep(0.04, 1.0, uTurn));
+        cameraPose.pitch = ENTRY_START_PITCH + (end.pitch - ENTRY_START_PITCH) * smoothstep(0, 1, uTurn);
       }
 
-      camera.position.copy(camCurrentPos);
-      camera.lookAt(
-        camCurrentTarget.x + mouseOffsetDamped.x * 0.3,
-        camCurrentTarget.y + mouseOffsetDamped.y * 0.3,
-        camCurrentTarget.z
-      );
+      if (easedP > 0.86) {
+        applyCameraPose(cameraPose, 0.3);
+      } else {
+        camera.position.copy(camCurrentPos);
+        camera.lookAt(
+          camCurrentTarget.x + mouseOffsetDamped.x * 0.3,
+          camCurrentTarget.y + mouseOffsetDamped.y * 0.3,
+          camCurrentTarget.z
+        );
+      }
 
       // Завершение спуска и вход в вагон
       if (easedP >= 0.999 && isSubwayLoaded) {
@@ -1132,21 +1259,7 @@ function animate() {
       camera.lookAt(camCurrentTarget);
     }
   } else {
-    // 1. Медленная, медитативная интерполяция позиции камеры (cinematic dolly lerp)
-    camCurrentPos.lerp(camTargetPos, 0.042);
-    camCurrentTarget.lerp(camTargetLookAt, 0.042);
-
-    // 2. Демпфирование мышиного параллакса
-    mouseOffsetDamped.x += (mouseOffset.x - mouseOffsetDamped.x) * 0.06;
-    mouseOffsetDamped.y += (mouseOffset.y - mouseOffsetDamped.y) * 0.06;
-
-    // Строго заскриптованное кинематографичное движение камеры по скроллу + тонкий параллакс взгляда
-    camera.position.set(camCurrentPos.x, camCurrentPos.y, camCurrentPos.z);
-    camera.lookAt(
-      camCurrentTarget.x + mouseOffsetDamped.x,
-      camCurrentTarget.y + mouseOffsetDamped.y,
-      camCurrentTarget.z
-    );
+    updateStoryCamera(dt);
   }
 
   // 2.1 Пневматическое движение створок дверей (работает как в скролле, так и в Free Roam)
@@ -1336,15 +1449,15 @@ function finishDescent({ audioFade = 0.3, placeCamera = true, chime = true } = {
     escalatorGroup.visible = true;
   }
   if (placeCamera) {
-    const isMob = window.innerWidth < 768;
-    const wp0 = CAMERA_WAYPOINTS[0][isMob ? 'mobile' : 'desktop'];
-    camCurrentPos.copy(wp0.pos);
-    camTargetPos.copy(wp0.pos);
-    camCurrentTarget.copy(wp0.target);
-    camTargetLookAt.copy(wp0.target);
+    // Камера встаёт в позу этапа 0 (ей же заканчивается вход в вагон)
+    scrollStage = 0;
+    zoomStage = null;
+    zoomAmount = 0;
+    returnBlend = 1;
     if (camera) {
-      camera.position.copy(camCurrentPos);
-      camera.lookAt(camCurrentTarget);
+      poseOnPath(0, window.innerWidth < 768, cameraPose);
+      syncCameraSprings(0, cameraPose.heading, cameraPose.pitch);
+      applyCameraPose(cameraPose, 0);
     }
   }
   if (stageVideos[1] && stageVideos[1].paused) {
@@ -1381,13 +1494,16 @@ function onFreeRoamToggled(isActive) {
     if (storyTab) storyTab.classList.add('is-active');
     if (freeRoamTab) freeRoamTab.classList.remove('is-active');
 
-    // Плавный возврат камеры к точке текущего этапа скролла
-    const isMob = window.innerWidth < 768;
-    const wp = CAMERA_WAYPOINTS[activeStage] ? CAMERA_WAYPOINTS[activeStage][isMob ? 'mobile' : 'desktop'] : CAMERA_WAYPOINTS[0].desktop;
-    camCurrentPos.copy(camera.position);
-    camTargetPos.copy(wp.pos);
-    camCurrentTarget.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(4));
-    camTargetLookAt.copy(wp.target);
+    // Плавный возврат с того места, где посетитель гулял, в позу текущего этапа
+    returnFromPos.copy(camera.position);
+    returnBlend = 0;
+    zoomStage = null;
+    camera.getWorldDirection(cameraTmpDir);
+    syncCameraSprings(
+      scrollStage,
+      THREE.MathUtils.radToDeg(Math.atan2(cameraTmpDir.x, -cameraTmpDir.z)),
+      THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(cameraTmpDir.y, -1, 1)))
+    );
 
     // Триггеры могли быть созданы, пока сюжетный трек был скрыт: пересчитываем позиции
     if (scrollTriggersReady && typeof ScrollTrigger !== 'undefined') {

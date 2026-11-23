@@ -1,6 +1,7 @@
 /**
  * Работы портфолио — единственный источник данных для этапов прокрутки,
- * экранов в вагоне, ссылок (#slug) и полноэкранного просмотра.
+ * экранов в вагоне, ссылок (#slug), полноэкранного просмотра и простой версии без 3D.
+ * После правок запустите: node tools/build_simple_page.mjs (пересоберёт simple.html и список в index.html).
  *
  * Работы по порядку показываются на экранах Screen_1..Screen_4 модели вагона
  * (assets/models/subway.blend), поэтому их ровно столько, сколько экранов.
@@ -12,7 +13,7 @@
  *   badge    — бейдж рядом с названием (необязательно)
  *   preview  — короткий зацикленный ролик для экрана в вагоне
  *   full     — полная версия для кнопки «Смотреть полностью» (null — кнопки нет)
- *   poster   — кадр-заставка для полного плеера (необязательно)
+ *   poster   — кадр-заставка для плеера и простой версии simple.html (необязательно)
  *   year, role, client — показываются в плеере, только если заполнены
  */
 
@@ -55,6 +56,7 @@ export const WORKS = [
     badge: 'Shot on iPhone',
     preview: 'assets/videos/preview_tunnel.mp4',
     full: null,
+    poster: 'assets/images/tunnel_thumb.jpg',
     year: '',
     role: '',
     client: ''
@@ -66,6 +68,7 @@ export const WORKS = [
     badge: 'Shot on iPhone',
     preview: 'assets/videos/preview_industry.mp4',
     full: null,
+    poster: 'assets/images/industry_thumb.jpg',
     year: '',
     role: '',
     client: ''

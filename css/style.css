@@ -144,6 +144,22 @@ body.is-preloading #scroll-story {
   font-variant-numeric: tabular-nums;
 }
 
+/* Ссылки на простую версию без 3D (simple.html) */
+.preloader-simple-link,
+.contact-simple-link {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-underline-offset: 3px;
+}
+
+.preloader-simple-link { margin-top: 28px; }
+.contact-simple-link { margin-top: 22px; }
+
+.preloader-simple-link:hover,
+.contact-simple-link:hover { color: #fff; }
+
 /* ==========================================================================
    ФИКСИРОВАННЫЙ CANVAS THREE.JS
    ========================================================================== */

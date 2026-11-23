@@ -8,6 +8,8 @@ import { playNavTick } from './subwayAudio.js';
 import { WORKS, CONTACT_STAGE, LEGACY_HASHES, stageSlug } from './projects-data.js';
 
 function startApp() {
+  // Страница уходит на простую версию (index.html, скрипт в <head>) — 3D не запускаем
+  if (window.__simpleView) return;
   // Доступ для отладки и автоматических проверок
   window.scrollToStage = scrollToStage;
   window.getActiveStage = getActiveStage;
@@ -366,15 +368,16 @@ function buildHashMap() {
 
 function initHashRouting() {
   const hashMap = buildHashMap();
-  const applyHash = () => {
-    const hash = window.location.hash.toLowerCase();
+  const applyHash = (hash = window.location.hash.toLowerCase()) => {
     if (hash && hashMap[hash] !== undefined) scrollToStage(hashMap[hash]);
   };
 
-  // При первом входе переходим к этапу из ссылки, когда сцена показана и включилась прокрутка
-  window.addEventListener('scene-ready', () => requestAnimationFrame(applyHash), { once: true });
+  // При первом входе переходим к этапу из ссылки, когда сцена показана и включилась прокрутка.
+  // Адрес запоминается сейчас: при запуске прокрутка сразу пишет в адрес текущий этап (#intro)
+  const initialHash = window.location.hash.toLowerCase();
+  window.addEventListener('scene-ready', () => requestAnimationFrame(() => applyHash(initialHash)), { once: true });
 
-  window.addEventListener('hashchange', applyHash);
+  window.addEventListener('hashchange', () => applyHash());
 }
 
 // Запуск после объявления всех констант модуля

@@ -6,6 +6,33 @@
   <meta name="theme-color" content="#07080a">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <!-- Простая версия без 3D (simple.html) открывается сама, если нет WebGL 2, включено «уменьшение
+       движения», экономия трафика или устройство слабое. ?3d — открыть 3D (выбор запоминается). -->
+  <script>
+    (function () {
+      var force3d = /[?&]3d(&|=|$)/.test(location.search), pref = null;
+      try {
+        if (force3d) localStorage.setItem('view', '3d');
+        pref = localStorage.getItem('view');
+      } catch (e) { /* без хранилища просто проверяем устройство */ }
+      if (force3d || pref === '3d') return;
+      var gl = null;
+      try {
+        gl = document.createElement('canvas').getContext('webgl2');
+        var lose = gl && gl.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+      } catch (e) { gl = null; }
+      var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var saveData = navigator.connection && navigator.connection.saveData;
+      var weak = (navigator.deviceMemory && navigator.deviceMemory <= 2) ||
+        (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+      if (!gl || reduced || saveData || weak) {
+        window.__simpleView = true;
+        location.replace('simple.html' + location.hash);
+      }
+    })();
+  </script>
   
   <title>Александр Песковский | Режиссура и медиа</title>
   <meta name="description" content="Интерактивное кинематографичное 3D-путешествие в вагоне метро через авторские видеоработы Александра Песковского.">
@@ -42,7 +69,7 @@
   </noscript>
   
   <!-- Стили -->
-  <link rel="stylesheet" href="css/style.css?v=20261122d">
+  <link rel="stylesheet" href="css/style.css?v=20261123">
 
   <!-- GSAP & ScrollTrigger (defer: не блокируют разбор страницы, выполняются до модулей) -->
   <script src="js/vendor/gsap.min.js" defer></script>
@@ -75,6 +102,7 @@
        сцены (до 100%, js/scene3d.js). Готовые буферы js/scene3d.js берёт из window.__sceneLoad -->
   <script>
     (function () {
+      if (window.__simpleView) return;   // уходим на простую версию — модели не качаем
       // Размеры — несжатые байты файлов (сервер может отдавать их сжатыми)
       var models = {
         subway: ['assets/models/subway.glb?v=20261124', 1003880],
@@ -177,8 +205,32 @@
     })();
   </script>
 
+  <!-- Без JavaScript: экран загрузки не нужен, показываем список работ -->
+  <noscript>
+    <style>
+      .scene-preloader, .webgl-fixed-canvas, .scroll-story, .site-header { display: none !important; }
+      body { overflow: auto !important; }
+      .noscript-list { max-width: 720px; margin: 0 auto; padding: 48px 16px; color: #fff; font-family: 'Manrope', sans-serif; line-height: 1.6; }
+      .noscript-list a { color: #f5a623; }
+    </style>
+  </noscript>
 </head>
 <body class="dark-cinema-body is-preloading">
+
+  <!-- SIMPLE-LIST:START (создаётся tools/build_simple_page.mjs) -->
+  <noscript>
+    <div class="noscript-list">
+      <h2>Александр Песковский: работы</h2>
+      <ul>
+        <li><a href="simple.html#swag">Свэг</a> — Видео</li>
+        <li><a href="simple.html#mini-swag">Мини свэг</a> — Видео</li>
+        <li><a href="simple.html#night-tunnel">Ночной тоннель</a> — Видео</li>
+        <li><a href="simple.html#industry">Индустрия</a> — Видео</li>
+      </ul>
+      <p><a href="simple.html">Простая версия сайта</a> · <a href="mailto:peskovsky18@gmail.com">peskovsky18@gmail.com</a></p>
+    </div>
+  </noscript>
+  <!-- SIMPLE-LIST:END -->
 
   <!-- =========================================================================
        ЭКРАН ЗАГРУЗКИ: ДЕРЖИТСЯ, ПОКА СЦЕНА НЕ ГОТОВА (js/scene3d.js, revealScene)
@@ -194,6 +246,7 @@
         <span class="preloader-hint" id="loader-hint">Загрузка вагона</span>
         <span class="preloader-percent" id="loader-percent-num">0%</span>
       </div>
+      <a class="preloader-simple-link" href="simple.html" onclick="this.href = 'simple.html' + location.hash">Простая версия без 3D</a>
     </div>
   </div>
 
@@ -283,6 +336,7 @@
               <span>Instagram @peskovsky18 ↗</span>
             </a>
           </div>
+          <a class="contact-simple-link" href="simple.html">Простая версия сайта: все работы списком</a>
         </div>
       </div>
     </section>
@@ -308,6 +362,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261122d"></script>
+  <script type="module" src="js/main.js?v=20261123"></script>
 </body>
 </html>

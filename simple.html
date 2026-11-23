@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!-- Файл создан tools/build_simple_page.mjs из js/projects-data.js — правьте данные там и перезапускайте скрипт -->
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07080a">
+  <title>Александр Песковский | Работы</title>
+  <meta name="description" content="Видеоработы Александр Песковский: Свэг, Мини свэг, Ночной тоннель, Индустрия.">
+  <link rel="canonical" href="https://peskovsky18.github.io/work/simple.html">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://peskovsky18.github.io/work/simple.html">
+  <meta property="og:title" content="Александр Песковский | Работы">
+  <meta property="og:description" content="Видеоработы Александр Песковский: Свэг, Мини свэг, Ночной тоннель, Индустрия.">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:image" content="https://peskovsky18.github.io/work/assets/images/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5a623'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 3v2h2V7H6zm4 0v2h2V7h-2zm4 0v2h2V7h-2zm4 0v2h2V7h-2z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/simple.css?v=20261123">
+  <script>
+    // Старые адреса этапов 3D-версии → якоря этой страницы
+    (function () {
+      var legacy = {"project-01":"swag","project-02":"mini-swag","project-03":"night-tunnel","project-04":"industry","tunnel":"night-tunnel","03":"night-tunnel","04":"industry","stage-9":"contacts","intro":""};
+      var h = location.hash.slice(1).toLowerCase();
+      if (h in legacy) history.replaceState(null, '', legacy[h] ? '#' + legacy[h] : location.pathname + location.search);
+    })();
+  </script>
+</head>
+<body>
+  <header class="s-header">
+    <a class="s-brand" href="#top">Александр Песковский</a>
+    <a class="s-switch" href="./?3d" id="open-3d">3D-версия</a>
+  </header>
+
+  <main id="top">
+    <section class="s-intro">
+      <h1>Александр Песковский</h1>
+      <p class="s-lead">Портфолио: видеоработы</p>
+      <nav class="s-toc" aria-label="Работы">
+        <a href="#swag">Свэг</a>
+        <a href="#mini-swag">Мини свэг</a>
+        <a href="#night-tunnel">Ночной тоннель</a>
+        <a href="#industry">Индустрия</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+    </section>
+
+    <section class="s-works" aria-label="Работы">
+      <article class="s-work" id="swag">
+        <div class="s-player">
+          <video controls playsinline preload="none" poster="assets/images/swag_thumb.jpg" width="640" height="295" src="assets/videos/swag_full.mp4" aria-label="Свэг"></video>
+        </div>
+        <div class="s-work-text">
+          <p class="s-label"><span class="s-num">01</span> Видео <span class="s-badge">Shot on iPhone</span></p>
+          <h2 class="s-title">Свэг</h2>
+          <a class="s-share" href="#swag">Ссылка на работу</a>
+        </div>
+      </article>
+
+      <article class="s-work" id="mini-swag">
+        <div class="s-player">
+          <video controls playsinline preload="none" poster="assets/images/mini_swag_thumb.jpg" width="640" height="360" src="assets/videos/mini_swag_full.mp4" aria-label="Мини свэг"></video>
+        </div>
+        <div class="s-work-text">
+          <p class="s-label"><span class="s-num">02</span> Видео <span class="s-badge">Shot on iPhone</span></p>
+          <h2 class="s-title">Мини свэг</h2>
+          <a class="s-share" href="#mini-swag">Ссылка на работу</a>
+        </div>
+      </article>
+
+      <article class="s-work" id="night-tunnel">
+        <div class="s-player">
+          <video controls playsinline preload="none" poster="assets/images/tunnel_thumb.jpg" width="480" height="224" src="assets/videos/preview_tunnel.mp4" aria-label="Ночной тоннель"></video>
+        </div>
+        <div class="s-work-text">
+          <p class="s-label"><span class="s-num">03</span> Видео <span class="s-badge">Shot on iPhone</span></p>
+          <h2 class="s-title">Ночной тоннель</h2>
+          <p class="s-note">Фрагмент</p>
+          <a class="s-share" href="#night-tunnel">Ссылка на работу</a>
+        </div>
+      </article>
+
+      <article class="s-work" id="industry">
+        <div class="s-player">
+          <video controls playsinline preload="none" poster="assets/images/industry_thumb.jpg" width="568" height="320" src="assets/videos/preview_industry.mp4" aria-label="Индустрия"></video>
+        </div>
+        <div class="s-work-text">
+          <p class="s-label"><span class="s-num">04</span> Видео <span class="s-badge">Shot on iPhone</span></p>
+          <h2 class="s-title">Индустрия</h2>
+          <p class="s-note">Фрагмент</p>
+          <a class="s-share" href="#industry">Ссылка на работу</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="s-contacts" id="contacts">
+      <h2>Контакты</h2>
+      <div class="s-contact-row">
+        <a class="s-btn s-btn-primary" href="mailto:peskovsky18@gmail.com">peskovsky18@gmail.com</a>
+        <a class="s-btn" href="https://instagram.com/peskovsky18" target="_blank" rel="noopener">Instagram @peskovsky18 ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="s-footer">
+    <p>Это простая версия сайта. <a href="./?3d">Открыть 3D-версию</a>: поездка в вагоне метро, работы на экранах.</p>
+  </footer>
+
+  <script>
+    // Ссылка на 3D-версию ведёт к той же работе, что открыта здесь
+    (function () {
+      var link = document.getElementById('open-3d');
+      function sync() { link.href = './?3d' + (location.hash && location.hash !== '#top' ? location.hash : ''); }
+      window.addEventListener('hashchange', sync);
+      sync();
+      // Играет только один ролик
+      document.addEventListener('play', function (e) {
+        document.querySelectorAll('video').forEach(function (v) { if (v !== e.target) v.pause(); });
+      }, true);
+    })();
+  </script>
+</body>
+</html>

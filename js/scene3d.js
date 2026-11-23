@@ -8,18 +8,20 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { DRACOLoader } from './vendor/DRACOLoader.js';
 import { initSubwayAudio, updateSubwayAudio, setSubwayMuted, playNavTick, playHapticChime, playDoorChime, playArrivalChime } from './subwayAudio.js';
 import { FreeRoamController } from './freeRoam.js';
-import { WORKS, stageSlug } from './projects-data.js';
+import { WORKS, NEWSPAPER_STAGE, CONTACT_STAGE, stageSlug } from './projects-data.js';
+import { Newspaper } from './newspaper.js';
 
 // =============================================================================
 // ДВИЖЕНИЕ КАМЕРЫ: ПРОЕЗД ВДОЛЬ ЭКРАНОВ
 // Камера едет по проходу, как на рельсе, и всё время смотрит на стену с экранами.
 // Поворот только один — на первом отрезке, от вида вдоль вагона к экранам.
 // Курс: 0 — вдоль -Z, 90 — вперёд по вагону (+X), 180 — к стене с экранами (+Z, сторона A).
-// Этапы: 0 — вход (у двери 1), 1..N — напротив экранов, N+1 — у выходной двери.
+// Этапы: 0 — вход (у двери 1), 1..N — напротив экранов, N+1 — газета на кресле под экраном 4,
+// N+2 — у выходной двери.
 // =============================================================================
 const SCREEN_X = [-2.675, -0.565, 0.515, 2.675]; // экраны 1–4 на стене A (z = -0.016)
 const EYE_Y = 1.40;
-const LAST_STAGE = WORKS.length + 1;
+const LAST_STAGE = CONTACT_STAGE;
 
 if (WORKS.length !== SCREEN_X.length) {
   console.warn(`Работ ${WORKS.length}, а экранов в вагоне ${SCREEN_X.length}: показываются только первые ${SCREEN_X.length}`);
@@ -37,6 +39,10 @@ function stagePose(stage, isMobile) {
   if (stage >= LAST_STAGE) {
     // Контакты: у выходной двери 2, лицом к платформе
     return { x: 3.765, y: 1.38, z: isMobile ? -0.95 : -0.80, heading: 180, pitch: 0 };
+  }
+  if (stage === NEWSPAPER_STAGE) {
+    // Газета: шаг к креслу под экраном 4, взгляд чуть вниз — газету поднимают к глазам
+    return { x: SCREEN_X[SCREEN_X.length - 1] + 0.005, y: EYE_Y, z: isMobile ? -1.15 : -0.98, heading: 180, pitch: -12 };
   }
   // Экран: по центру прохода напротив экрана, взгляд прямо на него
   return { x: SCREEN_X[stage - 1], y: EYE_Y, z: isMobile ? -1.45 : -1.192, heading: 180, pitch: 0 };
@@ -76,6 +82,7 @@ function poseOnPath(s, isMobile, out) {
 let scene, camera, renderer, clock;
 let freeRoamController = null;
 let subwayModel;
+let newspaper = null;   // газета на кресле (js/newspaper.js)
 const screenMeshes = [];
 // Превью-видео и их текстуры по номеру этапа (1..WORKS.length), источник — js/projects-data.js
 const stageVideos = [];
@@ -265,6 +272,10 @@ export function initSubwayScene() {
   loadScenePart('escalator', (gltf) => escalatorGroup.add(gltf.scene));
   setupStationEnvironment();
   loadSubwayModel();
+  loadScenePart('newspaper', (gltf) => {
+    newspaper = new Newspaper(gltf.scene, scene);
+    window.__newspaper = newspaper;
+  });
 
   // 5. Слушатели событий
   setupEventListeners();
@@ -335,7 +346,11 @@ function loadScenePart(name, onLoad) {
     partsDone.add(name);
     if (partsDone.size === Object.keys(sceneLoad.parts).length) revealScene();
   };
-  const done = (gltf) => { onLoad(gltf); finish(); };
+  // Ошибка в одной части (например, газете) не должна держать экран загрузки вечно
+  const done = (gltf) => {
+    try { onLoad(gltf); } catch (err) { console.error(`Ошибка подготовки модели ${name}:`, err); }
+    finish();
+  };
   const fail = (err) => { console.error(`Ошибка загрузки модели ${name}:`, err); finish(); };
   part.buffer.then(
     (buffer) => loader.parse(buffer, 'assets/models/', done, fail),
@@ -460,6 +475,7 @@ function buildEnvironmentMaps() {
     });
   });
   applyEnv(subwayModel, null);
+  applyEnv(newspaper && newspaper.group, null);
   applyEnv(stationEnvGroup, stationEnv);
   applyEnv(escalatorGroup, stationEnv);
   window.__envBuildMs = Math.round(performance.now() - t0);
@@ -639,9 +655,10 @@ function initScrollTriggers() {
       // Двери 1 (Вход): закрываются при начале скролла (0-8%)
       targetDoorCloseRatio = Math.min(Math.max(p / 0.08, 0.0), 1.0);
 
-      // Двери 2 (Выход к контактам): плавно открываются по мере приближения скролла к контактам (82% -> 98%)
-      if (p >= 0.82) {
-        const normP = Math.min(Math.max((p - 0.82) / 0.16, 0.0), 1.0);
+      // Двери 2 (Выход к контактам): открываются на последнем отрезке пути — от газеты к контактам
+      const toExit = scaledP - (LAST_STAGE - 1);
+      if (toExit >= 0.1) {
+        const normP = Math.min(Math.max((toExit - 0.1) / 0.8, 0.0), 1.0);
         // Плавная органичная кривая smoothstep
         targetDoor2OpenRatio = normP * normP * (3.0 - 2.0 * normP);
       } else {
@@ -649,12 +666,12 @@ function initScrollTriggers() {
       }
 
       // Звуковой сигнал прибытия на станцию при приближении к контактам
-      if (p >= 0.85 && !hasPlayedArrivalChime) {
+      if (toExit >= 0.3 && !hasPlayedArrivalChime) {
         hasPlayedArrivalChime = true;
         if (!isGlobalMuted) {
           playArrivalChime();
         }
-      } else if (p < 0.78) {
+      } else if (toExit < -0.2) {
         hasPlayedArrivalChime = false;
       }
 
@@ -1171,6 +1188,15 @@ function animate() {
     updateStoryCamera(dt);
   }
 
+  // 2.0 Газета: в руках, пока камера стоит на её этапе (не в Free Room и не в полном плеере)
+  if (newspaper) {
+    const wantOpen = isInsideCarStory()
+      && activeStage === NEWSPAPER_STAGE
+      && Math.abs(camStage - NEWSPAPER_STAGE) < 0.2
+      && !document.body.classList.contains('viewer-open');
+    newspaper.update(dt, camera, wantOpen);
+  }
+
   // 2.1 Пневматическое движение створок дверей (работает как в скролле, так и в Free Roam)
   currentDoorCloseRatio += (targetDoorCloseRatio - currentDoorCloseRatio) * 0.08;
   if (doorLeft && doorRight) {
@@ -1226,6 +1252,10 @@ function animate() {
 
   // 6. Рендер кадра
   renderer.render(scene, camera);
+}
+
+function isInsideCarStory() {
+  return !freeRoamController || !freeRoamController.isActive;
 }
 
 let cachedScrubbers = null;

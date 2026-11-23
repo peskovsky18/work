@@ -3,16 +3,21 @@
 
 scene.blend: каждая коллекция верхнего уровня уходит в свой файл, чтобы сайт
 мог грузить их по очереди (эскалатор первым, чтобы спуск стартовал быстро):
-    Escalator -> escalator_system.glb, Station -> station.glb, Train -> subway.glb
+    Escalator -> escalator_system.glb, Station -> station.glb, Train -> subway.glb,
+    Newspaper -> newspaper.glb (газета на кресле, tools/blender/build_newspaper.py)
 Любой другой .blend экспортируется целиком в одноимённый .glb рядом с ним.
 
 Запуск:  blender -b assets/models/scene.blend --python tools/blender/export_glb.py
+Только часть сцены (имена коллекций после --):
+         blender -b assets/models/scene.blend --python tools/blender/export_glb.py -- Newspaper
 """
 import os
 
 import bpy
 
-PART_FILES = {'Escalator': 'escalator_system.glb', 'Station': 'station.glb', 'Train': 'subway.glb'}
+PART_FILES = {'Escalator': 'escalator_system.glb', 'Station': 'station.glb', 'Train': 'subway.glb',
+              'Newspaper': 'newspaper.glb'}
+REQUIRED_PARTS = {'Escalator', 'Station', 'Train'}   # по ним узнаём файл сцены
 
 OPTIONS = dict(
     export_format='GLB',
@@ -28,6 +33,8 @@ OPTIONS = dict(
     export_draco_position_quantization=14,
     export_draco_normal_quantization=10,
     export_draco_texcoord_quantization=12,
+    # Формы (газета прогибается по креслу) Draco не сжимает; нормали для пологого изгиба не нужны
+    export_morph_normal=False,
 )
 
 
@@ -41,16 +48,18 @@ def find_layer_collection(layer_col, name):
     return None
 
 
-def run():
+def run(only=None):
     folder = os.path.dirname(bpy.data.filepath)
     top = {c.name for c in bpy.context.scene.collection.children}
-    if not set(PART_FILES) <= top:
+    if not REQUIRED_PARTS <= top:
         out = os.path.splitext(bpy.data.filepath)[0] + '.glb'
         bpy.ops.export_scene.gltf(filepath=out, use_selection=False, **OPTIONS)
         return [out]
     outs = []
     view_layer = bpy.context.view_layer
     for part, filename in PART_FILES.items():
+        if part not in top or (only and part not in only):
+            continue
         view_layer.active_layer_collection = find_layer_collection(view_layer.layer_collection, part)
         out = os.path.join(folder, filename)
         bpy.ops.export_scene.gltf(filepath=out, use_active_collection=True,
@@ -60,4 +69,6 @@ def run():
 
 
 if __name__ == '__main__':
-    print('EXPORTED', run())
+    import sys
+    argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
+    print('EXPORTED', run(set(argv) or None))

@@ -71,7 +71,7 @@ export class FreeRoamController {
       <div class="free-roam-top-bar">
         <div class="free-roam-top-spacer"></div>
         <button type="button" id="free-roam-close-btn" class="free-roam-close-btn" title="Выйти к проектам (ESC)">
-          <span>✕ Выход к проектам (ESC)</span>
+          <span>Выйти к проектам <kbd>Esc</kbd></span>
         </button>
       </div>
 

@@ -27,6 +27,25 @@
 
 В вагоне 4 экрана, поэтому работ тоже 4. Видео кладутся в `assets/videos/`. Для веба подходит MP4 (H.264) с `faststart`, чтобы воспроизведение начиналось до полной загрузки.
 
+## Газета: креативы и проекты
+
+После четвёртого экрана идёт этап «Газета» (`…/work/#newspaper`): на кресле под экраном 4 лежит газета, герой поднимает её к глазам и раскрывает. Слева полоса «Креативы», справа «Вайбкод-проекты». Пока на местах работ стоят серые блоки макета.
+
+Места под работы — плоскости `News_Slot_F1` (первая полоса), `News_Slot_C1..C3` (креативы) и `News_Slot_P1..P3` (проекты), их отдаёт `getSlots()` в [`js/newspaper.js`](js/newspaper.js). Сборка:
+
+```bash
+python3 tools/blender/generate_newspaper_textures.py
+/Applications/Blender.app/Contents/MacOS/Blender -b assets/models/scene_prebake.blend --python tools/blender/build_newspaper.py
+/Applications/Blender.app/Contents/MacOS/Blender -b assets/models/scene.blend --python tools/blender/build_newspaper.py
+/Applications/Blender.app/Contents/MacOS/Blender -b assets/models/scene.blend --python tools/blender/export_glb.py -- Newspaper
+```
+
+Первый скрипт рисует полосы (шрифты PT Serif и PT Sans, лицензия OFL) в `assets/models/newspaper_textures/`, второй строит газету и ключ формы `Drape`, по которому она прогибается по сиденью.
+
+## Пиксельный интерфейс
+
+Поверх `css/style.css` подключён [`css/pixel.css`](css/pixel.css): окна в духе старых игр, графит с янтарным выделением, шрифты Press Start 2P (заголовки) и Tiny5 (текст). Если убрать его из `index.html`, вернётся прежний вид. [`js/pixel-ui.js`](js/pixel-ui.js) печатает подписи по буквам и не делает этого при включённом «уменьшении движения».
+
 ## Простая версия без 3D
 
 [`simple.html`](simple.html) — обычная страница со списком работ: работает без WebGL и без JavaScript, видео качаются только после нажатия. Её создаёт `tools/build_simple_page.mjs` из `js/projects-data.js`, вручную не правится. Он же обновляет в `index.html` список работ внутри `<noscript>` (его видят поисковики и браузеры без JS).
@@ -42,6 +61,7 @@
 | `Escalator` | `escalator_system.glb` | эскалатор в две ленты, тоннель и портал (виден в Free Room) |
 | `Station` | `station.glb` | станция: свод, платформа, пути, постеры, автомат |
 | `Train` | `subway.glb` | вагон: салон (`Train/Interior`), двери, экраны, кузов и прицепные вагоны |
+| `Newspaper` | `newspaper.glb` | газета на кресле с блоками под креативы и проекты |
 
 Экспорт (Draco-геометрия, WebP-текстуры):
 

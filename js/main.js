@@ -5,7 +5,8 @@
 
 import { initSubwayScene, scrollToStage, toggleGlobalSound, getStageVideo, resetScreenZoom, toggleScreenZoom, getActiveStage, toggleFreeRoam, isFreeRoamActive } from './scene3d.js';
 import { playNavTick } from './subwayAudio.js';
-import { WORKS, CONTACT_STAGE, LEGACY_HASHES, stageSlug } from './projects-data.js';
+import { WORKS, NEWSPAPER_STAGE, CONTACT_STAGE, LEGACY_HASHES, stageSlug } from './projects-data.js';
+import { initPixelUI } from './pixel-ui.js';
 
 function startApp() {
   // Страница уходит на простую версию (index.html, скрипт в <head>) — 3D не запускаем
@@ -18,6 +19,7 @@ function startApp() {
 
   // 0. Этапы с работами и источники видео создаются из данных до старта сцены
   renderWorks();
+  initPixelUI();
 
   // 1. 3D-сцена (кадр 0 рендерится сразу)
   initSubwayScene();
@@ -39,7 +41,8 @@ const isViewerOpen = () => document.body.classList.contains('viewer-open');
 const ICON_PLAY = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
 const ICON_PAUSE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>';
 const ICON_MUTED = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
-const ICON_EXPAND = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+// Пиксельный значок «во весь экран»: четыре уголка на сетке 9×9
+const ICON_EXPAND = '<svg class="px-icon" viewBox="0 0 9 9" aria-hidden="true"><path d="M0 0h3v1H1v2H0zM6 0h3v3H8V1H6zM0 6h1v2h2v1H0zM8 6h1v3H6V8h2z"/></svg>';
 
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
@@ -94,6 +97,19 @@ function renderWorks() {
     ]);
     story.insertBefore(section, contact);
   });
+
+  // Газета на кресле: креативы и вайбкод-проекты (пока разметка блоков, без работ)
+  story.insertBefore(el('section', { class: 'story-stage stage-newspaper', id: `stage-${NEWSPAPER_STAGE}`, 'data-stage-index': String(NEWSPAPER_STAGE) }, [
+    el('div', { class: 'stage-container' }, [
+      el('div', { class: 'floating-hud-top' }, [
+        el('div', { class: 'glass-capsule title-capsule' }, [
+          el('span', { class: 'hud-category-label', text: 'Газета' }),
+          el('span', { class: 'hud-item-title', text: 'Креативы и проекты' }),
+          el('span', { class: 'hud-badge', text: 'Скоро' })
+        ])
+      ])
+    ])
+  ]), contact);
 
   contact.id = `stage-${CONTACT_STAGE}`;
   contact.dataset.stageIndex = String(CONTACT_STAGE);

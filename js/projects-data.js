@@ -75,8 +75,11 @@ export const WORKS = [
   }
 ];
 
-/** Номер этапа прокрутки: 0 — вход, 1..N — работы, N+1 — контакты */
-export const CONTACT_STAGE = WORKS.length + 1;
+/** Газета на кресле в вагоне (креативы и вайбкод-проекты) — этап после последнего экрана */
+export const NEWSPAPER_STAGE = WORKS.length + 1;
+
+/** Номер этапа прокрутки: 0 — вход, 1..N — работы, N+1 — газета, N+2 — контакты */
+export const CONTACT_STAGE = WORKS.length + 2;
 
 /** Старые адреса этапов, чтобы ранее отправленные ссылки продолжали работать */
 export const LEGACY_HASHES = {
@@ -87,6 +90,7 @@ export const LEGACY_HASHES = {
 export function stageSlug(stageIndex) {
   if (stageIndex === 0) return 'intro';
   if (stageIndex === CONTACT_STAGE) return 'contacts';
+  if (stageIndex === NEWSPAPER_STAGE) return 'newspaper';
   const work = WORKS[stageIndex - 1];
   return work ? work.slug : `stage-${stageIndex}`;
 }

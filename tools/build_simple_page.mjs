@@ -14,7 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { WORKS, PROFILE, LEGACY_HASHES, stageSlug } = await import(pathToFileURL(path.join(ROOT, 'js/projects-data.js')));
 
 const SITE_URL = 'https://peskovsky18.github.io/work/';
-const CSS_VERSION = '20261123';
+const CSS_VERSION = '20261124';
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -71,7 +71,7 @@ function simplePage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#07080a">
+  <meta name="theme-color" content="#050506">
   <title>${esc(PROFILE.name)} | Работы</title>
   <meta name="description" content="${esc(desc)}">
   <link rel="canonical" href="${SITE_URL}simple.html">
@@ -85,7 +85,7 @@ function simplePage() {
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5a623'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 3v2h2V7H6zm4 0v2h2V7h-2zm4 0v2h2V7h-2zm4 0v2h2V7h-2z'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tiny5&display=block" rel="stylesheet">
   <link rel="stylesheet" href="css/simple.css?v=${CSS_VERSION}">
   <script>
     // Старые адреса этапов 3D-версии → якоря этой страницы

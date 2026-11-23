@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#07080a">
+  <meta name="theme-color" content="#050506">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-capable" content="yes">
 
@@ -60,16 +60,17 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5a623'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 3v2h2V7H6zm4 0v2h2V7h-2zm4 0v2h2V7h-2zm4 0v2h2V7h-2z'/%3E%3C/svg%3E">
   <link rel="manifest" href="manifest.json">
   
-  <!-- Шрифты: Manrope (Apple Industrial) и JetBrains Mono (асинхронная неблокирующая загрузка) -->
+  <!-- Пиксельные шрифты с кириллицей: Press Start 2P (имя и названия) и Tiny5 (остальной текст); загрузка не блокирует страницу -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tiny5&display=block" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tiny5&display=block" rel="stylesheet">
   </noscript>
   
   <!-- Стили -->
   <link rel="stylesheet" href="css/style.css?v=20261123">
+  <link rel="stylesheet" href="css/pixel.css?v=20261124">
 
   <!-- GSAP & ScrollTrigger (defer: не блокируют разбор страницы, выполняются до модулей) -->
   <script src="js/vendor/gsap.min.js" defer></script>
@@ -93,6 +94,7 @@
   <link rel="modulepreload" href="js/utils/BufferGeometryUtils.js">
   <link rel="modulepreload" href="js/projects-data.js">
   <link rel="modulepreload" href="js/freeRoam.js">
+  <link rel="modulepreload" href="js/newspaper.js">
   <link rel="modulepreload" href="js/subwayAudio.js">
   <link rel="preload" href="js/vendor/draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
   <link rel="preload" href="js/vendor/draco/draco_decoder.wasm" as="fetch" crossorigin>
@@ -107,7 +109,8 @@
       var models = {
         subway: ['assets/models/subway.glb?v=20261124', 1003880],
         station: ['assets/models/station.glb?v=20261125', 875044],
-        escalator: ['assets/models/escalator_system.glb?v=20261125', 202048]
+        escalator: ['assets/models/escalator_system.glb?v=20261125', 202048],
+        newspaper: ['assets/models/newspaper.glb?v=20261124', 178540]
       };
       // Критические JS-файлы и их примерный вес при передаче (КБ, gzip)
       var scripts = {
@@ -115,6 +118,7 @@
         'js/vendor/gsap.min.js': 28, 'js/vendor/GLTFLoader.js': 23, 'js/vendor/ScrollTrigger.min.js': 17,
         'js/scene3d.js': 17, 'js/vendor/draco/draco_wasm_wrapper.js': 12, 'js/main.js': 5,
         'js/utils/BufferGeometryUtils.js': 7, 'js/freeRoam.js': 6, 'js/vendor/DRACOLoader.js': 4,
+        'js/newspaper.js': 2, 'js/pixel-ui.js': 1,
         'js/subwayAudio.js': 4, 'js/projects-data.js': 1
       };
       var state = { parts: {}, shown: 0, hint: null, scriptsDone: {}, parsed: 0 };
@@ -210,7 +214,7 @@
     <style>
       .scene-preloader, .webgl-fixed-canvas, .scroll-story, .site-header { display: none !important; }
       body { overflow: auto !important; }
-      .noscript-list { max-width: 720px; margin: 0 auto; padding: 48px 16px; color: #fff; font-family: 'Manrope', sans-serif; line-height: 1.6; }
+      .noscript-list { max-width: 720px; margin: 0 auto; padding: 48px 16px; color: #fff; font-family: 'Tiny5', sans-serif; line-height: 1.6; }
       .noscript-list a { color: #f5a623; }
     </style>
   </noscript>
@@ -288,7 +292,7 @@
       <!-- Действия: Email, IG -->
       <div class="header-actions">
         <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn action-email-btn" title="Написать на Email">
-          <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          <svg class="pill-icon px-icon" viewBox="0 0 11 8" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h11v8H0zM1 1v6h9V1zM1 1h1v1H1zM9 1h1v1H9zM2 2h1v1H2zM8 2h1v1H8zM3 3h1v1H3zM7 3h1v1H7zM4 4h3v1H4z"/></svg>
           <span>Email</span>
         </a>
 
@@ -312,6 +316,8 @@
       <div class="stage-container intro-layout">
         <div class="intro-glass-panel">
           <h2 class="intro-headline">Александр Песковский</h2>
+          <p class="intro-line">Листайте вниз, чтобы пройти по вагону к работам.</p>
+          <span class="intro-next" aria-hidden="true"></span>
         </div>
       </div>
     </section>
@@ -328,7 +334,7 @@
 
           <div class="contact-action-row">
             <a href="mailto:peskovsky18@gmail.com" class="apple-pill-btn apple-pill-primary contact-btn-large">
-              <svg class="pill-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <svg class="pill-icon px-icon" viewBox="0 0 11 8" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h11v8H0zM1 1v6h9V1zM1 1h1v1H1zM9 1h1v1H9zM2 2h1v1H2zM8 2h1v1H8zM3 3h1v1H3zM7 3h1v1H7zM4 4h3v1H4z"/></svg>
               <span>Email: peskovsky18@gmail.com</span>
             </a>
 
@@ -354,7 +360,7 @@
           <p class="work-viewer-meta" id="work-viewer-meta"></p>
         </div>
         <button class="modal-close-btn work-viewer-close" type="button" data-viewer-close aria-label="Закрыть">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg class="px-icon" viewBox="0 0 7 7" aria-hidden="true"><path d="M0 0h1v1H0zM6 0h1v1H6zM1 1h1v1H1zM5 1h1v1H5zM2 2h1v1H2zM4 2h1v1H4zM3 3h1v1H3zM2 4h1v1H2zM4 4h1v1H4zM1 5h1v1H1zM5 5h1v1H5zM0 6h1v1H0zM6 6h1v1H6z"/></svg>
         </button>
       </div>
       <video class="work-viewer-video" id="work-viewer-video" controls playsinline preload="none"></video>
@@ -362,6 +368,6 @@
   </div>
 
   <!-- Скрипт приложения -->
-  <script type="module" src="js/main.js?v=20261123"></script>
+  <script type="module" src="js/main.js?v=20261124"></script>
 </body>
 </html>

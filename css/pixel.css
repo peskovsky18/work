@@ -1,0 +1,987 @@
+/* ==========================================================================
+   ПИКСЕЛЬНЫЙ ИНТЕРФЕЙС: ОКНА ИЗ СТАРОЙ ИГРЫ
+   Подключается после style.css и перекрашивает только HTML-интерфейс:
+   3D-вагон и станция не меняются. Убрать файл из index.html — вернётся
+   прежний «стеклянный» вид.
+
+   Окно: графитовая заливка полосами, двойная светлая рамка, срезанные углы,
+   жёсткая тень без размытия. Выбранный пункт меню отмечает стрелка ▶.
+   ========================================================================== */
+
+:root {
+  --p: 3px;                    /* размер «пикселя» рамок */
+  --ink: #050506;              /* контур и тень */
+  --win-1: #34363d;            /* полосы заливки окна, сверху вниз */
+  --win-2: #2d2f35;
+  --win-3: #27292e;
+  --win-4: #212327;
+  --well: #121316;             /* углубления: кнопки, полоска прогресса */
+  --frame: #f2efe6;            /* светлая рамка */
+  --frame-inner: #8f8a7c;      /* внутренняя тонкая линия рамки */
+  --text: #f2efe6;
+  --text-soft: #aaa598;
+  --pick: #f5a623;             /* янтарь: выбор, курсор, включённое состояние */
+  --pick-hover: #ffc45c;
+  --pick-dark: #b8730a;          /* тень на янтарной ручке джойстика */
+  --shadow: rgba(0, 0, 0, 0.8); /* жёсткая тень окон */
+  --rule: rgba(242, 239, 230, 0.25); /* разделитель внутри окна */
+  --backdrop: rgba(5, 5, 6, 0.9);  /* затемнение под окном просмотра */
+
+  --font-ui: 'Tiny5', 'Courier New', monospace;
+  --font-name: 'Press Start 2P', 'Tiny5', monospace;
+
+  /* Пиксельные иконки (сетка из квадратов, без сглаживания) */
+  --ico-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 7' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1H0z'/%3E%3C/svg%3E");
+  --ico-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h7v1h-1v1h-1v1h-1v1H3V3H2V2H1V1H0z'/%3E%3C/svg%3E");
+  --ico-play: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1v1H2z'/%3E%3C/svg%3E");
+  --ico-pause: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h3v9H1zM5 0h3v9H5z'/%3E%3C/svg%3E");
+  --ico-sound-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h2v3H0zM2 2h1v5H2zM3 1h1v7H3zM4 0h1v9H4zM6 3h1v3H6zM7 1h1v1H7zM8 2h1v5H8zM7 7h1v1H7z'/%3E%3C/svg%3E");
+  --ico-sound-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h2v3H0zM2 2h1v5H2zM3 1h1v7H3zM4 0h1v9H4zM6 3h1v1H6zM8 3h1v1H8zM7 4h1v1H7zM6 5h1v1H6zM8 5h1v1H8z'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 768px) {
+  :root { --p: 2px; }
+}
+
+/* --------------------------------------------------------------------------
+   ОСНОВА: ШРИФТ И ФОН
+   -------------------------------------------------------------------------- */
+body.dark-cinema-body,
+body.dark-cinema-body button,
+body.dark-cinema-body .preloader-subtitle,
+body.dark-cinema-body .preloader-hint,
+body.dark-cinema-body .preloader-percent,
+body.dark-cinema-body .preloader-simple-link,
+body.dark-cinema-body .contact-simple-link,
+body.dark-cinema-body .mode-nav-tab,
+body.dark-cinema-body .apple-pill-btn,
+body.dark-cinema-body .hud-category-label,
+body.dark-cinema-body .hud-badge,
+body.dark-cinema-body .free-roam-hint-item,
+body.dark-cinema-body .work-viewer-meta {
+  font-family: var(--font-ui);
+}
+
+html,
+body.dark-cinema-body {
+  background-color: var(--ink);
+}
+
+/* У пиксельных шрифтов одно начертание: браузер не должен рисовать им ложный жирный */
+body.dark-cinema-body {
+  font-synthesis: none;
+}
+
+::selection {
+  background: var(--pick);
+  color: var(--ink);
+}
+
+body.dark-cinema-body :focus-visible {
+  outline: var(--p) solid var(--pick);
+  outline-offset: var(--p);
+}
+
+/* --------------------------------------------------------------------------
+   ОКНО
+   Заливка и рамка рисуются на ::before (со срезанными углами),
+   жёсткая тень — фильтром на самом элементе, чтобы повторить форму углов.
+   -------------------------------------------------------------------------- */
+.site-header .header-container,
+.scene-preloader .preloader-center,
+.intro-glass-panel,
+.glass-capsule,
+.contact-glass-card,
+.work-viewer-sheet,
+.free-roam-close-btn,
+.free-roam-hint-item,
+.free-roam-joystick-base {
+  position: relative;
+  isolation: isolate;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  filter: drop-shadow(var(--p) var(--p) 0 var(--shadow));
+  color: var(--text);
+}
+
+.site-header .header-container::before,
+.scene-preloader .preloader-center::before,
+.intro-glass-panel::before,
+.glass-capsule::before,
+.contact-glass-card::before,
+.work-viewer-sheet::before,
+.free-roam-close-btn::before,
+.free-roam-hint-item::before,
+.free-roam-joystick-base::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    var(--win-1) 0 25%, var(--win-2) 25% 50%, var(--win-3) 50% 75%, var(--win-4) 75% 100%);
+  box-shadow:
+    inset 0 0 0 var(--p) var(--ink),
+    inset 0 0 0 calc(var(--p) * 2) var(--frame),
+    inset 0 0 0 calc(var(--p) * 3) var(--win-2),
+    inset 0 0 0 calc(var(--p) * 3 + 1px) var(--frame-inner);
+  clip-path: polygon(
+    var(--p) 0, calc(100% - var(--p)) 0, calc(100% - var(--p)) var(--p), 100% var(--p),
+    100% calc(100% - var(--p)), calc(100% - var(--p)) calc(100% - var(--p)),
+    calc(100% - var(--p)) 100%, var(--p) 100%, var(--p) calc(100% - var(--p)),
+    0 calc(100% - var(--p)), 0 var(--p), var(--p) var(--p));
+}
+
+/* Окна появляются шагами, как в старых играх, а не плавным «стеклом» */
+@keyframes px-open {
+  0% { opacity: 0; transform: scaleY(0.2); }
+  34% { opacity: 1; transform: scaleY(0.2); }
+  67% { transform: scaleY(0.6); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   ПУНКТ МЕНЮ СО СТРЕЛКОЙ ▶
+   Стрелка стоит в левом поле пункта и видна у выбранного пункта,
+   при наведении и при фокусе с клавиатуры.
+   -------------------------------------------------------------------------- */
+.mode-nav-tab,
+.contact-action-row .contact-btn-large,
+.contact-simple-link,
+.preloader-simple-link {
+  position: relative;
+  padding-left: 20px;
+}
+
+.mode-nav-tab::before,
+.contact-action-row .contact-btn-large::before,
+.contact-simple-link::before,
+.preloader-simple-link::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  width: 8px;
+  height: 14px;
+  margin-top: -7px;
+  background: var(--pick);
+  -webkit-mask: var(--ico-cursor) center / contain no-repeat;
+  mask: var(--ico-cursor) center / contain no-repeat;
+  visibility: hidden;
+}
+
+.mode-nav-tab.is-active::before,
+.mode-nav-tab:focus-visible::before,
+.contact-action-row .contact-btn-large:focus-visible::before,
+.contact-simple-link:focus-visible::before,
+.preloader-simple-link:focus-visible::before {
+  visibility: visible;
+}
+
+@media (hover: hover) {
+  .mode-nav-tab:hover::before,
+  .contact-action-row .contact-btn-large:hover::before,
+  .contact-simple-link:hover::before,
+  .preloader-simple-link:hover::before {
+    visibility: visible;
+    animation: px-blink 0.8s steps(1) infinite;
+  }
+}
+
+/* В меню контактов стрелка по умолчанию стоит на первом пункте,
+   пока посетитель не навёл курсор на другой */
+.contact-glass-card:not(:hover):not(:focus-within) .contact-action-row .contact-btn-large:first-child::before {
+  visibility: visible;
+}
+
+@keyframes px-blink {
+  50% { visibility: hidden; }
+}
+
+/* --------------------------------------------------------------------------
+   ПРЕЛОАДЕР
+   -------------------------------------------------------------------------- */
+.scene-preloader {
+  background: var(--ink);
+}
+
+.scene-preloader .preloader-center {
+  max-width: 360px;
+  padding: 30px 28px 24px;
+  text-align: left;
+}
+
+.preloader-title {
+  font-family: var(--font-name);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.preloader-subtitle {
+  margin-top: 6px;
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-soft);
+}
+
+.preloader-bar-wrap {
+  height: 20px;
+  margin-top: 22px;
+  padding: 4px;
+  background: var(--well);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px var(--frame-inner);
+}
+
+.preloader-bar-fill,
+.timeline-bar-fill {
+  border-radius: 0;
+  background: repeating-linear-gradient(90deg, var(--pick) 0 8px, transparent 8px 10px);
+}
+
+.preloader-hint {
+  font-size: 15px;
+  color: var(--text-soft);
+}
+
+.preloader-percent {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--pick);
+}
+
+.preloader-simple-link {
+  margin-top: 18px;
+  font-size: 15px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* --------------------------------------------------------------------------
+   ШАПКА: ОДНО ОКНО-СТРОКА
+   -------------------------------------------------------------------------- */
+.site-header {
+  padding: max(10px, env(safe-area-inset-top, 10px)) max(12px, env(safe-area-inset-right, 12px)) 0 max(12px, env(safe-area-inset-left, 12px));
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 0;
+  pointer-events: none;
+}
+
+.site-header .header-container {
+  pointer-events: auto;
+  padding: calc(var(--p) * 3 + 8px) calc(var(--p) * 3 + 14px);
+  gap: 12px 20px;
+}
+
+.brand-name {
+  font-family: var(--font-name);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.header-mode-nav {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  gap: 4px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.mode-tab-icon {
+  display: none;
+}
+
+.mode-nav-tab,
+#mode-freeroam-tab.is-active,
+.mode-nav-tab.is-active {
+  padding: 4px 10px 4px 20px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-shadow: none;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text-soft);
+  transition: none;
+}
+
+.mode-nav-tab:hover,
+.mode-nav-tab.is-active,
+#mode-freeroam-tab.is-active {
+  color: var(--text);
+  background: none;
+}
+
+.header-actions {
+  gap: 8px;
+}
+
+.apple-pill-btn,
+.header-actions .apple-pill-btn {
+  border-radius: 0;
+  transition: none;
+}
+
+/* Кнопки связи в шапке — маленькие пиксельные клавиши */
+.header-actions .apple-pill-btn {
+  height: 32px;
+  padding: 0 12px;
+  gap: 8px;
+  background: var(--well);
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--frame-inner), 0 3px 0 var(--ink);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.header-actions .apple-pill-btn:hover {
+  background: var(--pick);
+  color: var(--ink);
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+}
+
+.header-actions .apple-pill-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 1px 0 var(--ink);
+}
+
+.px-icon {
+  display: block;
+  flex: none;
+  fill: currentColor;
+  shape-rendering: crispEdges;
+}
+
+.pill-icon.px-icon {
+  width: 22px;
+  height: 16px;
+  stroke: none;
+}
+
+/* --------------------------------------------------------------------------
+   ВХОД: ДИАЛОГОВОЕ ОКНО
+   -------------------------------------------------------------------------- */
+.intro-glass-panel {
+  max-width: 560px;
+  padding: calc(var(--p) * 3 + 26px) calc(var(--p) * 3 + 28px) calc(var(--p) * 3 + 30px);
+  animation: px-open 0.36s steps(1, end) both;
+  transform-origin: 50% 50%;
+}
+
+.intro-headline {
+  font-family: var(--font-name);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-bottom: 0;
+}
+
+.intro-line {
+  margin-top: 18px;
+  font-size: 21px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+/* Мигающая стрелка «дальше» в углу диалога */
+.intro-next {
+  position: absolute;
+  right: calc(var(--p) * 3 + 14px);
+  bottom: calc(var(--p) * 3 + 10px);
+  width: 14px;
+  height: 8px;
+  background: var(--pick);
+  -webkit-mask: var(--ico-down) center / contain no-repeat;
+  mask: var(--ico-down) center / contain no-repeat;
+  animation: px-bob 1s steps(1) infinite;
+}
+
+@keyframes px-bob {
+  50% { transform: translateY(4px); }
+}
+
+/* --------------------------------------------------------------------------
+   ЭКРАНЫ С РАБОТАМИ: ОКНО НАЗВАНИЯ И ОКНО ПЛЕЕРА
+   -------------------------------------------------------------------------- */
+.floating-hud-top,
+.floating-hud-bottom {
+  transition: opacity 0.12s steps(2, end), transform 0.12s steps(2, end);
+}
+
+.glass-capsule {
+  border-radius: 0;
+}
+
+.title-capsule {
+  padding: calc(var(--p) * 3 + 8px) calc(var(--p) * 3 + 16px);
+  gap: 4px 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100vw - 24px);
+}
+
+.hud-category-label {
+  font-size: 16px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-soft);
+}
+
+.hud-item-title {
+  font-family: var(--font-name);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.hud-badge {
+  padding: 3px 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--pick);
+  background: var(--well);
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px var(--pick);
+}
+
+.player-capsule {
+  max-width: calc(100vw - 24px);
+  padding: calc(var(--p) * 3 + 8px) calc(var(--p) * 3 + 10px);
+  gap: 12px;
+}
+
+/* Кнопки плеера: квадратные клавиши с пиксельными значками */
+.player-icon-btn,
+.play-pause-btn,
+.player-capsule .sound-toggle-btn,
+.modal-close-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--well);
+  box-shadow: inset 0 0 0 2px var(--frame-inner), 0 3px 0 var(--ink);
+  color: var(--text);
+  transition: none;
+}
+
+.player-icon-btn:hover,
+.modal-close-btn:hover {
+  transform: none;
+  background: var(--win-1);
+  color: var(--pick);
+}
+
+.player-icon-btn:active,
+.modal-close-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 2px var(--frame-inner), 0 1px 0 var(--ink);
+}
+
+.player-capsule .sound-toggle-btn.sound-on,
+.player-capsule .sound-toggle-btn.sound-on:hover {
+  background: var(--pick);
+  color: var(--ink);
+  transform: none;
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+}
+
+/* Значки плеера рисуются маской; svg из скриптов прячем.
+   Пауза/воспроизведение определяются по тому, какой svg вставил скрипт. */
+@supports selector(:has(*)) {
+  .play-pause-btn svg,
+  .sound-btn-icon svg {
+    display: none;
+  }
+
+  .play-pause-btn::before,
+  .sound-btn-icon {
+    content: '';
+    display: block;
+    width: 18px;
+    height: 18px;
+    background: currentColor;
+    -webkit-mask: var(--ico-play) center / contain no-repeat;
+    mask: var(--ico-play) center / contain no-repeat;
+  }
+
+  .play-pause-btn:has(rect)::before {
+    -webkit-mask-image: var(--ico-pause);
+    mask-image: var(--ico-pause);
+  }
+
+  .sound-btn-icon {
+    -webkit-mask-image: var(--ico-sound-off);
+    mask-image: var(--ico-sound-off);
+  }
+
+  .sound-on .sound-btn-icon {
+    -webkit-mask-image: var(--ico-sound-on);
+    mask-image: var(--ico-sound-on);
+  }
+}
+
+/* Полоска прогресса — жёлобок с блоками */
+.timeline-scrubber-wrap {
+  height: 40px;
+}
+
+.timeline-bar-bg,
+.timeline-scrubber-wrap:hover .timeline-bar-bg {
+  height: 18px;
+  padding: 4px;
+  border-radius: 0;
+  background: var(--well);
+  box-shadow: inset 0 0 0 2px var(--frame-inner);
+  transition: none;
+}
+
+.timeline-bar-fill {
+  transition: width 0.1s steps(1, end);
+}
+
+/* «Смотреть полностью» — главная кнопка окна: жёлтая клавиша */
+.watch-full-btn {
+  height: 40px;
+  padding: 0 14px;
+  gap: 10px;
+  border-radius: 0;
+  background: var(--pick);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+  font-size: 17px;
+  font-weight: 400;
+  transition: none;
+}
+
+.watch-full-btn:hover {
+  transform: none;
+  background: var(--pick-hover);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+}
+
+.watch-full-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 1px 0 var(--ink);
+}
+
+.watch-full-icon .px-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Печать по буквам: ещё не напечатанные буквы прозрачны, но место занимают,
+   поэтому окно не меняет размер, а экранные чтецы видят весь текст */
+.tw-ch {
+  opacity: 0;
+}
+
+.tw-ch.on {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   КОНТАКТЫ: ОКНО-МЕНЮ
+   -------------------------------------------------------------------------- */
+.contact-glass-card {
+  max-width: 560px;
+  padding: calc(var(--p) * 3 + 26px) calc(var(--p) * 3 + 24px) calc(var(--p) * 3 + 24px);
+  text-align: left;
+  animation: px-open 0.36s steps(1, end) both;
+}
+
+.contact-card-title {
+  font-family: var(--font-name);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.contact-action-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  margin-top: 20px;
+}
+
+.contact-action-row .contact-btn-large,
+.contact-action-row .contact-btn-large.apple-pill-primary {
+  justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 8px 8px 24px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 400;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.contact-action-row .contact-btn-large::before {
+  left: 6px;
+}
+
+.contact-action-row .contact-btn-large:hover,
+.contact-action-row .contact-btn-large:active {
+  background: none;
+  border: 0;
+  color: var(--pick);
+  transform: none;
+}
+
+.contact-action-row .pill-icon {
+  display: none;
+}
+
+.contact-simple-link {
+  display: block;
+  margin-top: 14px;
+  padding: 8px 8px 8px 24px;
+  font-size: 16px;
+  color: var(--text-soft);
+  text-decoration: none;
+  border-top: 2px solid var(--rule);
+}
+
+.contact-simple-link::before {
+  left: 6px;
+}
+
+.contact-simple-link:hover,
+.preloader-simple-link:hover {
+  color: var(--pick);
+}
+
+/* --------------------------------------------------------------------------
+   ПРОСМОТР ПОЛНОЙ ВЕРСИИ
+   -------------------------------------------------------------------------- */
+.work-viewer-backdrop {
+  background: var(--backdrop);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.work-viewer {
+  transition: opacity 0.15s steps(3, end);
+}
+
+.work-viewer-sheet {
+  padding: calc(var(--p) * 3 + 14px) calc(var(--p) * 3 + 16px) calc(var(--p) * 3 + 16px);
+  transition: none;
+  transform: none;
+}
+
+.work-viewer-title {
+  font-family: var(--font-name);
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.work-viewer-meta {
+  font-size: 15px;
+  color: var(--text-soft);
+}
+
+.work-viewer-video {
+  border-radius: 0;
+  box-shadow: 0 0 0 var(--p) var(--ink);
+  max-height: calc(100dvh - 200px);
+}
+
+.modal-close-btn .px-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   FREE ROOM
+   -------------------------------------------------------------------------- */
+.free-roam-close-btn,
+.free-roam-close-btn:hover {
+  padding: calc(var(--p) * 3 + 6px) calc(var(--p) * 3 + 12px);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.free-roam-close-btn:hover {
+  color: var(--pick);
+}
+
+.free-roam-close-btn span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.free-roam-hint-item {
+  padding: calc(var(--p) * 3 + 8px) calc(var(--p) * 3 + 14px);
+  font-size: 16px;
+  letter-spacing: 0;
+  color: var(--text-soft);
+  line-height: 2;
+}
+
+.free-roam-hud kbd {
+  display: inline-block;
+  min-width: 26px;
+  margin: 0 2px;
+  padding: 0 6px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--frame);
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+}
+
+.free-roam-close-btn kbd {
+  margin: 0;
+}
+
+.free-roam-joystick-base {
+  border-radius: 0;
+}
+
+.free-roam-joystick-knob {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 0;
+  background: var(--pick);
+  box-shadow: inset 0 0 0 3px var(--ink), inset -6px -6px 0 0 var(--pick-dark), 0 3px 0 var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   ТЕЛЕФОНЫ И НЕБОЛЬШИЕ ЭКРАНЫ
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .brand-name { font-size: 12px; }
+}
+
+@media (max-width: 768px) {
+  .site-header {
+    padding: max(8px, env(safe-area-inset-top, 8px)) max(8px, env(safe-area-inset-right, 8px)) 0 max(8px, env(safe-area-inset-left, 8px));
+  }
+
+  .site-header .header-container {
+    padding: calc(var(--p) * 3 + 6px) calc(var(--p) * 3 + 8px);
+    gap: 8px;
+  }
+
+  /* Имя в две строки мелким пиксельным шрифтом */
+  .brand-name {
+    font-size: 8px;
+    line-height: 1.6;
+    white-space: normal;
+    max-width: 10.5em;
+    overflow: visible;
+  }
+
+  .mode-nav-tab,
+  #mode-freeroam-tab.is-active,
+  .mode-nav-tab.is-active {
+    height: 28px;
+    padding: 2px 6px 2px 16px;
+    font-size: 15px;
+  }
+
+  .mode-nav-tab::before {
+    left: 3px;
+    width: 6px;
+    height: 11px;
+    margin-top: -5.5px;
+  }
+
+  .header-actions .apple-pill-btn {
+    height: 30px;
+    padding: 0 9px;
+    font-size: 15px;
+  }
+
+  .intro-layout {
+    text-align: left;
+  }
+
+  .intro-glass-panel {
+    max-width: min(440px, calc(100vw - 24px));
+    padding: calc(var(--p) * 3 + 20px) calc(var(--p) * 3 + 18px) calc(var(--p) * 3 + 26px);
+    border-radius: 0;
+    text-align: left;
+  }
+
+  .intro-headline {
+    font-size: 20px;
+  }
+
+  .intro-line {
+    margin-top: 14px;
+    font-size: 18px;
+  }
+
+  .floating-hud-top {
+    top: calc(max(8px, env(safe-area-inset-top, 8px)) + 62px);
+  }
+
+  .title-capsule {
+    padding: calc(var(--p) * 3 + 6px) calc(var(--p) * 3 + 12px);
+    gap: 2px 10px;
+  }
+
+  .hud-item-title { font-size: 12px; }
+  .hud-category-label { font-size: 15px; }
+  .hud-badge { font-size: 13px; }
+
+  .player-capsule {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    padding: calc(var(--p) * 3 + 6px) calc(var(--p) * 3 + 8px);
+    gap: 8px;
+  }
+
+  .player-icon-btn,
+  .play-pause-btn,
+  .player-capsule .sound-toggle-btn,
+  .watch-full-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .watch-full-btn {
+    width: auto;
+    font-size: 16px;
+  }
+
+  .contact-glass-card {
+    max-width: min(480px, calc(100vw - 24px));
+    padding: calc(var(--p) * 3 + 20px) calc(var(--p) * 3 + 14px) calc(var(--p) * 3 + 18px);
+    border-radius: 0;
+  }
+
+  .contact-card-title { font-size: 16px; }
+
+  .contact-action-row {
+    flex-direction: column;
+    margin-top: 14px;
+  }
+
+  .contact-action-row .contact-btn-large,
+  .contact-action-row .contact-btn-large.apple-pill-primary {
+    flex: none;
+    font-size: 17px;
+  }
+
+  .free-roam-close-btn,
+  .free-roam-close-btn:hover {
+    padding: calc(var(--p) * 3 + 4px) calc(var(--p) * 3 + 8px);
+    font-size: 15px;
+  }
+
+  .free-roam-hint-item.mobile-only {
+    padding: calc(var(--p) * 3 + 6px) calc(var(--p) * 3 + 10px);
+    font-size: 15px;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 420px) {
+  .header-actions .action-email-btn {
+    width: 34px;
+    height: 30px;
+    border-radius: 0;
+  }
+
+  .header-actions .action-insta-btn {
+    height: 30px;
+    border-radius: 0;
+    font-size: 15px;
+  }
+
+  .watch-full-btn {
+    width: 38px;
+    padding: 0;
+  }
+}
+
+@media (max-height: 520px) {
+  .site-header .header-container {
+    padding-top: calc(var(--p) * 3 + 2px);
+    padding-bottom: calc(var(--p) * 3 + 2px);
+  }
+
+  .intro-glass-panel,
+  .contact-glass-card {
+    padding: calc(var(--p) * 3 + 12px) calc(var(--p) * 3 + 16px);
+  }
+
+  .intro-glass-panel { padding-bottom: calc(var(--p) * 3 + 24px); }
+  .intro-headline { font-size: 20px; }
+  .contact-card-title { font-size: 16px; }
+
+  /* Окно названия ниже шапки-окна */
+  .floating-hud-top {
+    top: calc(max(6px, env(safe-area-inset-top, 6px)) + 62px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-glass-panel,
+  .contact-glass-card {
+    animation: none;
+  }
+
+  .intro-next,
+  .mode-nav-tab:hover::before,
+  .contact-action-row .contact-btn-large:hover::before,
+  .contact-simple-link:hover::before,
+  .preloader-simple-link:hover::before {
+    animation: none;
+  }
+}
+
+/* Заголовки в style.css покрашены в белый напрямую — здесь они берут цвет текста окна */
+.preloader-title,
+.brand-name,
+.intro-headline,
+.contact-card-title,
+.hud-item-title,
+.work-viewer-title {
+  color: var(--text);
+}

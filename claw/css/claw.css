@@ -2,7 +2,7 @@
    Автомат с клешнёй: интерфейс в языке плакатов на корпусе.
    Фиолетовые окна в пиксельный растр, чернильные рамки со ступенчатыми углами,
    жёлтые надписи с чернильной обводкой и розовой тенью.
-   Пиксельный Tiny5 только в крупных надписях: заголовки, имя, названия карт.
+   Пиксельный Tiny5 только в крупных надписях: заголовки окон и названия карт.
    Весь остальной текст — Golos Text: мелкий пиксельный шрифт по-русски читается плохо.
    ========================================================================== */
 
@@ -145,44 +145,6 @@ a:hover { color: var(--sun-hi); }
 .px-btn-small { font-size: 15px; padding: 7px 11px 8px; }
 .px-btn-pick { background: var(--sun); color: var(--ink); }
 .px-btn-pick:hover { background: var(--sun-hi); color: var(--ink); }
-
-/* --------------------------------------------------------------------------
-   Верх: имя набрано как надпись на плакате, без подложки
-   -------------------------------------------------------------------------- */
-.topbar {
-  position: fixed;
-  top: max(16px, env(safe-area-inset-top));
-  left: 18px;
-  right: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  z-index: 20;
-  pointer-events: none;
-}
-
-.topbar > * { pointer-events: auto; }
-
-/* класс .win у логотипа остаётся в разметке, но окном он не выглядит */
-.logo.win {
-  background: none;
-  box-shadow: none;
-  padding: 4px 2px;
-}
-
-.logo {
-  font-family: var(--font-pixel);
-  font-weight: 400;
-  font-size: 28px;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  color: var(--paper);
-  text-shadow: var(--poster-text);
-  text-decoration: none;
-}
-
-.logo:hover { color: var(--sun); }
 
 /* кнопки внизу по центру; окно выбора карты стоит над ними (--dock-h считает app.js) */
 .dock {
@@ -483,7 +445,6 @@ a:hover { color: var(--sun-hi); }
    -------------------------------------------------------------------------- */
 @media (max-width: 720px) {
   html, body { font-size: 15px; }
-  .logo { font-size: 22px; }
   /* на телефоне кнопки сеткой 2 x 2, а не 3 + 1 */
   .dock { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: calc(100vw - 24px); }
   .dock .px-btn { font-size: 14px; padding: 9px 9px 10px; justify-content: center; text-align: center; }

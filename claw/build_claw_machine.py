@@ -530,34 +530,28 @@ def build_cabinet(c):
         else:
             lo, hi = (sx * off - GLASS_T / 2, -IN, Z_DECK), (sx * off + GLASS_T / 2, IN, Z_TOP)
         box_span(f'Glass_Upper_{nm}', lo, hi, 'Glass', c, bevel=0.0015, segs=1)
-    # светодиоды лежат в пазу по центру лицевой грани каждого профиля, как на автомате с фото:
-    # вертикальные на стойках во всю высоту, горизонтальные на рамах упираются в них встык, без наложений
+    # светодиоды обводят каждую грань ровным прямоугольником: по одной ленте на внешнем ребре каждой стойки
+    # (с обеих граней это одна линия угла) и по ленте вдоль каждой рамы от угла до угла.
+    # Отдельной ленты на цоколе нет: она двоила нижнюю линию
     t, wd = 0.003, 0.007
-    pc = h - P / 2                  # ось профиля
+    rod = 0.008                     # сечение угловой ленты
     for sx in (-1, 1):
         for sy in (-1, 1):
             tag = f'{"R" if sx > 0 else "L"}{"B" if sy > 0 else "F"}'
-            z0, z1 = Z_PLINTH + 0.004, Z_ROOF - 0.004
-            ya, yb = sorted((sy * h, sy * (h + t)))
-            xa, xb = sorted((sx * h, sx * (h + t)))
-            box_span(f'LED_Post_{tag}_Y', (sx * pc - wd / 2, ya, z0), (sx * pc + wd / 2, yb, z1), 'LED_Strip', leds,
-                     bevel=0.001, segs=1)
-            box_span(f'LED_Post_{tag}_X', (xa, sy * pc - wd / 2, z0), (xb, sy * pc + wd / 2, z1), 'LED_Strip', leds,
-                     bevel=0.001, segs=1)
-    run = pc - wd / 2
+            x, y = sx * (h - rod / 2 + 0.0035), sy * (h - rod / 2 + 0.0035)   # выступает на 3.5 мм из обеих граней
+            box_span(f'LED_Corner_{tag}', (x - rod / 2, y - rod / 2, Z_PLINTH + 0.003),
+                     (x + rod / 2, y + rod / 2, Z_ROOF - 0.003), 'LED_Strip', leds, bevel=0.0015, segs=2)
     for tag, z0, z1 in (('Low', Z_PLINTH, Z_PLINTH + P), ('Mid', Z_MID, Z_DECK), ('Top', Z_TOP, Z_ROOF)):
         zm = (z0 + z1) / 2
         for nm, (sx, sy) in {'F': (0, -1), 'B': (0, 1), 'L': (-1, 0), 'R': (1, 0)}.items():
+            # концы прячутся в угловых лентах
             if sx == 0:
                 ya, yb = sorted((sy * h, sy * (h + t)))
-                lo, hi = (-run, ya, zm - wd / 2), (run, yb, zm + wd / 2)
+                lo, hi = (-h, ya, zm - wd / 2), (h, yb, zm + wd / 2)
             else:
                 xa, xb = sorted((sx * h, sx * (h + t)))
-                lo, hi = (xa, -run, zm - wd / 2), (xb, run, zm + wd / 2)
+                lo, hi = (xa, -h, zm - wd / 2), (xb, h, zm + wd / 2)
             box_span(f'LED_{tag}_{nm}', lo, hi, 'LED_Strip', leds, bevel=0.001, segs=1)
-    # LED по фронту цоколя
-    box_span('LED_Plinth_F', (-h + 0.03, -h + 0.002, 0.075), (h - 0.03, -h + 0.008, 0.08), 'LED_Strip', leds,
-             bevel=0.001, segs=1)
 
     # игровое поле с проёмом под приёмник
     zt = Z_DECK - 0.015

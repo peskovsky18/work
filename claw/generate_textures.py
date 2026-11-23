@@ -181,18 +181,14 @@ def save_px(img, name):
 
 
 def print_front():
-    """Спереди: верхнюю треть закрывает пульт, слева внизу дверца приза. «МОИ ПРОЕКТЫ» справа, шары вокруг."""
+    """Спереди: верхнюю треть закрывает пульт, слева внизу дверца приза. Без надписей: шары разбросаны по всему полю."""
     img = dither_bg(['#12062a', '#24095a', '#3d0f8e', '#6a16c4', '#a01ccf'])
     d = ImageDraw.Draw(img)
     rnd = random.Random(4)
     for _ in range(40):
         px_star(d, rnd.randint(0, VW), rnd.randint(70, VH), rnd.random() < 0.3)
-    cx = 168
-    text = (cx - 80, 90, cx + 80, 150)
     door = (0, 136, 84, VH)
-    scatter_px(d, 28, 6, 12, [text, door], seed=11, area=(0, 78, VW, VH))
-    px_text(img, (cx, 106), 'МОИ', 28, '#ffffff', '#ff2bd6')
-    px_text(img, (cx, 134), 'ПРОЕКТЫ', 25, '#ffd23f', '#ff2bd6')
+    scatter_px(d, 40, 6, 12, [door], seed=11, area=(0, 78, VW, VH))
     save_px(img, 'print_front.png')
 
 

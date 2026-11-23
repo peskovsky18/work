@@ -122,6 +122,7 @@ function alongAttribute(mesh) {
 }
 
 const WIN_TIME = 3.2;   // сколько секунд автомат празднует
+const ROUND_SPEED = 1.8; // во сколько раз быстрее идёт партия с клешнёй
 
 // ------------------------------------------------------------------ текстуры-холсты (экран терминала, постеры)
 function canvasTexture(w, h, draw, pixel = false) {
@@ -764,6 +765,8 @@ export class Machine {
       }
     }
     tl.to({}, { duration: 0.5 });
+    // вся партия целиком быстрее: движения и камера сохраняют ритм, но шар достаётся за ~6 секунд вместо ~11
+    tl.timeScale(ROUND_SPEED);
     return tl;
   }
 

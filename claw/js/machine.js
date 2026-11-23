@@ -266,9 +266,9 @@ export class Machine {
       if (name === 'LED_Strip') o.material = this.ledMaterial;
       else if (swap[name]) o.material = swap[name];
       else if (name === 'Cap_Clear' || name === 'Cap_Clear_Bottom') {
-        o.material = glass(0.2);
+        // капсулы с работами непрозрачные, как остальные: постер видно только когда шар раскроется
+        o.material = new THREE.MeshPhysicalMaterial({ color: 0xf5f3ee, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 });
         o.material.name = name;
-        o.renderOrder = 2;
       } else if (name.startsWith('Glass')) o.renderOrder = 3;
       if (name === 'Chrome' || name === 'Aluminum') o.material.envMapIntensity = 1.3;
       if (name === 'Gloss_Black') {
@@ -453,6 +453,7 @@ export class Machine {
     const mats = category.colors.map((hex) => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(hex), roughness: 0.22, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08
     }));
+    const white = new THREE.MeshPhysicalMaterial({ color: 0xf5f3ee, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 });
     // вернуть вынутые шары на место
     for (const cap of this.capsules) {
       if (cap.obj.parent !== cap.home.parent) cap.home.parent.attach(cap.obj);
@@ -480,7 +481,10 @@ export class Machine {
       m.emissive = new THREE.Color(0xffffff);
       m.emissiveIntensity = 0.45;
       m.needsUpdate = true;
-      slot.tint.forEach((t) => { t.material = mats[i % mats.length]; });
+      // снаружи капсула с работой не отличается от остальных: цветной верх, белый низ и шов
+      if (slot.top) slot.top.material = mats[i % mats.length];
+      if (slot.bottom) slot.bottom.material = white;
+      slot.tint.forEach((t) => { t.material = white; });
     });
     // перекраска наполнителей «волной»: шар схлопывается и появляется в новом цвете
     const fillers = this.capsules.filter((c) => !c.isProject);

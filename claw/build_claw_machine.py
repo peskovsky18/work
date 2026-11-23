@@ -256,11 +256,10 @@ def build_materials():
     print_material()
     # пластик капсул
     principled('Cap_White', '#f5f3ee', rough=0.18, coat=1.0)
-    # тонкий прозрачный пластик: блик + прозрачность (двойная оболочка со стеклом давала зеркало и прятала постер)
-    clear = principled('Cap_Clear', '#ffffff', rough=0.04, coat=1.0, alpha=0.14)
-    clear.surface_render_method = 'BLENDED'
-    # копия для нижней половины: отдельный материал = отдельная часть меша, капсула раскрывается на сайте
-    principled('Cap_Clear_Bottom', '#ffffff', rough=0.04, coat=1.0, alpha=0.14).surface_render_method = 'BLENDED'
+    # капсулы с работами непрозрачные, как остальные (имена Cap_Clear* остались для сайта):
+    # верх и низ — разные материалы = разные части меша, на сайте капсула раскрывается
+    principled('Cap_Clear', '#ff2bd6', rough=0.2, coat=1.0)
+    principled('Cap_Clear_Bottom', '#f5f3ee', rough=0.18, coat=1.0)
     for name, hexc in CAP_COLORS:
         principled(f'Cap_{name}', hexc, rough=0.2, coat=1.0)
 
@@ -857,7 +856,7 @@ def build_capsules(c_upper, c_proj):
     for i, (slug, title, img, cat) in enumerate(WORKS):
         m = proj[i]
         loc = m.to_translation()
-        me = capsule_mesh(f'Capsule_Project_{slug}', 0.07, ['Cap_Clear', 'Cap_Clear_Bottom', f'Cap_{CATEGORIES[cat][i % 3][0]}'], clear=True)
+        me = capsule_mesh(f'Capsule_Project_{slug}', 0.07, ['Cap_Clear', 'Cap_Clear_Bottom', 'Cap_White'], clear=True)
         o = link(bpy.data.objects.new(f'Capsule_Project_{slug}', me), c_proj)
         o.location = loc
         # постер внутри смотрит вперёд, с лёгким наклоном

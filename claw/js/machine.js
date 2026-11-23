@@ -80,17 +80,28 @@ function ledMaterial() {
       uniform float uTime;
       uniform float uBoost;
       varying vec3 vW;
+      // плавный переход пурпурный -> фиолетовый -> синий -> розовый (ступенчатые цвета мерцали)
       vec3 pal(float t) {
-        t = fract(t);
-        if (t < 0.25) return vec3(1.0, 0.17, 0.84);
-        if (t < 0.5) return vec3(0.54, 0.23, 1.0);
-        if (t < 0.75) return vec3(0.18, 0.42, 1.0);
-        return vec3(1.0, 0.31, 0.64);
+        vec3 c0 = vec3(1.0, 0.17, 0.84);
+        vec3 c1 = vec3(0.54, 0.23, 1.0);
+        vec3 c2 = vec3(0.18, 0.42, 1.0);
+        vec3 c3 = vec3(1.0, 0.31, 0.64);
+        float x = fract(t) * 4.0;
+        float f = smoothstep(0.0, 1.0, fract(x));
+        if (x < 1.0) return mix(c0, c1, f);
+        if (x < 2.0) return mix(c1, c2, f);
+        if (x < 3.0) return mix(c2, c3, f);
+        return mix(c3, c0, f);
       }
       void main() {
-        float s = (vW.x - vW.z + vW.y) * 22.0 - uTime * 1.6;
-        float dotMask = smoothstep(0.5, 0.3, abs(fract(s * 4.0) - 0.5));
-        gl_FragColor = vec4(pal(s) * (0.55 + 0.75 * dotMask) * uBoost, 1.0);
+        float s = (vW.x - vW.z + vW.y) * 1.6 - uTime * 0.12;
+        // точки светодиодов со сглаживанием: когда точка меньше пикселя, лента светится ровно
+        float k = (vW.x - vW.z + vW.y) * 45.0;
+        float w = fwidth(k);
+        float d = abs(fract(k) - 0.5);
+        float dots = smoothstep(0.18 - w, 0.18 + w, d);
+        dots = mix(dots, 0.64, clamp(w * 1.5 - 0.3, 0.0, 1.0));
+        gl_FragColor = vec4(pal(s) * (0.7 + 0.5 * dots) * uBoost, 1.0);
       }`
   });
 }
@@ -106,11 +117,9 @@ function canvasTexture(w, h, draw, pixel = false) {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.flipY = false; // как у текстур из GLB
-  if (pixel) {
-    t.magFilter = THREE.NearestFilter;
-    t.minFilter = THREE.NearestFilter;
-    t.generateMipmaps = false;
-  }
+  t.anisotropy = 4;
+  // вблизи чёткие пиксели, издалека мипмапы (без них мелкая текстура искрит при движении камеры)
+  if (pixel) t.magFilter = THREE.NearestFilter;
   return t;
 }
 

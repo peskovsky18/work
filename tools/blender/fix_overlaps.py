@@ -11,6 +11,9 @@
   blender -b assets/models/scene.blend --python tools/blender/fix_overlaps.py -- check
 Исправление (сохраняет файл):
   blender -b assets/models/scene.blend --python tools/blender/fix_overlaps.py -- fix
+Только пары, где есть объект из указанных коллекций (остальные части не трогаются,
+повторный запуск по уже исправленным частям сдвинул бы их ещё на несколько миллиметров):
+  blender -b assets/models/scene.blend --python tools/blender/fix_overlaps.py -- fix Escalator
 Делается и для scene_prebake.blend, затем экспорт (export_glb.py).
 """
 import json
@@ -201,14 +204,23 @@ def remove_duplicate_faces(obj):
     return len(dup)
 
 
-def run(mode):
+def run(mode, only=()):
     objs = export_objects()
+    if only:
+        keep = {o.name for c in only for o in bpy.data.collections[c].all_objects}
+        _find = find_pairs
+
+        def find_pairs_only(objs, tol=TOL):
+            return [p for p in _find(objs, tol) if p[0] in keep or p[1] in keep]
+        globals()['find_pairs'] = find_pairs_only
     pairs = find_pairs(objs, TOL if mode == 'fix' else CHECK_TOL)
     report = {'pairs': [list(p) for p in sorted(pairs, key=lambda p: -p[2])]}
     if mode == 'fix':
         moved, dups = {}, {}
         for name, shift in SHIFT_OBJECTS.items():
             o = bpy.data.objects.get(name)
+            if only and name not in keep:
+                continue
             if o and not o.get('overlap_shifted'):
                 o.location += Vector(shift)
                 o['overlap_shifted'] = True
@@ -239,4 +251,4 @@ def run(mode):
 
 if __name__ == '__main__':
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else ['check']
-    print('OVERLAPS ' + json.dumps(run(argv[0]), ensure_ascii=False))
+    print('OVERLAPS ' + json.dumps(run(argv[0], argv[1:]), ensure_ascii=False))

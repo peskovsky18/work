@@ -20,7 +20,7 @@ import bmesh
 import bpy
 import numpy as np
 
-PARTS = {'Escalator': (768, 'escalator_textures'), 'Station': (1024, 'station_textures'), 'Train': (1024, 'subway_textures')}
+PARTS = {'Escalator': (1024, 'escalator_textures'), 'Station': (1024, 'station_textures'), 'Train': (1024, 'subway_textures')}
 LM = 'LM'
 NON_RECEIVER = ('Glass', 'Decal', 'Screen_Video', 'Dest_Display', 'Neon', 'Ceiling_Light', 'Light_Line', 'Lamp', 'Glow',
                 'LED', 'Pilot', 'Tunnel_Void', 'Coupled_Interior', 'Poster_Ant', 'Poster_Monkey', 'Poster_Dolphins',
@@ -29,7 +29,7 @@ NON_OCCLUDER = ('Glass', 'Coupled_Interior', 'Tunnel_Void')
 AO_DISTANCE = {'Train': 0.6, 'Station': 1.2, 'Escalator': 0.9}
 # Почти не видны с маршрута камеры — затенение для них не запекаем (экономия веса GLB)
 SKIP_OBJECTS = ('Car_Front_', 'Car_Rear_', 'St_Sleepers', 'St_Rail', 'St_Ballast', 'St_Tunnel_', 'Esc_Truss_Bed',
-                'Esc_Rib_Bolt', 'Esc_Brush')
+                'Esc_Rib_Bolt', 'Esc_Brush', 'Esc_Pit')
 SKIP_KEYWORDS = ('Bogie', 'Wheels', 'Underframe', 'Coupler', 'HVAC')
 PAD_PX = 6
 

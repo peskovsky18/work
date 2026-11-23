@@ -558,15 +558,21 @@ def build_cabinet(c):
     box_span('Deck_A', (CHUTE, -IN, zt), (IN, IN, Z_DECK), 'Deck', c, bevel=0.002)
     box_span('Deck_B', (-IN, CHUTE, zt), (CHUTE, IN, Z_DECK), 'Deck', c, bevel=0.002)
 
-    # приёмник: прозрачные стенки над полем и шахта вниз до дверцы
+    # приёмник: короб из четырёх прозрачных стенок над полем (две вдоль стёкол корпуса) и шахта вниз до дверцы
     t = 0.006
     box_span('Chute_Wall_X', (CHUTE - t, -IN, Z_DECK), (CHUTE, CHUTE, CHUTE_TOP), 'Acrylic', c, bevel=0.0015, segs=1)
-    box_span('Chute_Wall_Y', (-IN, CHUTE - t, Z_DECK), (CHUTE, CHUTE, CHUTE_TOP), 'Acrylic', c, bevel=0.0015, segs=1)
-    rr = 0.006
-    box_span('Chute_Rim_X', (CHUTE - t / 2 - rr, -IN, CHUTE_TOP - rr), (CHUTE - t / 2 + rr, CHUTE + rr, CHUTE_TOP + rr),
-             'Chrome', c, bevel=rr * 0.95, segs=4)
-    box_span('Chute_Rim_Y', (-IN, CHUTE - t / 2 - rr, CHUTE_TOP - rr), (CHUTE - t / 2 - rr, CHUTE - t / 2 + rr,
-             CHUTE_TOP + rr), 'Chrome', c, bevel=rr * 0.95, segs=4)
+    box_span('Chute_Wall_Y', (-IN, CHUTE - t, Z_DECK), (CHUTE - t, CHUTE, CHUTE_TOP), 'Acrylic', c, bevel=0.0015, segs=1)
+    box_span('Chute_Wall_Front', (-IN + t, -IN, Z_DECK), (CHUTE - t, -IN + t, CHUTE_TOP), 'Acrylic', c, bevel=0.0015,
+             segs=1)
+    box_span('Chute_Wall_Left', (-IN, -IN, Z_DECK), (-IN + t, CHUTE - t, CHUTE_TOP), 'Acrylic', c, bevel=0.0015, segs=1)
+    # сверху единая хромовая рамка: замкнутая трубка по краю всех четырёх стенок со скруглёнными углами
+    a, b, rc = -IN + t / 2, CHUTE - t / 2, 0.016
+    pts = []
+    for cx, cy, a0 in ((b - rc, b - rc, 0), (a + rc, b - rc, 90), (a + rc, a + rc, 180), (b - rc, a + rc, 270)):
+        for k in range(7):
+            ang = math.radians(a0 + k * 15)
+            pts.append((cx + rc * math.cos(ang), cy + rc * math.sin(ang), CHUTE_TOP + 0.002))
+    curve_obj('Chute_Rim', pts, 0.0065, 'Chrome', c, closed=True)
 
     # крыша, подсветка внутри, вывеска
     box_span('Roof', (-h, -h, Z_ROOF), (h, h, Z_ROOF + 0.016), 'Graphite', c, bevel=0.004)

@@ -90,43 +90,135 @@ def save(img, name):
     print('saved', name, img.size)
 
 
-PRINT_W, PRINT_H = 2048, 1890   # панель 0.78 x 0.72 м
+# ---------------------------------------------------------------- пиксель-арт плакаты нижнего корпуса
+# рисуем в низком разрешении (1 «пиксель» = 8 px текстуры) и увеличиваем без сглаживания: пиксели чёткие
+PX = 8
+VW, VH = 256, 236                 # панель 0.78 x 0.72 м
+PRINT_W, PRINT_H = VW * PX, VH * PX
+INK = '#140726'
+BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0
+
+
+def dither_bg(colors, seed=0):
+    """Вертикальный градиент по палитре с упорядоченным дизерингом, как в старых играх."""
+    pal = np.array([hexrgb(c) for c in colors], np.uint8)
+    ys, xs = np.mgrid[0:VH, 0:VW]
+    t = (ys / (VH - 1) * 0.8 + xs / (VW - 1) * 0.2) * (len(colors) - 1)
+    base = np.floor(t).astype(int)
+    frac = t - base
+    step = frac > BAYER[ys % 4, xs % 4]
+    idx = np.clip(base + step, 0, len(colors) - 1)
+    return Image.fromarray(pal[idx], 'RGB')
+
+
+def px_ball(d, cx, cy, r, color, flip=False):
+    """Пиксельный шар-капсула: цветной верх, белый низ, тёмный контур и шов, блик."""
+    box = (cx - r, cy - r, cx + r, cy + r)
+    d.ellipse(box, fill='#f5f3ee', outline=INK)
+    a0, a1 = (0, 180) if flip else (180, 360)
+    d.pieslice(box, a0, a1, fill=color, outline=INK)
+    d.line((cx - r, cy, cx + r, cy), fill=INK)
+    hy = cy + (r // 2 if flip else -r // 2)
+    d.rectangle((cx - r // 2, hy - 1, cx - r // 2 + max(1, r // 4), hy), fill='#ffffff')
+
+
+def px_star(d, x, y, big, color='#ffe9a8'):
+    d.point((x, y), fill=color)
+    for k in range(1, 3 if big else 2):
+        for dx, dy in ((k, 0), (-k, 0), (0, k), (0, -k)):
+            d.point((x + dx, y + dy), fill=color)
+
+
+def px_text(img, xy, text, size, fill, shadow, outline=INK):
+    """Пиксельная надпись: шрифт без сглаживания, тёмная обводка в 1 пиксель и сдвинутая тень."""
+    d = ImageDraw.Draw(img)
+    d.fontmode = '1'
+    f = ImageFont.truetype(FONT_BLACK, size)
+    x, y = xy
+    for dx in (-1, 0, 1, 2, 3):
+        for dy in (-1, 0, 1, 2, 3):
+            if (dx, dy) != (0, 0):
+                d.text((x + dx, y + dy), text, font=f, fill=outline, anchor='mm')
+    d.text((x + 2, y + 2), text, font=f, fill=shadow, anchor='mm')
+    d.text((x, y), text, font=f, fill=fill, anchor='mm')
+
+
+def px_claw(d, cx, top, ball_color):
+    """Пиксельная клешня держит шар: каретка, трос, ступица, три лапы."""
+    d.rectangle((cx - 12, top, cx + 12, top + 8), fill='#2f6bff', outline=INK)
+    d.rectangle((cx - 9, top + 2, cx - 6, top + 5), fill=INK)
+    d.line((cx, top + 9, cx, top + 26), fill='#c9ccd1', width=2)
+    d.rectangle((cx - 6, top + 26, cx + 6, top + 32), fill='#c9ccd1', outline=INK)
+    by = top + 50
+    px_ball(d, cx, by, 13, ball_color)
+    for sgn in (-1, 1):
+        pts = [(cx + sgn * 5, top + 32), (cx + sgn * 15, top + 38), (cx + sgn * 18, by), (cx + sgn * 12, by + 12)]
+        d.line(pts, fill=INK, width=4)
+        d.line(pts, fill='#e8eaee', width=2)
+    d.line((cx, top + 32, cx, top + 37), fill='#e8eaee', width=2)
+
+
+def scatter_px(d, count, rmin, rmax, keep_out, seed, area=(0, 0, VW, VH)):
+    rnd = random.Random(seed)
+    placed = []
+    tries = 0
+    x0, y0, x1, y1 = area
+    while len(placed) < count and tries < 4000:
+        tries += 1
+        r = rnd.randint(rmin, rmax)
+        x, y = rnd.randint(x0, x1), rnd.randint(y0, y1)
+        if any((x - px) ** 2 + (y - py) ** 2 < (r + pr + 3) ** 2 for px, py, pr in placed):
+            continue
+        if any(a - r < x < c + r and b - r < y < e + r for a, b, c, e in keep_out):
+            continue
+        placed.append((x, y, r))
+        px_ball(d, x, y, r, rnd.choice(CAPS), flip=rnd.random() < 0.3)
+
+
+def save_px(img, name):
+    img.resize((VW * PX, VH * PX), Image.NEAREST).save(os.path.join(OUT, name))
+    print('saved', name, (VW * PX, VH * PX))
 
 
 def print_front():
-    w, h = PRINT_W * SS, PRINT_H * SS
-    img = gradient(w, h, '#2a0a5e', '#7a1bd6', '#ff2bd6')
+    """Спереди: верхнюю треть закрывает пульт, слева внизу дверца приза. Заголовок справа, шары вокруг."""
+    img = dither_bg(['#12062a', '#24095a', '#3d0f8e', '#6a16c4', '#a01ccf'])
     d = ImageDraw.Draw(img)
-    stars(d, w, h, 40, 3)
-    # верхнюю четверть закрывает пульт, слева внизу дверца приза: текст по центру-справа
-    text_box = (int(w * 0.22), int(h * 0.30), int(w * 0.98), int(h * 0.74))
-    # дверца приза слева внизу: туда шары не рисуем, её рамка сама по себе
-    door_box = (0, int(h * 0.62), int(w * 0.36), h)
-    scatter(d, w, h, 34, 100 * SS, 200 * SS, keep_out=[text_box, door_box], seed=11)
-    cx = int(w * 0.6)
-    shadow_text(img, (cx, int(h * 0.42)), 'ВЫТАЩИ', font(FONT_BLACK, 216), '#ffffff', '#ffb000', 22 * SS)
-    shadow_text(img, (cx, int(h * 0.55)), 'ПРОЕКТ', font(FONT_BLACK, 216), '#ffd23f', '#ff2bd6', 22 * SS)
+    rnd = random.Random(4)
+    for _ in range(40):
+        px_star(d, rnd.randint(0, VW), rnd.randint(70, VH), rnd.random() < 0.3)
+    text = (84, 86, 252, 170)
+    door = (0, 136, 84, VH)
+    scatter_px(d, 22, 6, 12, [text, door], seed=11, area=(0, 78, VW, VH))
+    cx = 168
+    px_text(img, (cx, 102), 'ВЫТАЩИ', 25, '#ffffff', '#ff2bd6')
+    px_text(img, (cx, 132), 'ПРОЕКТ', 25, '#ffd23f', '#ff2bd6')
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((cx - 540 * SS, int(h * 0.635), cx + 540 * SS, int(h * 0.705)), radius=60 * SS,
-                        fill='#1b0b3a')
-    d.text((cx, int(h * 0.67)), 'PESKOVSKII · PORTFOLIO', font=font(FONT_BOLD, 68), fill='#ffb000', anchor='mm')
-    save(img, 'print_front.png')
+    d.rectangle((cx - 64, 152, cx + 64, 166), fill=INK)
+    d.rectangle((cx - 64, 152, cx + 64, 166), outline='#ffb000')
+    d.fontmode = '1'
+    d.text((cx, 159), 'PESKOVSKII · PORTFOLIO', font=ImageFont.truetype(FONT_BOLD, 9), fill='#ffb000', anchor='mm')
+    save_px(img, 'print_front.png')
 
 
 def print_side():
-    w, h = PRINT_W * SS, PRINT_H * SS
-    img = gradient(w, h, '#2a0a5e', '#5a1aff', '#ff2bd6')
+    """Бока и зад: пиксельная клешня с шаром, большое PLAY, полоса огоньков и шары."""
+    img = dither_bg(['#12062a', '#1d0a52', '#2a1a9a', '#5a1aff', '#c21cc4'])
     d = ImageDraw.Draw(img)
-    stars(d, w, h, 50, 5)
-    band = (0, int(h * 0.40), w, int(h * 0.60))
-    scatter(d, w, h, 40, 90 * SS, 190 * SS, keep_out=[band], seed=23)
-    d.rectangle(band, fill='#1b0b3a')
-    for i, c in enumerate(['#ff2bd6', '#8a3bff', '#2f6bff', '#ff4fa3'] * 40):
-        x = i * 56 * SS
-        d.ellipse((x, band[1] + 20 * SS, x + 20 * SS, band[1] + 40 * SS), fill=c)
-        d.ellipse((x, band[3] - 40 * SS, x + 20 * SS, band[3] - 20 * SS), fill=c)
-    shadow_text(img, (w // 2, h // 2), 'PLAY', font(FONT_BLACK, 300), '#ffd23f', '#ff2bd6', 20 * SS)
-    save(img, 'print_side.png')
+    rnd = random.Random(8)
+    for _ in range(46):
+        px_star(d, rnd.randint(0, VW), rnd.randint(0, VH), rnd.random() < 0.3)
+    band = (0, 112, VW, 162)
+    claw = (98, 0, 158, 100)
+    scatter_px(d, 26, 6, 13, [band, claw], seed=23)
+    px_claw(d, VW // 2, 10, '#ff2bd6')
+    d.rectangle(band, fill=INK)
+    for i in range(0, VW, 8):
+        c = ['#ff2bd6', '#8a3bff', '#2f6bff', '#ff4fa3'][(i // 8) % 4]
+        d.rectangle((i + 2, band[1] + 3, i + 4, band[1] + 5), fill=c)
+        d.rectangle((i + 2, band[3] - 5, i + 4, band[3] - 3), fill=c)
+    px_text(img, (VW // 2, (band[1] + band[3]) // 2), 'PLAY', 36, '#ffd23f', '#ff2bd6')
+    save_px(img, 'print_side.png')
 
 
 def contactless(d, cx, cy, s, color, width):

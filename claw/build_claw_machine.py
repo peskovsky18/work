@@ -270,6 +270,7 @@ def build_materials():
     principled('Marquee_Text', '#ffffff', emission='#fff1d6', strength=3.0)
     principled('Marquee_Outline', '#1b0b3a', rough=0.35, coat=0.6)
     # лампочки вывески: две группы через одну, на сайте мягко переливаются по очереди
+    principled('Lightbox_Glow', '#ffffff', rough=0.2, emission='#fff0dc', strength=1.8)
     principled('Bulb_A', '#fff4d6', rough=0.1, emission='#ffe2a0', strength=5.0)
     principled('Bulb_B', '#fff4d6', rough=0.1, emission='#ffe2a0', strength=5.0)
     principled('Prize_Label', '#ffb000', rough=0.3, coat=0.6, emission='#ffb000', strength=0.6)
@@ -278,8 +279,8 @@ def build_materials():
     principled('Card_Back', '#15161a', rough=0.35, coat=0.6)
     principled('Gloss_Black', '#08090b', rough=0.45, coat=0.25)
     principled('LED_Green', '#2bff88', emission='#2bff88', strength=6.0)
-    image_material('Print_Front', os.path.join(TEX, 'print_front.png'), emission=0.15, rough=0.35, coat=0.8)
-    image_material('Print_Side', os.path.join(TEX, 'print_side.png'), emission=0.15, rough=0.35, coat=0.8)
+    image_material('Print_Front', os.path.join(TEX, 'print_front.png'), emission=0.5, rough=0.35, coat=0.8)
+    image_material('Print_Side', os.path.join(TEX, 'print_side.png'), emission=0.5, rough=0.35, coat=0.8)
     image_material('Console_Deck_Print', os.path.join(TEX, 'console_deck.png'), emission=0.35, rough=0.55, coat=0.3)
     image_material('Marquee_Panel', os.path.join(TEX, 'marquee.png'), emission=2.2, rough=0.3, coat=0.8)
     image_material('Terminal_Screen', os.path.join(TEX, 'terminal_screen.png'), emission=4.0, rough=0.1, coat=1.0)
@@ -466,16 +467,27 @@ def build_cabinet(c):
     image_plane('Print_Right', 2 * IN, ph, 'Print_Side', c, (po, 0, zc), (math.pi / 2, 0, math.pi / 2))
     image_plane('Print_Back', 2 * IN, ph, 'Print_Side', c, (0, po, zc), (math.pi / 2, 0, math.pi))
     image_plane('Print_Left', 2 * IN, ph, 'Print_Side', c, (-po, 0, zc), (math.pi / 2, 0, -math.pi / 2))
-    # шурупы по углам каждой панели (стоят на печати, на 1.5 мм наружу)
+    # световые короба: хромовая рамка по краю каждой печати (лежит на 1 мм над ней, внутри профилей)
+    fw, d0, d1 = 0.018, po - 0.001, po + 0.007
+    z0, z1 = zc - ph / 2, zc + ph / 2
     for nm, (nx, ny) in {'F': (0, -1), 'R': (1, 0), 'B': (0, 1), 'L': (-1, 0)}.items():
-        for k, (u, v) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
-            a = IN - 0.022
-            z = zc + v * (ph / 2 - 0.022)
+        for bn, (t0, t1, za, zb) in {'T': (-IN, IN, z1 - fw, z1), 'B': (-IN, IN, z0, z0 + fw),
+                                     'L': (-IN, -IN + fw, z0 + fw, z1 - fw), 'R': (IN - fw, IN, z0 + fw, z1 - fw)}.items():
             if nx == 0:
-                pos, rot = (u * a, ny * (po + 0.002), z), (math.pi / 2, 0, 0)
+                lo, hi = (t0, min(ny * d0, ny * d1), za), (t1, max(ny * d0, ny * d1), zb)
             else:
-                pos, rot = (nx * (po + 0.002), u * a, z), (0, math.pi / 2, 0)
-            cylinder(f'Print_Screw_{nm}{k}', 0.0055, 0.003, pos, 'Chrome', c, segs=16, bevel=0.001).rotation_euler = rot
+                lo, hi = (min(nx * d0, nx * d1), t0, za), (max(nx * d0, nx * d1), t1, zb)
+            box_span(f'Print_Frame_{nm}{bn}', lo, hi, 'Chrome', c, bevel=0.0025)
+        # полоска света по внутреннему краю рамки: подсветка короба «просачивается» из-под хрома
+        g, gd0, gd1 = 0.004, po - 0.0005, po + 0.002
+        for bn, (t0, t1, za, zb) in {'T': (-IN + fw, IN - fw, z1 - fw - g, z1 - fw), 'B': (-IN + fw, IN - fw, z0 + fw, z0 + fw + g),
+                                     'L': (-IN + fw, -IN + fw + g, z0 + fw + g, z1 - fw - g),
+                                     'R': (IN - fw - g, IN - fw, z0 + fw + g, z1 - fw - g)}.items():
+            if nx == 0:
+                lo, hi = (t0, min(ny * gd0, ny * gd1), za), (t1, max(ny * gd0, ny * gd1), zb)
+            else:
+                lo, hi = (min(nx * gd0, nx * gd1), t0, za), (max(nx * gd0, nx * gd1), t1, zb)
+            box_span(f'Print_Glow_{nm}{bn}', lo, hi, 'Lightbox_Glow', c, bevel=0)
     # дверца выдачи приза под приёмником (слева внизу на фронте)
     dx = (-IN + CHUTE) / 2
     dz0, dz1 = 0.2, 0.42

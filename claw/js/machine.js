@@ -297,9 +297,9 @@ export class Machine {
         this.bulbs[name] = { mat: o.material, base: o.material.emissiveIntensity || 1 };
       } else if (name === 'Marquee_Panel' || name === 'Marquee_Text') {
         this.glow.set(o.material, { base: o.material.emissiveIntensity || 1, gain: 0.8 });
-      } else if (name === 'Print_Front' || name === 'Print_Side' || name === 'Prize_Label') {
+      } else if (name === 'Print_Front' || name === 'Print_Side' || name === 'Prize_Label' || name === 'Lightbox_Glow') {
         // печать на корпусе при победе подсвечивается изнутри: её видно, когда камера смотрит на дверцу
-        this.glow.set(o.material, { base: o.material.emissiveIntensity || 1, gain: 4 });
+        this.glow.set(o.material, { base: o.material.emissiveIntensity || 1, gain: 1.6 });
       }
       else if (swap[name]) o.material = swap[name];
       else if (name === 'Cap_Clear' || name === 'Cap_Clear_Bottom') {

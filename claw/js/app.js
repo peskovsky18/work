@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=26';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=26';
+import { Machine } from './machine.js?v=27';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=27';
 
-const VERSION = '26';
+const VERSION = '27';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -152,9 +152,15 @@ function renderContacts() {
 
 // ------------------------------------------------------------------ модальные окна
 let lastFocus = null;
+// под открытым окном автомат не перерисовываем; уходящее окно уже не считается, чтобы сцена ожила под ним
+function syncPause() {
+  if (state.machine) state.machine.setPaused(!!document.querySelector('.modal:not([hidden]):not(.leaving)'));
+}
+
 function openModal(id) {
   lastFocus = document.activeElement;
   showEl($(id));
+  syncPause();
   const focusable = $(id).querySelector('button, a, video');
   if (focusable) focusable.focus();
 }
@@ -163,6 +169,7 @@ function closeModal(id) {
   const m = $(id);
   if (m.hidden || m.classList.contains('leaving')) return;
   hideEl(m, () => { if (id === 'viewer') $('viewer-media').replaceChildren(); });
+  syncPause();
   if (id === 'viewer') {
     const v = m.querySelector('video');
     if (v) v.pause();
@@ -334,7 +341,7 @@ async function boot() {
   renderCards();
   renderList();
   renderContacts();
-  const fonts = document.fonts ? Promise.all(['800 16px "JetBrains Mono"', '400 16px "JetBrains Mono"', '400 16px "Tiny5"', '400 16px "Golos Text"', '600 16px "Golos Text"'].map((f) => document.fonts.load(f, 'Ааz'))).catch(() => {}) : Promise.resolve();
+  const fonts = document.fonts ? Promise.all(['800 16px "JetBrains Mono"', '400 16px "Tiny5"', '400 16px "Golos Text"', '600 16px "Golos Text"'].map((f) => document.fonts.load(f, 'Ааz'))).catch(() => {}) : Promise.resolve();
   try {
     const [buffer] = await Promise.all([fetchWithProgress(`claw_machine.glb?v=${VERSION}`, setProgress), fonts]);
     state.machine = new Machine($('scene'));

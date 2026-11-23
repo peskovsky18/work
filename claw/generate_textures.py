@@ -92,7 +92,7 @@ def save(img, name):
 
 # ---------------------------------------------------------------- пиксель-арт плакаты нижнего корпуса
 # рисуем в низком разрешении (1 «пиксель» = 8 px текстуры) и увеличиваем без сглаживания: пиксели чёткие
-PX = 8
+PX = 4   # пиксель рисунка = 4 пикселя текстуры: блоки ровные даже после сжатия WebP, а в памяти в 4 раза меньше, чем при 8
 VW, VH = 256, 236                 # панель 0.78 x 0.72 м
 PRINT_W, PRINT_H = VW * PX, VH * PX
 INK = '#140726'
@@ -270,6 +270,8 @@ def card(c):
     d.text((70 * SS, 555 * SS), 'A. PESKOVSKII', font=font(FONT_BOLD, 38), fill=c['ink'], anchor='lm')
     d.text((w - 70 * SS, 555 * SS), 'PLAY ONE', font=font(FONT_BLACK, 38), fill=c['accent'], anchor='rm')
     save(img, f"card_{c['slug']}.png")
+    # для окна выбора на сайте: карта там шириной ~220 px, WebP 640 px весит в несколько раз меньше PNG
+    img.resize((640, 404), Image.LANCZOS).convert('RGB').save(os.path.join(OUT, f"card_{c['slug']}.webp"), quality=86, method=6)
 
 
 DECK_W, DECK_H = 0.81, 0.16      # крышка пульта, м
@@ -382,8 +384,8 @@ def marquee():
                 continue
             px_star(d, x, y, rnd.random() < 0.25)
         d.rectangle((0, 0, MW - 1, MH - 1), outline=INK)
-        img.resize((MW * 16, MH * 16), Image.NEAREST).save(os.path.join(OUT, name))
-        print('saved', name, (MW * 16, MH * 16))
+        img.resize((MW * 8, MH * 8), Image.NEAREST).save(os.path.join(OUT, name))
+        print('saved', name, (MW * 8, MH * 8))
 
     # бока и зад: без имени
     finish(bg.copy(), 'marquee.png', None)

@@ -8,18 +8,25 @@
   <meta name="theme-color" content="#0e0f13">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Tiny5&family=Golos+Text:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@800&family=Tiny5&family=Golos+Text:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- ?v=… меняем при каждом деплое: Pages кэширует файлы на 10 минут -->
-  <link rel="stylesheet" href="css/claw.css?v=26">
-  <link rel="preload" href="claw_machine.glb?v=26" as="fetch" crossorigin>
+  <link rel="stylesheet" href="css/claw.css?v=27">
+  <link rel="preload" href="claw_machine.glb?v=27" as="fetch" crossorigin>
   <script type="importmap">
   {
     "imports": {
-      "three": "../js/vendor/three.module.js",
+      "three": "../js/vendor/three.module.min.js",
       "three/addons/": "../js/vendor/"
     }
   }
   </script>
+  <!-- скрипты и декодер Draco качаем сразу, параллельно с моделью, а не по цепочке импортов -->
+  <link rel="modulepreload" href="../js/vendor/three.module.min.js">
+  <link rel="modulepreload" href="../js/vendor/GLTFLoader.min.js">
+  <link rel="modulepreload" href="../js/vendor/DRACOLoader.min.js">
+  <link rel="modulepreload" href="../js/utils/BufferGeometryUtils.min.js">
+  <link rel="preload" href="../js/vendor/draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
+  <link rel="preload" href="../js/vendor/draco/draco_decoder.wasm" as="fetch" crossorigin>
   <script src="../js/vendor/gsap.min.js"></script>
 </head>
 <body>
@@ -89,6 +96,6 @@
     </div>
   </noscript>
 
-  <script type="module" src="js/app.js?v=26"></script>
+  <script type="module" src="js/app.js?v=27"></script>
 </body>
 </html>

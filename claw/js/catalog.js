@@ -10,15 +10,15 @@ export { PROFILE };
 export const CATEGORIES = [
   {
     id: 'video', num: 1, title: 'ВИДЕО', subtitle: 'видеоработы',
-    card: 'textures/card_video.png', colors: ['#ff2bd6', '#9a6bff', '#ff5c9d']
+    card: 'textures/card_video.webp', colors: ['#ff2bd6', '#9a6bff', '#ff5c9d']
   },
   {
     id: 'creative', num: 2, title: 'КРЕАТИВ', subtitle: 'креативные и продюсерские проекты',
-    card: 'textures/card_creative.png', colors: ['#ff8a3d', '#ffd23f', '#f23a4f']
+    card: 'textures/card_creative.webp', colors: ['#ff8a3d', '#ffd23f', '#f23a4f']
   },
   {
     id: 'vibecode', num: 3, title: 'ВАЙБКОД', subtitle: 'вайбкод-проекты',
-    card: 'textures/card_vibecode.png', colors: ['#3ee0b0', '#19b5b5', '#4aa8ff']
+    card: 'textures/card_vibecode.webp', colors: ['#3ee0b0', '#19b5b5', '#4aa8ff']
   }
 ];
 

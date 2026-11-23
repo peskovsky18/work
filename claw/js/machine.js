@@ -4,8 +4,10 @@
  * Имена объектов задаёт claw/build_claw_machine.py.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/DRACOLoader.js';
+// сжатые копии из js/vendor (собраны esbuild из исходников рядом); тот же BufferGeometryUtils берёт и GLTFLoader
+import { GLTFLoader } from 'three/addons/GLTFLoader.min.js';
+import { DRACOLoader } from 'three/addons/DRACOLoader.min.js';
+import { mergeGeometries } from '../../js/utils/BufferGeometryUtils.min.js';
 
 const gsap = window.gsap;
 
@@ -230,7 +232,12 @@ export class Machine {
   constructor(canvas) {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // плотность пикселей подстраивается под устройство: начинаем с экранной (не выше 2) и снижаем, если кадры не успевают
+    this.maxDpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = this.maxDpr;
+    this.renderer.setPixelRatio(this.dpr);
+    this.perf = { t: 0, frames: 0, settled: false };
+    this.paused = false;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -270,12 +277,58 @@ export class Machine {
     this.setupLights();
     this.fixMaterials();
     this.collect();
+    this.mergeStatic();
     this.resize();
     this.setScreen('idle');
     this.applyShot('intro', 0);
     this.renderer.setAnimationLoop(() => this.tick());
     // прогрев шейдеров до показа
     this.renderer.compile(this.scene, this.camera);
+  }
+
+  /**
+   * Неподвижные детали корпуса склеиваются в один меш на материал: было ~330 отрисовок за кадр.
+   * Не трогаем то, что двигается или меняется (портал с клешнёй, капсулы, карты, экран терминала, постеры),
+   * и прозрачное: стёклам нужна сортировка.
+   */
+  mergeStatic() {
+    const skip = (o) => {
+      for (let p = o; p && p !== this.root; p = p.parent) {
+        if (p === this.crossbar || /^(Capsule_|Card_|Poster|Terminal_Screen)/.test(p.name)) return true;
+      }
+      return false;
+    };
+    this.root.updateMatrixWorld(true);
+    const rootInv = this.root.matrixWorld.clone().invert();
+    const groups = new Map();
+    this.root.traverse((o) => {
+      if (!o.isMesh || Array.isArray(o.material) || o.material.transparent || skip(o)) return;
+      const g = o.geometry;
+      const key = `${o.material.uuid}|${Object.keys(g.attributes).sort().join(',')}|${g.index ? 1 : 0}|${o.renderOrder}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(o);
+    });
+    let merged = 0;
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      const geos = list.map((o) => o.geometry.clone().applyMatrix4(rootInv.clone().multiply(o.matrixWorld)));
+      const geo = mergeGeometries(geos, false);
+      geos.forEach((g) => g.dispose());
+      if (!geo) continue;
+      const mesh = new THREE.Mesh(geo, list[0].material);
+      mesh.name = `Merged_${list[0].material.name}`;
+      mesh.renderOrder = list[0].renderOrder;
+      this.root.add(mesh);
+      for (const o of list) o.removeFromParent();
+      merged += list.length;
+    }
+    return merged;
+  }
+
+  /** Пока поверх сцены открыто окно (работа, список, контакты), автомат не перерисовываем: его почти не видно. */
+  setPaused(paused) {
+    this.paused = paused;
+    if (!paused) this.clock.getDelta();   // не копить паузу в dt, иначе маятник и огни дёрнутся
   }
 
   setupLights() {
@@ -471,7 +524,10 @@ export class Machine {
   }
 
   tick() {
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    if (this.paused) return;
+    const raw = this.clock.getDelta();
+    const dt = Math.min(raw, 0.05);
+    this.adaptDpr(raw);
     // победа: 0..1, быстро вспыхивает и плавно гаснет за WIN_TIME секунд
     let win = 0;
     if (this.winT !== null) {
@@ -519,6 +575,26 @@ export class Machine {
     this.camera.position.set(c.px + p.sx * 0.12, c.py - p.sy * 0.06, c.pz);
     this.camera.lookAt(c.tx, c.ty, c.tz);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /**
+   * Первые секунды смотрим на частоту кадров: если меньше ~45 в секунду, снижаем плотность пикселей
+   * ступенями до 1. Ступень меняем не чаще раза в 1.5 с, после трёх проверок подряд без проблем успокаиваемся.
+   */
+  adaptDpr(raw) {
+    const pf = this.perf;
+    if (pf.settled || raw > 0.25) return;   // пропуски кадров из-за скрытой вкладки не считаем
+    pf.t += raw;
+    pf.frames++;
+    if (pf.t < 1.5) return;
+    const fps = pf.frames / pf.t;
+    pf.t = 0;
+    pf.frames = 0;
+    if (fps < 45 && this.dpr > 1) {
+      this.dpr = Math.max(1, Math.round((this.dpr - 0.25) * 4) / 4);
+      this.renderer.setPixelRatio(this.dpr);   // сам пересчитывает размер холста, кадр камеры не трогаем
+      pf.good = 0;
+    } else if ((pf.good = (pf.good || 0) + 1) >= 3) pf.settled = true;
   }
 
   /** Маятник: каретка разгоняется — клешня отстаёт, тормозит — клешня уходит вперёд и затухает. */

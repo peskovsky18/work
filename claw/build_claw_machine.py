@@ -640,9 +640,9 @@ def build_cabinet(c):
     groups = {'Bulb_A': bmesh.new(), 'Bulb_B': bmesh.new(), 'Sockets': bmesh.new()}
     for k, (p, nrm) in enumerate(spots):
         bm = groups['Bulb_A' if k % 2 == 0 else 'Bulb_B']
-        v = bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=7, radius=0.0062)['verts']
+        v = bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=0.0062)['verts']
         bmesh.ops.translate(bm, verts=v, vec=p + nrm * 0.004)
-        v = bmesh.ops.create_cone(groups['Sockets'], cap_ends=True, segments=14, radius1=0.0075, radius2=0.0075,
+        v = bmesh.ops.create_cone(groups['Sockets'], cap_ends=True, segments=10, radius1=0.0075, radius2=0.0075,
                                   depth=0.003)['verts']
         rot = nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4()
         bmesh.ops.transform(groups['Sockets'], matrix=Matrix.Translation(p + nrm * 0.0008) @ rot, verts=v)
@@ -841,11 +841,11 @@ def build_cards(c):
 R_SIZES = (0.060, 0.066)
 
 
-def capsule_mesh(name, r, mats, clear=False):
+def capsule_mesh(name, r, mats, clear=False, seg=36, rings=18):
     """Шарик-капсула как у гачапона: цветной верх (материал 0) с бортиком надет на белый низ (материал 1),
     спереди защёлка. Верх и низ — разные материалы, на сайте капсула раскрывается."""
+    # 36 x 18 хватает для гладкого шара на общем плане; капсулы с работами крупно в кадре, им 48 x 24
     bm = bmesh.new()
-    seg, rings = 56, 28
     lip = r * 0.09
     # верхняя полусфера
     top = bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=rings, radius=r)['verts']
@@ -1020,7 +1020,8 @@ def build_capsules(c_upper, c_proj):
     for i, (slug, title, img, cat) in enumerate(WORKS):
         m = proj[i]
         loc = m.to_translation()
-        me = capsule_mesh(f'Capsule_Project_{slug}', 0.07, ['Cap_Clear', 'Cap_Clear_Bottom', 'Cap_White'], clear=True)
+        me = capsule_mesh(f'Capsule_Project_{slug}', 0.07, ['Cap_Clear', 'Cap_Clear_Bottom', 'Cap_White'], clear=True,
+                          seg=48, rings=24)
         o = link(bpy.data.objects.new(f'Capsule_Project_{slug}', me), c_proj)
         o.location = loc
         # постер внутри смотрит вперёд, с лёгким наклоном

@@ -312,7 +312,7 @@ export class Machine {
         o.material = this.ledMaterial;
       } else if (name === 'Bulb_A' || name === 'Bulb_B') {
         this.bulbs[name] = { mat: o.material, base: o.material.emissiveIntensity || 1 };
-      } else if (name === 'Marquee_Panel' || name === 'Marquee_Text') {
+      } else if (name === 'Marquee_Panel' || name === 'Marquee_Front') {
         this.glow.set(o.material, { base: o.material.emissiveIntensity || 1, gain: 0.8 });
       } else if (name === 'Print_Front' || name === 'Print_Side' || name === 'Prize_Label' || name === 'Lightbox_Glow') {
         // печать на корпусе при победе подсвечивается изнутри: её видно, когда камера смотрит на дверцу

@@ -331,29 +331,75 @@ def console_deck():
 MARQUEE_W, MARQUEE_H = 0.79, 0.17
 
 
+# буквы имени в сетке 5 x 5, как у пиксельного Tiny5 в логотипе на сайте
+PX_GLYPHS = {
+    'P': ['####.', '#...#', '####.', '#....', '#....'],
+    'E': ['#####', '#....', '####.', '#....', '#####'],
+    'S': ['.####', '#....', '.###.', '....#', '####.'],
+    'K': ['#...#', '#..#.', '###..', '#..#.', '#...#'],
+    'O': ['.###.', '#...#', '#...#', '#...#', '.###.'],
+    'V': ['#...#', '#...#', '#...#', '.#.#.', '..#..'],
+    'I': ['#', '#', '#', '#', '#'],
+}
+
+
+def px_word_mask(word, scale):
+    """Маска слова из пиксельных букв: каждый пиксель буквы — квадрат scale x scale, между буквами один пиксель."""
+    cols = []
+    for i, ch in enumerate(word):
+        g = PX_GLYPHS[ch]
+        if i:
+            cols.append([0] * 5)
+        for x in range(len(g[0])):
+            cols.append([1 if g[y][x] == '#' else 0 for y in range(5)])
+    m = np.array(cols, bool).T
+    return np.kron(m, np.ones((scale, scale), bool))
+
+
+def stamp(arr, mask, x, y, color):
+    h, w = mask.shape
+    region = arr[y:y + h, x:x + w]
+    region[mask] = hexrgb(color)
+
+
 def marquee():
-    """Подсвеченная панель вывески: градиент, лучи от центра, искры. Само имя — объёмные буквы перед ней."""
-    w, h = 2048 * SS, int(2048 * MARQUEE_H / MARQUEE_W) * SS
-    img = gradient(w, h, '#3a0a8e', '#8a1bff', '#ff2bd6').convert('RGBA')
-    rays = Image.new('RGBA', (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(rays)
-    cx, cy = w / 2, h / 2
-    for k in range(36):
-        a0, a1 = math.radians(k * 10), math.radians(k * 10 + 4)
-        R = w
-        d.polygon([(cx, cy), (cx + R * math.cos(a0), cy + R * math.sin(a0)), (cx + R * math.cos(a1), cy + R * math.sin(a1))],
-                  fill=(255, 255, 255, 26))
-    img = Image.alpha_composite(img, rays)
-    # мягкое свечение за буквами
-    glow = Image.new('RGBA', (w, h), (0, 0, 0, 0))
-    ImageDraw.Draw(glow).rounded_rectangle((w * 0.12, h * 0.22, w * 0.88, h * 0.78), radius=h * 0.3,
-                                           fill=(255, 230, 255, 120))
-    img = Image.alpha_composite(img, glow.filter(ImageFilter.GaussianBlur(h * 0.12)))
-    d = ImageDraw.Draw(img)
-    stars(d, w, h, 26, 9)
-    # кайма
-    d.rectangle((0, 0, w - 1, h - 1), outline='#1b0b3a', width=10 * SS)
-    save(img.convert('RGB'), 'marquee.png')
+    """Вывеска в пиксель-арте: дизеринг от фиолетового к розовому, звёзды; спереди имя как логотип на сайте."""
+    MW, MH = 128, 28                      # сетка пикселей; панель 0.79 x 0.17 м
+    pal = np.array([hexrgb(c) for c in ['#3a0a8e', '#5a12c8', '#8a1bff', '#c21cc4', '#ff2bd6']], np.uint8)
+    ys, xs = np.mgrid[0:MH, 0:MW]
+    t = (np.abs(xs - MW / 2) / (MW / 2) * 0.55 + ys / (MH - 1) * 0.45) * (len(pal) - 1)
+    base = np.floor(t).astype(int)
+    idx = np.clip(base + (t - base > BAYER[ys % 4, xs % 4]), 0, len(pal) - 1)
+    bg = pal[idx]
+
+    def finish(arr, name, keep_out):
+        img = Image.fromarray(arr, 'RGB')
+        d = ImageDraw.Draw(img)
+        rnd = random.Random(31)
+        for _ in range(60):
+            x, y = rnd.randint(2, MW - 3), rnd.randint(2, MH - 3)
+            if keep_out and keep_out[0] <= x <= keep_out[2] and keep_out[1] <= y <= keep_out[3]:
+                continue
+            px_star(d, x, y, rnd.random() < 0.25)
+        d.rectangle((0, 0, MW - 1, MH - 1), outline=INK)
+        img.resize((MW * 16, MH * 16), Image.NEAREST).save(os.path.join(OUT, name))
+        print('saved', name, (MW * 16, MH * 16))
+
+    # бока и зад: без имени
+    finish(bg.copy(), 'marquee.png', None)
+    # спереди: обводка чернилами, розовая тень со сдвигом и чернильная под ней — как text-shadow логотипа
+    word = px_word_mask('PESKOVSKII', 2)
+    h, w = word.shape
+    x0, y0 = (MW - w - 3) // 2, (MH - h - 3) // 2
+    arr = bg.copy()
+    stamp(arr, word, x0 + 3, y0 + 3, INK)
+    stamp(arr, word, x0 + 2, y0 + 2, '#ff2bd6')
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            if dx or dy:
+                stamp(arr, word, x0 + dx, y0 + dy, INK)
+    stamp(arr, word, x0, y0, '#fff6e0')
+    finish(arr, 'marquee_front.png', (x0 - 3, y0 - 3, x0 + w + 4, y0 + h + 4))
 
 
 if __name__ == '__main__':

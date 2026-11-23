@@ -283,6 +283,7 @@ def build_materials():
     image_material('Print_Side', os.path.join(TEX, 'print_side.png'), emission=0.5, rough=0.35, coat=0.8)
     image_material('Console_Deck_Print', os.path.join(TEX, 'console_deck.png'), emission=0.35, rough=0.55, coat=0.3)
     image_material('Marquee_Panel', os.path.join(TEX, 'marquee.png'), emission=2.2, rough=0.3, coat=0.8)
+    image_material('Marquee_Front', os.path.join(TEX, 'marquee_front.png'), emission=2.2, rough=0.3, coat=0.8)
     image_material('Terminal_Screen', os.path.join(TEX, 'terminal_screen.png'), emission=4.0, rough=0.1, coat=1.0)
     for slug in CATEGORIES:
         image_material(f'Card_{slug}', os.path.join(TEX, f'card_{slug}.png'), emission=0.2, rough=0.3, coat=1.0)
@@ -612,7 +613,8 @@ def build_cabinet(c):
             loc, rot = (0, sy * (h + fi), hz), (math.pi / 2, 0, 0 if sy < 0 else math.pi)
         else:
             loc, rot = (sx * (h + fi), 0, hz), (math.pi / 2, 0, sx * math.pi / 2)
-        image_plane(f'Marquee_Panel_{nm}', 2 * (h - fw), ph, 'Marquee_Panel', c, loc, rot)
+        # спереди имя нарисовано прямо на панели пиксельными буквами, как логотип на сайте
+        image_plane(f'Marquee_Panel_{nm}', 2 * (h - fw), ph, 'Marquee_Front' if nm == 'F' else 'Marquee_Panel', c, loc, rot)
     # угловые стойки рамки
     for sx in (-1, 1):
         for sy in (-1, 1):
@@ -647,13 +649,6 @@ def build_cabinet(c):
     mesh_obj('Marquee_Bulbs_A', groups['Bulb_A'], 'Bulb_A', c, smooth_angle=80)
     mesh_obj('Marquee_Bulbs_B', groups['Bulb_B'], 'Bulb_B', c, smooth_angle=80)
     mesh_obj('Marquee_Sockets', groups['Sockets'], 'Graphite_Matte', c, smooth_angle=30)
-    yf = -h - fo
-    # объёмное имя с тёмной обводкой-подложкой
-    zt = (mz0 + mz1) / 2
-    text_obj('Marquee_Text', 'PESKOVSKII', 0.1, 'Marquee_Text', c, (0, -h - 0.012, zt), extrude=0.005, bevel=0.0012,
-             max_width=0.68)
-    text_obj('Marquee_Text_Outline', 'PESKOVSKII', 0.1, 'Marquee_Outline', c, (0, -h - 0.006, zt), extrude=0.003,
-             bevel=0.0, offset=0.0045, max_width=0.68 * 1.03)
 
 
 # ---------------------------------------------------------------- портал с клешнёй

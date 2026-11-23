@@ -232,6 +232,9 @@ export class Machine {
     const loader = new GLTFLoader().setDRACOLoader(draco);
     const gltf = await new Promise((resolve, reject) => loader.parse(buffer, './', resolve, reject));
     this.root = gltf.scene;
+    // пол и стена студии из Blender лежат там же, где наш пол, и дерутся с ним за пиксели (рябь)
+    this.root.getObjectsByProperty('name', 'Studio_Floor').concat(this.root.getObjectsByProperty('name', 'Studio_Wall'))
+      .forEach((o) => o.removeFromParent());
     this.scene.add(this.root);
     this.setupLights();
     this.fixMaterials();

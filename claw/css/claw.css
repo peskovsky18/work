@@ -1,7 +1,9 @@
 /* ==========================================================================
    Автомат с клешнёй: интерфейс в языке плакатов на корпусе.
    Фиолетовые окна в пиксельный растр, чернильные рамки со ступенчатыми углами,
-   жёлтые надписи с чернильной обводкой и розовой тенью. Шрифт один: Tiny5 — пиксельный, с нормальной кириллицей. Начертание одно, жирность не синтезируем.
+   жёлтые надписи с чернильной обводкой и розовой тенью.
+   Пиксельный Tiny5 только в крупных надписях: заголовки, имя, названия карт.
+   Весь остальной текст — Golos Text: мелкий пиксельный шрифт по-русски читается плохо.
    ========================================================================== */
 
 :root {
@@ -16,7 +18,8 @@
   --sun-hi: #ffe680;
   --paper: #fff6e0;
   --muted: #c4b5ec;
-  --font: 'Tiny5', 'JetBrains Mono', ui-monospace, monospace;
+  --font: 'Golos Text', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-pixel: 'Tiny5', 'Golos Text', monospace;
   /* рамка в 2 пикселя без углов: так рисуют окна в пиксель-арте */
   --frame: 0 calc(var(--b) * -2) 0 0 var(--ink), 0 calc(var(--b) * 2) 0 0 var(--ink),
            calc(var(--b) * -2) 0 0 0 var(--ink), calc(var(--b) * 2) 0 0 0 var(--ink);
@@ -41,8 +44,8 @@ html, body {
   background: #0e0f13;
   color: var(--paper);
   font-family: var(--font);
-  font-size: 20px;
-  line-height: 1.35;
+  font-size: 17px;
+  line-height: 1.45;
   font-synthesis: none;
 }
 
@@ -85,10 +88,11 @@ a:hover { color: var(--sun-hi); }
 }
 
 .px-title {
-  font-family: var(--font);
+  font-family: var(--font-pixel);
   font-weight: 400;
   font-size: 34px;
   line-height: 1.1;
+  letter-spacing: 0.06em;  /* обводка съедает просвет между буквами */
   color: var(--sun);
   text-shadow: var(--poster-text);
   margin: 0;
@@ -97,8 +101,9 @@ a:hover { color: var(--sun-hi); }
 .chip {
   display: inline-block;
   font-family: var(--font);
-  font-weight: 400;
-  font-size: 17px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
   line-height: 1;
   padding: 6px 10px 7px;
   background: var(--chip, var(--sun));
@@ -111,8 +116,8 @@ a:hover { color: var(--sun-hi); }
    -------------------------------------------------------------------------- */
 .px-btn {
   font: inherit;
-  font-weight: 400;
-  font-size: 20px;
+  font-weight: 600;
+  font-size: 16px;
   line-height: 1;
   color: var(--paper);
   background: var(--violet-hi);
@@ -137,7 +142,7 @@ a:hover { color: var(--sun-hi); }
   transform: translateY(calc(var(--b) * 2));
   box-shadow: var(--frame-thin), inset 0 var(--b) 0 rgba(255, 255, 255, 0.18), 0 var(--b) 0 0 var(--ink);
 }
-.px-btn-small { font-size: 18px; padding: 7px 11px 8px; }
+.px-btn-small { font-size: 15px; padding: 7px 11px 8px; }
 .px-btn-pick { background: var(--sun); color: var(--ink); }
 .px-btn-pick:hover { background: var(--sun-hi); color: var(--ink); }
 
@@ -167,7 +172,7 @@ a:hover { color: var(--sun-hi); }
 }
 
 .logo {
-  font-family: var(--font);
+  font-family: var(--font-pixel);
   font-weight: 400;
   font-size: 28px;
   line-height: 1;
@@ -285,9 +290,11 @@ a:hover { color: var(--sun-hi); }
 }
 
 .card-name {
+  font-family: var(--font-pixel);
   font-weight: 400;
   font-size: 24px;
   line-height: 1.1;
+  letter-spacing: 0.04em;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -301,15 +308,17 @@ a:hover { color: var(--sun-hi); }
   box-shadow: 0 var(--b) 0 0 var(--muted);
   min-width: 24px;
   padding: 3px 6px 4px;
-  font-size: 17px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 14px;
   text-align: center;
 }
 
 .card-btn:hover .card-key,
 .card-btn:focus-visible .card-key { background: var(--sun); }
 
-.card-sub { font-size: 18px; color: var(--muted); line-height: 1.3; min-height: 2.6em; }
-.card-count { font-size: 18px; font-weight: 400; color: var(--sun); }
+.card-sub { font-size: 15px; color: var(--muted); line-height: 1.3; min-height: 2.6em; }
+.card-count { font-size: 15px; font-weight: 600; color: var(--sun); }
 .card-count.soon { color: var(--muted); font-weight: 400; }
 
 /* статус игры читают только экранные дикторы */
@@ -352,7 +361,15 @@ a:hover { color: var(--sun-hi); }
   margin-bottom: 16px;
 }
 
-.viewer-title { font-size: 38px; margin-bottom: 18px; }
+/* название работы бывает любым, поэтому набрано читаемым шрифтом, а от плаката у него цвет и тень */
+.viewer-title {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: 0;
+  text-shadow: 2px 2px 0 var(--ink), 4px 4px 0 var(--magenta);
+  margin-bottom: 18px;
+}
 
 .viewer-media {
   background: var(--ink);
@@ -370,6 +387,7 @@ a:hover { color: var(--sun-hi); }
   aspect-ratio: auto;
   padding: 40px 20px;
   text-align: center;
+  font-family: var(--font-pixel);
   font-weight: 400;
   font-size: 34px;
   color: var(--sun);
@@ -401,8 +419,8 @@ a:hover { color: var(--sun-hi); }
 .list-group + .list-group { margin-top: 26px; }
 
 .list-group h3 {
-  font-weight: 400;
-  font-size: 24px;
+  font-weight: 700;
+  font-size: 18px;
   margin: 0 0 12px;
   display: flex;
   align-items: center;
@@ -448,7 +466,7 @@ a:hover { color: var(--sun-hi); }
 .list-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 .list-empty { color: var(--muted); margin: 0; }
 
-.contacts-body p { margin: 0 0 14px; font-size: 24px; }
+.contacts-body p { margin: 0 0 14px; font-size: 20px; font-weight: 600; }
 .contact-row { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
 .contact-row span { color: var(--muted); min-width: 110px; }
 
@@ -464,24 +482,24 @@ a:hover { color: var(--sun-hi); }
    Телефон
    -------------------------------------------------------------------------- */
 @media (max-width: 720px) {
-  html, body { font-size: 18px; }
+  html, body { font-size: 15px; }
   .logo { font-size: 22px; }
   /* на телефоне кнопки сеткой 2 x 2, а не 3 + 1 */
   .dock { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: calc(100vw - 24px); }
-  .dock .px-btn { font-size: 17px; padding: 9px 9px 10px; justify-content: center; text-align: center; }
+  .dock .px-btn { font-size: 14px; padding: 9px 9px 10px; justify-content: center; text-align: center; }
   .px-title { font-size: 26px; }
   .choose .px-title { font-size: 30px; }
   .choose { padding: 14px 12px; width: calc(100vw - 24px); }
-  .choose-lead { font-size: 17px; margin: 6px 0 12px; }
+  .choose-lead { font-size: 14px; margin: 6px 0 12px; }
   .cards { gap: 8px; }
   .card-btn { padding: 6px; gap: 6px; }
   .card-name { font-size: 17px; }
   .card-key, .card-sub { display: none; }
-  .card-count { font-size: 15px; }
-  .viewer-title { font-size: 28px; }
+  .card-count { font-size: 13px; }
+  .viewer-title { font-size: 26px; }
   .modal { padding: 12px; }
   .list-items { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .list-item { font-size: 16px; padding: 6px; }
+  .list-item { font-size: 14px; padding: 6px; }
 }
 
 /* невысокие экраны: окно выбора не должно закрывать автомат */

@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=21';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=21';
+import { Machine } from './machine.js?v=22';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=22';
 
-const VERSION = '21';
+const VERSION = '22';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -334,7 +334,7 @@ async function boot() {
   renderCards();
   renderList();
   renderContacts();
-  const fonts = document.fonts ? Promise.all(['800 16px "JetBrains Mono"', '400 16px "JetBrains Mono"', '400 16px "Tiny5"'].map((f) => document.fonts.load(f, 'Ааz'))).catch(() => {}) : Promise.resolve();
+  const fonts = document.fonts ? Promise.all(['800 16px "JetBrains Mono"', '400 16px "JetBrains Mono"', '400 16px "Tiny5"', '400 16px "Golos Text"', '600 16px "Golos Text"'].map((f) => document.fonts.load(f, 'Ааz'))).catch(() => {}) : Promise.resolve();
   try {
     const [buffer] = await Promise.all([fetchWithProgress(`claw_machine.glb?v=${VERSION}`, setProgress), fonts]);
     state.machine = new Machine($('scene'));

@@ -41,7 +41,7 @@
 /Applications/Blender.app/Contents/MacOS/Blender -b assets/models/scene.blend --python tools/blender/export_glb.py
 ```
 
-Пересборка частей сцены — скрипты в [`tools/blender/`](tools/blender/): `build_train_interior.py` (салон), `build_train_exterior.py` (кузов и прицепные вагоны), `build_station.py` (станция), `build_escalator.py` (поручни, балюстрады, площадки), текстуры — `generate_textures.py`. Освещение: `tune_materials.py` (шероховатость под отражения) и `bake_lighting.py` (запекание мягких теней в атласы). Запекание применяет модификаторы, поэтому правки геометрии делаются в `assets/models/scene_prebake.blend`, затем он копируется в `scene.blend`, запекается и экспортируется. Имена `Door_*` и `Screen_N_Display` использует код сайта, их нельзя переименовывать.
+Пересборка частей сцены — скрипты в [`tools/blender/`](tools/blender/): `build_train_interior.py` (салон), `build_train_exterior.py` (кузов и прицепные вагоны), `build_station.py` (станция), `build_escalator.py` (поручни, балюстрады, площадки), текстуры — `generate_textures.py`. Освещение: `tune_materials.py` (шероховатость под отражения) и `bake_lighting.py` (запекание мягких теней в атласы). Запекание применяет модификаторы, поэтому правки геометрии делаются в `assets/models/scene_prebake.blend`, затем он копируется в `scene.blend`, запекается и экспортируется. После запекания и перед экспортом запускается `fix_overlaps.py -- fix`: он находит поверхности, лежащие друг на друге (из-за них текстуры мерцают), и отодвигает накладную деталь на 2–3 мм. С `-- check` скрипт только выводит список таких мест. Имена `Door_*` и `Screen_N_Display` использует код сайта, их нельзя переименовывать.
 
 В JS остаются свет, анимация дверей, видео на экранах, камера и прокрутка.
 

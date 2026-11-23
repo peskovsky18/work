@@ -39,7 +39,8 @@ function makeEnvironment(renderer) {
   return tex;
 }
 
-// Пол: радиальный градиент в шейдере с шумом против полос (текстура 512 px на 14 м давала ступени)
+// Пол: радиальный градиент в шейдере (текстура 512 px на 14 м давала ступени).
+// Без экранного шума: под сдвигающейся камерой он рябил.
 function floorMaterial() {
   return new THREE.ShaderMaterial({
     vertexShader: /* glsl */`
@@ -58,8 +59,6 @@ function floorMaterial() {
         vec3 c = mix(center, mid, smoothstep(0.0, 0.3, r));
         c = mix(c, edge, smoothstep(0.3, 0.95, r));
         c *= mix(0.45, 1.0, smoothstep(0.045, 0.11, r)); // мягкая тень под автоматом
-        float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-        c += (n - 0.5) / 160.0;
         gl_FragColor = vec4(c, 1.0);
       }`
   });
@@ -389,8 +388,9 @@ export class Machine {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.ledMaterial.uniforms.uTime.value += dt;
     const p = this.pointer;
-    p.sx += (p.x - p.sx) * 0.04;
-    p.sy += (p.y - p.sy) * 0.04;
+    // доезжаем до мыши и останавливаемся: бесконечный сдвиг на доли пикселя давал рябь на полу
+    p.sx = Math.abs(p.x - p.sx) < 0.002 ? p.x : p.sx + (p.x - p.sx) * 0.06;
+    p.sy = Math.abs(p.y - p.sy) < 0.002 ? p.y : p.sy + (p.y - p.sy) * 0.06;
     const v = this.view;
     // лёгкий параллакс от мыши, чтобы сцена жила
     this.camera.position.set(v.px + p.sx * 0.12, v.py - p.sy * 0.06, v.pz);

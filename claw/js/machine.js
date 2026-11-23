@@ -321,6 +321,18 @@ export class Machine {
       return { q: p.quaternion.clone(), axis: new THREE.Vector3(0, 1, 0).cross(radial).normalize() };
     });
     this.grip = { v: 0 };
+    // меши пальцев и низ корпуса клешни (без пальцев) относительно её начала: по ним подгоняем захват под шар
+    this.prongMeshes = [];
+    this.prongs.forEach((p) => p.traverse((o) => { if (o.isMesh) this.prongMeshes.push(o); }));
+    const clawInv = this.claw.matrixWorld.clone().invert();
+    const v = new THREE.Vector3();
+    this.clawBodyLow = 0;
+    this.claw.traverse((o) => {
+      if (!o.isMesh || this.prongMeshes.includes(o)) return;
+      const pos = o.geometry.attributes.position;
+      const mtx = clawInv.clone().multiply(o.matrixWorld);
+      for (let i = 0; i < pos.count; i++) this.clawBodyLow = Math.min(this.clawBodyLow, v.fromBufferAttribute(pos, i).applyMatrix4(mtx).y);
+    });
 
     // капсулы: прозрачные с постерами и цветные наполнители
     this.capsules = [];
@@ -332,13 +344,20 @@ export class Machine {
       const isProject = o.name.startsWith('Capsule_Project_');
       const tint = meshes.filter((m) => !/^(Cap_White|Cap_Clear)/.test(m.material.name));
       o.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(o);
+      // настоящий радиус по вершинам: Box3 повёрнутого шара завышает его на треть
+      const center = o.getWorldPosition(new THREE.Vector3());
+      const w = new THREE.Vector3();
+      let radius = 0;
+      for (const mesh of meshes) {
+        const pos = mesh.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) radius = Math.max(radius, w.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).distanceTo(center));
+      }
       this.capsules.push({
         obj: o, isProject, poster, tint,
         top: meshes.find((m) => m.material.name === 'Cap_Clear' || (!isProject && tint.includes(m))),
         bottom: meshes.find((m) => m.material.name === 'Cap_Clear_Bottom' || m.material.name === 'Cap_White'),
         home: { pos: o.position.clone(), quat: o.quaternion.clone(), parent: o.parent },
-        radius: (box.max.x - box.min.x) / 2
+        radius
       });
     });
     this.projectSlots = this.capsules.filter((c) => c.isProject);
@@ -539,6 +558,42 @@ export class Machine {
     });
   }
 
+  /**
+   * Подгоняет захват под конкретный шар: клешня опускается так, чтобы корпус почти лёг на шар,
+   * а пальцы закрываются ровно до поверхности, не проваливаясь внутрь.
+   */
+  fitGrip(cap) {
+    const gap = 0.004;
+    const above = cap.radius - this.clawBodyLow + gap;
+    // центр шара в системе клешни, когда она висит над ним на высоте above
+    this.claw.updateMatrixWorld(true);
+    const clawPos = this.claw.getWorldPosition(new THREE.Vector3());
+    const clawInv = this.claw.matrixWorld.clone().invert();
+    const center = clawPos.clone().setY(clawPos.y - above).applyMatrix4(clawInv);
+    const w = new THREE.Vector3();
+    const reach = (v) => {
+      this.setGrip(v);
+      this.claw.updateMatrixWorld(true);
+      let min = Infinity;
+      for (const o of this.prongMeshes) {
+        const pos = o.geometry.attributes.position;
+        const mtx = clawInv.clone().multiply(o.matrixWorld);
+        for (let i = 0; i < pos.count; i++) min = Math.min(min, w.fromBufferAttribute(pos, i).applyMatrix4(mtx).distanceTo(center));
+      }
+      return min - cap.radius; // > 0: палец снаружи шара
+    };
+    const before = this.grip.v;
+    let open = -0.9;
+    let closed = open;
+    for (let v = open; v <= 0.6; v += 0.01) {
+      if (reach(v) < gap * 0.5) break;
+      closed = v;
+    }
+    open = Math.max(-0.9, closed - 0.45);
+    this.setGrip(before);
+    return { above, open, closed };
+  }
+
   updateCable() {
     this.claw.updateMatrixWorld(true);
     const clawY = this.claw.getWorldPosition(new THREE.Vector3()).y;
@@ -559,7 +614,8 @@ export class Machine {
     const crossTarget = toCross(world).z;
     this.crossbar.updateMatrixWorld(true);
     const carTarget = toCar(world).x;
-    const clawDown = this.rest.clawY - (this.rest.clawWorldY - (world.y + 0.16));
+    const fit = this.fitGrip(cap);
+    const clawDown = this.rest.clawY - (this.rest.clawWorldY - (world.y + fit.above));
     const chute = this.markChute.getWorldPosition(new THREE.Vector3());
     const door = this.markDoor.getWorldPosition(new THREE.Vector3());
     const travel = Math.max(0.9, Math.hypot(crossTarget - this.crossbar.position.z, carTarget - this.carriage.position.x) * 2.2);
@@ -571,10 +627,10 @@ export class Machine {
       .call(() => status('Клешня ищет шар…'), null, 0.1)
       .to(this.crossbar.position, { z: crossTarget, duration: travel, ease: 'power1.inOut' }, 0.4)
       .to(this.carriage.position, { x: carTarget, duration: travel, ease: 'power1.inOut' }, 0.4)
-      .to(grip, { v: -0.18, duration: 0.4, onUpdate: onGrip }, 0.4 + travel - 0.2)
+      .to(grip, { v: fit.open, duration: 0.4, onUpdate: onGrip }, 0.4 + travel - 0.2)
       .to(this.claw.position, { y: clawDown, duration: 1.1, ease: 'power2.in', onUpdate: onClaw }, 0.4 + travel + 0.1);
     let t = 0.4 + travel + 1.25;
-    tl.to(grip, { v: 0.42, duration: 0.45, ease: 'power2.out', onUpdate: onGrip }, t)
+    tl.to(grip, { v: fit.closed, duration: 0.45, ease: 'power2.out', onUpdate: onGrip }, t)
       .call(() => { this.claw.attach(cap.obj); this.taken.add(cap); status('Есть! Везу в лоток…'); }, null, t + 0.4)
       .to(this.claw.position, { y: this.rest.clawY, duration: 1.1, ease: 'power2.inOut', onUpdate: onClaw }, t + 0.55);
     t += 1.7;

@@ -6,6 +6,7 @@ import math
 import os
 import random
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,21 +29,13 @@ def hexrgb(h):
 
 
 def gradient(w, h, c0, c1, c2=None):
-    img = Image.new('RGB', (w, h))
-    px = img.load()
-    a, b = hexrgb(c0), hexrgb(c1)
-    c = hexrgb(c2) if c2 else b
-    for y in range(h):
-        for x in range(w):
-            t = (x / w * 0.35 + y / h * 0.65)
-            if t < 0.6:
-                k = t / 0.6
-                col = tuple(int(a[i] + (b[i] - a[i]) * k) for i in range(3))
-            else:
-                k = (t - 0.6) / 0.4
-                col = tuple(int(b[i] + (c[i] - b[i]) * k) for i in range(3))
-            px[x, y] = col
-    return img
+    a, b = np.array(hexrgb(c0), float), np.array(hexrgb(c1), float)
+    c = np.array(hexrgb(c2), float) if c2 else b
+    xs, ys = np.meshgrid(np.arange(w) / w, np.arange(h) / h)
+    t = (xs * 0.35 + ys * 0.65)[..., None]
+    lo = a + (b - a) * np.clip(t / 0.6, 0, 1)
+    hi = b + (c - b) * np.clip((t - 0.6) / 0.4, 0, 1)
+    return Image.fromarray(np.where(t < 0.6, lo, hi).astype(np.uint8), 'RGB')
 
 
 def capsule(d, cx, cy, r, color, angle):
@@ -76,8 +69,9 @@ def scatter(d, w, h, count, rmin, rmax, keep_out=(), seed=1):
 
 def stars(d, w, h, n, seed):
     rnd = random.Random(seed)
+    k = max(1.0, min(w, h) / (1024 * SS))   # на крупных текстурах звёзды крупнее
     for _ in range(n):
-        x, y, s = rnd.randint(0, w), rnd.randint(0, h), rnd.randint(3, 9) * SS
+        x, y, s = rnd.randint(0, w), rnd.randint(0, h), int(rnd.randint(3, 9) * SS * k)
         d.polygon([(x, y - s), (x + s * 0.3, y - s * 0.3), (x + s, y), (x + s * 0.3, y + s * 0.3), (x, y + s),
                    (x - s * 0.3, y + s * 0.3), (x - s, y), (x - s * 0.3, y - s * 0.3)], fill='#ffe9a8')
 
@@ -96,37 +90,42 @@ def save(img, name):
     print('saved', name, img.size)
 
 
+PRINT_W, PRINT_H = 2048, 1890   # панель 0.78 x 0.72 м
+
+
 def print_front():
-    w = h = 1024 * SS
+    w, h = PRINT_W * SS, PRINT_H * SS
     img = gradient(w, h, '#2a0a5e', '#7a1bd6', '#ff2bd6')
     d = ImageDraw.Draw(img)
     stars(d, w, h, 40, 3)
     # верхнюю четверть закрывает пульт, слева внизу дверца приза: текст по центру-справа
     text_box = (int(w * 0.22), int(h * 0.30), int(w * 0.98), int(h * 0.74))
-    scatter(d, w, h, 34, 50 * SS, 105 * SS, keep_out=[text_box], seed=11)
+    # дверца приза слева внизу: туда шары не рисуем, её рамка сама по себе
+    door_box = (0, int(h * 0.62), int(w * 0.36), h)
+    scatter(d, w, h, 34, 100 * SS, 200 * SS, keep_out=[text_box, door_box], seed=11)
     cx = int(w * 0.6)
-    shadow_text(img, (cx, int(h * 0.42)), 'ВЫТАЩИ', font(FONT_BLACK, 112), '#ffffff', '#ffb000', 12 * SS)
-    shadow_text(img, (cx, int(h * 0.55)), 'ПРОЕКТ', font(FONT_BLACK, 112), '#ffd23f', '#ff2bd6', 12 * SS)
+    shadow_text(img, (cx, int(h * 0.42)), 'ВЫТАЩИ', font(FONT_BLACK, 216), '#ffffff', '#ffb000', 22 * SS)
+    shadow_text(img, (cx, int(h * 0.55)), 'ПРОЕКТ', font(FONT_BLACK, 216), '#ffd23f', '#ff2bd6', 22 * SS)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((cx - 270 * SS, int(h * 0.635), cx + 270 * SS, int(h * 0.705)), radius=30 * SS,
+    d.rounded_rectangle((cx - 540 * SS, int(h * 0.635), cx + 540 * SS, int(h * 0.705)), radius=60 * SS,
                         fill='#1b0b3a')
-    d.text((cx, int(h * 0.67)), 'PESKOVSKII · PORTFOLIO', font=font(FONT_BOLD, 34), fill='#ffb000', anchor='mm')
+    d.text((cx, int(h * 0.67)), 'PESKOVSKII · PORTFOLIO', font=font(FONT_BOLD, 68), fill='#ffb000', anchor='mm')
     save(img, 'print_front.png')
 
 
 def print_side():
-    w = h = 1024 * SS
+    w, h = PRINT_W * SS, PRINT_H * SS
     img = gradient(w, h, '#2a0a5e', '#5a1aff', '#ff2bd6')
     d = ImageDraw.Draw(img)
     stars(d, w, h, 50, 5)
     band = (0, int(h * 0.40), w, int(h * 0.60))
-    scatter(d, w, h, 40, 45 * SS, 95 * SS, keep_out=[band], seed=23)
+    scatter(d, w, h, 40, 90 * SS, 190 * SS, keep_out=[band], seed=23)
     d.rectangle(band, fill='#1b0b3a')
     for i, c in enumerate(['#ff2bd6', '#8a3bff', '#2f6bff', '#ff4fa3'] * 40):
-        x = i * 28 * SS
-        d.ellipse((x, band[1] + 10 * SS, x + 10 * SS, band[1] + 20 * SS), fill=c)
-        d.ellipse((x, band[3] - 20 * SS, x + 10 * SS, band[3] - 10 * SS), fill=c)
-    shadow_text(img, (w // 2, h // 2), 'PLAY', font(FONT_BLACK, 150), '#ffd23f', '#ff2bd6', 10 * SS)
+        x = i * 56 * SS
+        d.ellipse((x, band[1] + 20 * SS, x + 20 * SS, band[1] + 40 * SS), fill=c)
+        d.ellipse((x, band[3] - 40 * SS, x + 20 * SS, band[3] - 20 * SS), fill=c)
+    shadow_text(img, (w // 2, h // 2), 'PLAY', font(FONT_BLACK, 300), '#ffd23f', '#ff2bd6', 20 * SS)
     save(img, 'print_side.png')
 
 
@@ -190,9 +189,95 @@ def card(c):
     save(img, f"card_{c['slug']}.png")
 
 
+DECK_W, DECK_H = 0.81, 0.16      # крышка пульта, м
+DECK_PX = 2560                   # пикселей на метр
+
+
+def console_deck():
+    """Печать на крышке пульта: стрелки вокруг джойстика, подписи под кнопкой, картами и терминалом, динамик."""
+    w, h = int(DECK_W * DECK_PX) * SS, int(DECK_H * DECK_PX) * SS
+    img = gradient(w, h, '#121319', '#191a22', '#101116')
+    d = ImageDraw.Draw(img)
+
+    def px(x, y):  # метры в системе крышки (x вправо, y к стеклу) -> пиксели
+        return (x + DECK_W / 2) / DECK_W * w, (1 - (y + DECK_H / 2) / DECK_H) * h
+
+    m = DECK_PX * SS
+    # тонкая рамка и мелкая сетка
+    d.rounded_rectangle((6 * SS, 6 * SS, w - 6 * SS, h - 6 * SS), radius=14 * SS, outline='#ffb000', width=3 * SS)
+    for gx in range(0, w, 18 * SS):
+        for gy in range(0, h, 18 * SS):
+            d.point((gx, gy), fill='#262833')
+    # джойстик: кольцо со стрелками
+    jx, jy = px(-0.24, 0.004)
+    for r, col_ in ((0.058, '#2a2d38'), (0.05, '#14151b')):
+        d.ellipse((jx - r * m, jy - r * m, jx + r * m, jy + r * m), fill=col_)
+    d.ellipse((jx - 0.058 * m, jy - 0.058 * m, jx + 0.058 * m, jy + 0.058 * m), outline='#ff2bd6', width=3 * SS)
+    for k in range(4):
+        a = math.radians(90 * k)
+        ca, sa = math.cos(a), -math.sin(a)
+        tip = (jx + ca * 0.054 * m, jy + sa * 0.054 * m)
+        bl = (jx + ca * 0.043 * m - sa * 0.008 * m, jy + sa * 0.043 * m + ca * 0.008 * m)
+        br = (jx + ca * 0.043 * m + sa * 0.008 * m, jy + sa * 0.043 * m - ca * 0.008 * m)
+        d.polygon([tip, bl, br], fill='#ffd23f')
+    lbl = font(FONT_BLACK, 26)
+    d.text(px(-0.16, -0.06), 'ДВИГАЙ', font=lbl, fill='#9aa0b4', anchor='lm')
+    # кнопка: кольцо и подпись
+    bx, by = px(-0.075, 0.0)
+    d.ellipse((bx - 0.046 * m, by - 0.046 * m, bx + 0.046 * m, by + 0.046 * m), outline='#ffb000', width=4 * SS)
+    d.text(px(-0.075, -0.062), 'ВЗЯТЬ', font=lbl, fill='#ffb000', anchor='mm')
+    # карты и терминал
+    d.text(px(0.11, -0.064), 'ВЫБЕРИ КАРТУ', font=font(FONT_BLACK, 22), fill='#9aa0b4', anchor='mm')
+    d.text(px(0.30, -0.058), 'ОПЛАТА', font=lbl, fill='#3ee0b0', anchor='mm')
+    tx, ty = px(0.30, 0.012)
+    d.rounded_rectangle((tx - 0.058 * m, ty - 0.038 * m, tx + 0.058 * m, ty + 0.038 * m), radius=10 * SS,
+                        outline='#3ee0b0', width=3 * SS)
+    # динамик слева: сетка отверстий в круге
+    sx, sy = px(-0.355, 0.0)
+    d.ellipse((sx - 0.04 * m, sy - 0.04 * m, sx + 0.04 * m, sy + 0.04 * m), fill='#0b0c10', outline='#2e313d',
+              width=3 * SS)
+    step = 0.0065 * m
+    for i in range(-6, 7):
+        for j in range(-6, 7):
+            x, y = sx + i * step + (step / 2 if j % 2 else 0), sy + j * step * 0.87
+            if (x - sx) ** 2 + (y - sy) ** 2 < (0.034 * m) ** 2:
+                d.ellipse((x - 0.0019 * m, y - 0.0019 * m, x + 0.0019 * m, y + 0.0019 * m), fill='#30333f')
+    save(img, 'console_deck.png')
+
+
+MARQUEE_W, MARQUEE_H = 0.79, 0.17
+
+
+def marquee():
+    """Подсвеченная панель вывески: градиент, лучи от центра, искры. Само имя — объёмные буквы перед ней."""
+    w, h = 2048 * SS, int(2048 * MARQUEE_H / MARQUEE_W) * SS
+    img = gradient(w, h, '#3a0a8e', '#8a1bff', '#ff2bd6').convert('RGBA')
+    rays = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(rays)
+    cx, cy = w / 2, h / 2
+    for k in range(36):
+        a0, a1 = math.radians(k * 10), math.radians(k * 10 + 4)
+        R = w
+        d.polygon([(cx, cy), (cx + R * math.cos(a0), cy + R * math.sin(a0)), (cx + R * math.cos(a1), cy + R * math.sin(a1))],
+                  fill=(255, 255, 255, 26))
+    img = Image.alpha_composite(img, rays)
+    # мягкое свечение за буквами
+    glow = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).rounded_rectangle((w * 0.12, h * 0.22, w * 0.88, h * 0.78), radius=h * 0.3,
+                                           fill=(255, 230, 255, 120))
+    img = Image.alpha_composite(img, glow.filter(ImageFilter.GaussianBlur(h * 0.12)))
+    d = ImageDraw.Draw(img)
+    stars(d, w, h, 26, 9)
+    # кайма
+    d.rectangle((0, 0, w - 1, h - 1), outline='#1b0b3a', width=10 * SS)
+    save(img.convert('RGB'), 'marquee.png')
+
+
 if __name__ == '__main__':
     print_front()
     print_side()
+    console_deck()
+    marquee()
     terminal_screen()
     for c in CARDS:
         card(c)

@@ -33,6 +33,8 @@ function makeEnvironment(renderer) {
   panel(6, 0.6, 0xffffff, 2.5, [0, 6.8, 0], [0, 0, 0]);       // полоса сверху
   panel(2, 4, 0xb06cff, 1.2, [-5, 2, -3], [0, 1, 0]);        // фиолетовый контровой
   panel(2, 4, 0xff3fb4, 0.9, [5, 2, -4], [0, 1, 0]);         // розовый контровой
+  // светлая полоса за зрителем: хром клешни и рамок отражает её, а не тёмную комнату
+  panel(7, 1.2, 0xe8ecff, 0.55, [0, 1.6, 5.8], [0, 1.2, 0]);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const tex = pmrem.fromScene(env, 0.035).texture;
   pmrem.dispose();
@@ -69,16 +71,16 @@ function ledMaterial() {
   return new THREE.ShaderMaterial({
     uniforms: { uTime: { value: 0 }, uBoost: { value: 1 } },
     vertexShader: /* glsl */`
-      varying vec3 vW;
+      attribute float aAlong;
+      varying float vA;
       void main() {
-        vec4 w = modelMatrix * vec4(position, 1.0);
-        vW = w.xyz;
-        gl_Position = projectionMatrix * viewMatrix * w;
+        vA = aAlong;
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */`
       uniform float uTime;
       uniform float uBoost;
-      varying vec3 vW;
+      varying float vA;
       // плавный переход пурпурный -> фиолетовый -> синий -> розовый (ступенчатые цвета мерцали)
       vec3 pal(float t) {
         vec3 c0 = vec3(1.0, 0.17, 0.84);
@@ -93,16 +95,30 @@ function ledMaterial() {
         return mix(c3, c0, f);
       }
       void main() {
-        float s = (vW.x - vW.z + vW.y) * 1.6 - uTime * 0.12;
+        // цвет и точки идут только вдоль ленты (aAlong), поперёк она ровная: иначе выходили косые полосы
+        float s = vA * 1.2 - uTime * 0.08;
         // точки светодиодов со сглаживанием: когда точка меньше пикселя, лента светится ровно
-        float k = (vW.x - vW.z + vW.y) * 45.0;
+        float k = vA * 60.0;
         float w = fwidth(k);
         float d = abs(fract(k) - 0.5);
-        float dots = smoothstep(0.18 - w, 0.18 + w, d);
-        dots = mix(dots, 0.64, clamp(w * 1.5 - 0.3, 0.0, 1.0));
-        gl_FragColor = vec4(pal(s) * (0.7 + 0.5 * dots) * uBoost, 1.0);
+        float dots = smoothstep(0.2 - w, 0.2 + w, d);
+        dots = mix(dots, 0.6, clamp(w * 1.5 - 0.3, 0.0, 1.0));
+        gl_FragColor = vec4(pal(s) * (0.82 + 0.28 * dots) * uBoost, 1.0);
       }`
   });
+}
+
+/** Координата вдоль ленты (по самой длинной оси в мире) для шейдера светодиодов. */
+function alongAttribute(mesh) {
+  mesh.updateWorldMatrix(true, false);
+  const pos = mesh.geometry.attributes.position;
+  const box = new THREE.Box3().setFromBufferAttribute(pos).applyMatrix4(mesh.matrixWorld);
+  const size = box.getSize(new THREE.Vector3());
+  const axis = size.x >= size.y && size.x >= size.z ? 'x' : size.y >= size.z ? 'y' : 'z';
+  const v = new THREE.Vector3();
+  const along = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) along[i] = v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld)[axis];
+  mesh.geometry.setAttribute('aAlong', new THREE.BufferAttribute(along, 1));
 }
 
 // ------------------------------------------------------------------ текстуры-холсты (экран терминала, постеры)
@@ -262,6 +278,7 @@ export class Machine {
   }
 
   fixMaterials() {
+    this.bulbs = {};
     const glass = (opacity, color = 0xffffff) => new THREE.MeshPhysicalMaterial({
       color, metalness: 0, roughness: 0.04, transparent: true, opacity, depthWrite: false,
       envMapIntensity: 1.4, clearcoat: 1, clearcoatRoughness: 0.03
@@ -274,14 +291,20 @@ export class Machine {
     this.root.traverse((o) => {
       if (!o.isMesh) return;
       const name = o.material.name;
-      if (name === 'LED_Strip') o.material = this.ledMaterial;
+      if (name === 'LED_Strip') {
+        o.material = this.ledMaterial;
+        alongAttribute(o);
+      } else if (name === 'Bulb_A' || name === 'Bulb_B') {
+        this.bulbs[name] = { mat: o.material, base: o.material.emissiveIntensity || 1 };
+      }
       else if (swap[name]) o.material = swap[name];
       else if (name === 'Cap_Clear' || name === 'Cap_Clear_Bottom') {
         // капсулы с работами непрозрачные, как остальные: постер видно только когда шар раскроется
         o.material = new THREE.MeshPhysicalMaterial({ color: 0xf5f3ee, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 });
         o.material.name = name;
       } else if (name.startsWith('Glass')) o.renderOrder = 3;
-      if (name === 'Chrome' || name === 'Aluminum') o.material.envMapIntensity = 1.3;
+      if (name === 'Chrome' || name === 'Aluminum') o.material.envMapIntensity = 1.5;
+      if (name === 'Chrome') o.material.roughness = 0.16;
       if (name === 'Gloss_Black') {
         // корпус терминала полуматовый: иначе фиолетовая подсветка ложится пятном поверх индикаторов
         o.material.roughness = 0.45;
@@ -408,7 +431,13 @@ export class Machine {
 
   tick() {
     const dt = Math.min(this.clock.getDelta(), 0.05);
-    this.ledMaterial.uniforms.uTime.value += dt;
+    const time = (this.ledMaterial.uniforms.uTime.value += dt);
+    // лампочки вывески мягко переливаются через одну
+    if (this.bulbs.Bulb_A && this.bulbs.Bulb_B) {
+      const a = 0.5 + 0.5 * Math.sin(time * 2.2);
+      this.bulbs.Bulb_A.mat.emissiveIntensity = this.bulbs.Bulb_A.base * (0.45 + 0.55 * a);
+      this.bulbs.Bulb_B.mat.emissiveIntensity = this.bulbs.Bulb_B.base * (1 - 0.55 * a);
+    }
     const p = this.pointer;
     // доезжаем до мыши и останавливаемся: бесконечный сдвиг на доли пикселя давал рябь на полу
     p.sx = Math.abs(p.x - p.sx) < 0.002 ? p.x : p.sx + (p.x - p.sx) * 0.06;

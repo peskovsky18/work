@@ -61,6 +61,33 @@ CATEGORIES = {
     'vibecode': [('Mint', '#3ee0b0'), ('Teal', '#19b5b5'), ('Sky', '#4aa8ff')],
 }
 TEX = os.path.join(HERE, 'textures')
+FONT_BLACK = '/System/Library/Fonts/Supplemental/Arial Black.ttf'
+
+
+def font_black():
+    return bpy.data.fonts.load(FONT_BLACK, check_existing=True)
+
+
+def text_obj(name, body, size, mat, collection, loc, rot=(math.pi / 2, 0, 0), extrude=0.002, bevel=0.0006,
+             offset=0.0, max_width=None):
+    """Объёмная надпись шрифтом Arial Black (у шрифта Blender по умолчанию нет кириллицы)."""
+    cu = bpy.data.curves.new(name, 'FONT')
+    cu.body = body
+    cu.font = font_black()
+    cu.align_x = 'CENTER'
+    cu.align_y = 'CENTER'
+    cu.size = size
+    cu.extrude = extrude
+    cu.bevel_depth = bevel
+    cu.offset = offset
+    cu.materials.append(MATS[mat])
+    o = link(bpy.data.objects.new(name, cu), collection)
+    o.location, o.rotation_euler = loc, rot
+    if max_width:
+        bpy.context.view_layer.update()
+        if o.dimensions.x > max_width:
+            o.scale = (max_width / o.dimensions.x,) * 3
+    return o
 
 
 def srgb(h):
@@ -240,8 +267,12 @@ def build_materials():
     principled('Button_Amber', '#ff9a00', rough=0.25, coat=1.0, emission='#ff9a00', strength=0.5)
     principled('Amber_Trim', '#ffb000', rough=0.3, coat=0.6)
     principled('Ceiling_Light', '#ffffff', emission='#fff4e6', strength=6.0)
-    principled('Marquee_Panel', '#2a0a5e', rough=0.4, emission='#5a1aff', strength=1.6)
-    principled('Marquee_Text', '#ffffff', emission='#fff1d6', strength=8.0)
+    principled('Marquee_Text', '#ffffff', emission='#fff1d6', strength=3.0)
+    principled('Marquee_Outline', '#1b0b3a', rough=0.35, coat=0.6)
+    # лампочки вывески: две группы через одну, на сайте мягко переливаются по очереди
+    principled('Bulb_A', '#fff4d6', rough=0.1, emission='#ffe2a0', strength=5.0)
+    principled('Bulb_B', '#fff4d6', rough=0.1, emission='#ffe2a0', strength=5.0)
+    principled('Prize_Label', '#ffb000', rough=0.3, coat=0.6, emission='#ffb000', strength=0.6)
     principled('Floor', '#26282d', rough=0.32)
     principled('Gold', '#e6b34a', metal=1.0, rough=0.25)
     principled('Card_Back', '#15161a', rough=0.35, coat=0.6)
@@ -249,6 +280,8 @@ def build_materials():
     principled('LED_Green', '#2bff88', emission='#2bff88', strength=6.0)
     image_material('Print_Front', os.path.join(TEX, 'print_front.png'), emission=0.15, rough=0.35, coat=0.8)
     image_material('Print_Side', os.path.join(TEX, 'print_side.png'), emission=0.15, rough=0.35, coat=0.8)
+    image_material('Console_Deck_Print', os.path.join(TEX, 'console_deck.png'), emission=0.35, rough=0.55, coat=0.3)
+    image_material('Marquee_Panel', os.path.join(TEX, 'marquee.png'), emission=2.2, rough=0.3, coat=0.8)
     image_material('Terminal_Screen', os.path.join(TEX, 'terminal_screen.png'), emission=4.0, rough=0.1, coat=1.0)
     for slug in CATEGORIES:
         image_material(f'Card_{slug}', os.path.join(TEX, f'card_{slug}.png'), emission=0.2, rough=0.3, coat=1.0)
@@ -433,14 +466,36 @@ def build_cabinet(c):
     image_plane('Print_Right', 2 * IN, ph, 'Print_Side', c, (po, 0, zc), (math.pi / 2, 0, math.pi / 2))
     image_plane('Print_Back', 2 * IN, ph, 'Print_Side', c, (0, po, zc), (math.pi / 2, 0, math.pi))
     image_plane('Print_Left', 2 * IN, ph, 'Print_Side', c, (-po, 0, zc), (math.pi / 2, 0, -math.pi / 2))
+    # шурупы по углам каждой панели (стоят на печати, на 1.5 мм наружу)
+    for nm, (nx, ny) in {'F': (0, -1), 'R': (1, 0), 'B': (0, 1), 'L': (-1, 0)}.items():
+        for k, (u, v) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+            a = IN - 0.022
+            z = zc + v * (ph / 2 - 0.022)
+            if nx == 0:
+                pos, rot = (u * a, ny * (po + 0.002), z), (math.pi / 2, 0, 0)
+            else:
+                pos, rot = (nx * (po + 0.002), u * a, z), (0, math.pi / 2, 0)
+            cylinder(f'Print_Screw_{nm}{k}', 0.0055, 0.003, pos, 'Chrome', c, segs=16, bevel=0.001).rotation_euler = rot
     # дверца выдачи приза под приёмником (слева внизу на фронте)
     dx = (-IN + CHUTE) / 2
     dz0, dz1 = 0.2, 0.42
-    box_span('Prize_Door_Housing', (dx - 0.105, -h - 0.012, dz0), (dx + 0.105, -po, dz1), 'Graphite', c, bevel=0.008)
-    box_span('Prize_Door_Flap', (dx - 0.085, -h - 0.017, dz0 + 0.02), (dx + 0.085, -h - 0.011, dz1 - 0.03),
-             'Smoked_Acrylic', c, bevel=0.003)
-    cylinder('Prize_Door_Hinge', 0.006, 0.18, (dx, -h - 0.018, dz1 - 0.028), 'Chrome', c).rotation_euler = (
-        0, math.pi / 2, 0)
+    yh = -h - 0.012   # лицевая плоскость корпуса дверцы
+    box_span('Prize_Door_Housing', (dx - 0.105, yh, dz0), (dx + 0.105, -po, dz1), 'Graphite', c, bevel=0.008)
+    # тёмная ниша, хромовая рамка вокруг неё, дымчатая заслонка на петле сверху
+    fx0, fx1, fz0, fz1 = dx - 0.085, dx + 0.085, dz0 + 0.02, dz1 - 0.04
+    box_span('Prize_Door_Cavity', (fx0, yh - 0.0008, fz0), (fx1, yh + 0.004, fz1), 'Graphite_Matte', c, bevel=0.002)
+    fw = 0.007
+    for nm, lo, hi in (('T', (fx0 - fw, yh - 0.005, fz1), (fx1 + fw, yh + 0.001, fz1 + fw)),
+                       ('B', (fx0 - fw, yh - 0.005, fz0 - fw), (fx1 + fw, yh + 0.001, fz0)),
+                       ('L', (fx0 - fw, yh - 0.005, fz0), (fx0, yh + 0.001, fz1)),
+                       ('R', (fx1, yh - 0.005, fz0), (fx1 + fw, yh + 0.001, fz1))):
+        box_span(f'Prize_Door_Frame_{nm}', lo, hi, 'Chrome', c, bevel=0.0025, segs=2)
+    box_span('Prize_Door_Flap', (fx0 + 0.004, yh - 0.0045, fz0 + 0.004), (fx1 - 0.004, yh - 0.0015, fz1 - 0.006),
+             'Smoked_Acrylic', c, bevel=0.0015)
+    cylinder('Prize_Door_Hinge', 0.0045, fx1 - fx0 - 0.01, (dx, yh - 0.004, fz1 - 0.004), 'Chrome', c,
+             segs=16).rotation_euler = (0, math.pi / 2, 0)
+    box_span('Prize_Door_Pull', (dx - 0.025, yh - 0.0095, fz0 + 0.012), (dx + 0.025, yh - 0.0052, fz0 + 0.02),
+             'Chrome', c, bevel=0.003)
     # метки для сайта: над приёмником (куда клешня несёт шар) и перед дверцей (откуда шар выкатывается)
     for name, loc in (('Mark_Chute', ((-IN + CHUTE) / 2, (-IN + CHUTE) / 2, CHUTE_TOP + 0.3)),
                       ('Mark_PrizeDoor', (dx, -h - 0.04, (dz0 + dz1) / 2))):
@@ -448,8 +503,8 @@ def build_cabinet(c):
         e.empty_display_size = 0.05
         e.location = loc
         c.objects.link(e)
-    box_span('Prize_Door_Label', (dx - 0.06, -h - 0.014, dz1 - 0.022), (dx + 0.06, -h - 0.011, dz1 - 0.008),
-             'Amber_Trim', c, bevel=0.002)
+    text_obj('Prize_Door_Label', 'ПРИЗ', 0.026, 'Prize_Label', c, (dx, yh - 0.0015, dz1 - 0.02), extrude=0.0015,
+             bevel=0.0004)
 
     # вертикальные профили
     for sx in (-1, 1):
@@ -466,40 +521,40 @@ def build_cabinet(c):
             box(f'Rail_{tag}_{nm}', (P, D - 2 * P, z1 - z0), (sx * (h - P / 2), 0, (z0 + z1) / 2), 'Aluminum', c,
                 bevel=0.005)
 
-    # стёкла + светодиоды по периметру каждого стекла с внешней стороны
+    # стёкла верхней камеры
     leds = col('LED', c)
-    sides = {'F': (0, -1), 'B': (0, 1), 'L': (-1, 0), 'R': (1, 0)}
-    for tier, z0, z1 in (('Lower', Z_PLINTH + P, Z_MID), ('Upper', Z_DECK, Z_TOP)):
-        for nm, (sx, sy) in sides.items():
-            along_x = sx == 0
-            off = h - P / 2
-            if along_x:
-                lo = (-IN, sy * off - GLASS_T / 2, z0)
-                hi = (IN, sy * off + GLASS_T / 2, z1)
+    for nm, (sx, sy) in {'F': (0, -1), 'B': (0, 1), 'L': (-1, 0), 'R': (1, 0)}.items():
+        off = h - P / 2
+        if sx == 0:
+            lo, hi = (-IN, sy * off - GLASS_T / 2, Z_DECK), (IN, sy * off + GLASS_T / 2, Z_TOP)
+        else:
+            lo, hi = (sx * off - GLASS_T / 2, -IN, Z_DECK), (sx * off + GLASS_T / 2, IN, Z_TOP)
+        box_span(f'Glass_Upper_{nm}', lo, hi, 'Glass', c, bevel=0.0015, segs=1)
+    # светодиоды лежат в пазу по центру лицевой грани каждого профиля, как на автомате с фото:
+    # вертикальные на стойках во всю высоту, горизонтальные на рамах упираются в них встык, без наложений
+    t, wd = 0.003, 0.007
+    pc = h - P / 2                  # ось профиля
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            tag = f'{"R" if sx > 0 else "L"}{"B" if sy > 0 else "F"}'
+            z0, z1 = Z_PLINTH + 0.004, Z_ROOF - 0.004
+            ya, yb = sorted((sy * h, sy * (h + t)))
+            xa, xb = sorted((sx * h, sx * (h + t)))
+            box_span(f'LED_Post_{tag}_Y', (sx * pc - wd / 2, ya, z0), (sx * pc + wd / 2, yb, z1), 'LED_Strip', leds,
+                     bevel=0.001, segs=1)
+            box_span(f'LED_Post_{tag}_X', (xa, sy * pc - wd / 2, z0), (xb, sy * pc + wd / 2, z1), 'LED_Strip', leds,
+                     bevel=0.001, segs=1)
+    run = pc - wd / 2
+    for tag, z0, z1 in (('Low', Z_PLINTH, Z_PLINTH + P), ('Mid', Z_MID, Z_DECK), ('Top', Z_TOP, Z_ROOF)):
+        zm = (z0 + z1) / 2
+        for nm, (sx, sy) in {'F': (0, -1), 'B': (0, 1), 'L': (-1, 0), 'R': (1, 0)}.items():
+            if sx == 0:
+                ya, yb = sorted((sy * h, sy * (h + t)))
+                lo, hi = (-run, ya, zm - wd / 2), (run, yb, zm + wd / 2)
             else:
-                lo = (sx * off - GLASS_T / 2, -IN, z0)
-                hi = (sx * off + GLASS_T / 2, IN, z1)
-            if tier == 'Upper':
-                box_span(f'Glass_{tier}_{nm}', lo, hi, 'Glass', c, bevel=0.0015, segs=1)
-            # светодиодная рамка
-            t, wd, ins = 0.003, 0.007, 0.006
-            o = off + P / 2 + 0.0005  # чуть снаружи профиля, на внешней плоскости
-            if along_x:
-                y0, y1 = (sy * o, sy * o + sy * t)
-                y0, y1 = min(y0, y1), max(y0, y1)
-                strips = [((-IN + ins, y0, z0 + ins), (IN - ins, y1, z0 + ins + wd)),
-                          ((-IN + ins, y0, z1 - ins - wd), (IN - ins, y1, z1 - ins)),
-                          ((-IN + ins, y0, z0 + ins), (-IN + ins + wd, y1, z1 - ins)),
-                          ((IN - ins - wd, y0, z0 + ins), (IN - ins, y1, z1 - ins))]
-            else:
-                x0, x1 = (sx * o, sx * o + sx * t)
-                x0, x1 = min(x0, x1), max(x0, x1)
-                strips = [((x0, -IN + ins, z0 + ins), (x1, IN - ins, z0 + ins + wd)),
-                          ((x0, -IN + ins, z1 - ins - wd), (x1, IN - ins, z1 - ins)),
-                          ((x0, -IN + ins, z0 + ins), (x1, -IN + ins + wd, z1 - ins)),
-                          ((x0, IN - ins - wd, z0 + ins), (x1, IN - ins, z1 - ins))]
-            for i, (a, b) in enumerate(strips):
-                box_span(f'LED_{tier}_{nm}_{i}', a, b, 'LED_Strip', leds, bevel=0.001, segs=1)
+                xa, xb = sorted((sx * h, sx * (h + t)))
+                lo, hi = (xa, -run, zm - wd / 2), (xb, run, zm + wd / 2)
+            box_span(f'LED_{tag}_{nm}', lo, hi, 'LED_Strip', leds, bevel=0.001, segs=1)
     # LED по фронту цоколя
     box_span('LED_Plinth_F', (-h + 0.03, -h + 0.002, 0.075), (h - 0.03, -h + 0.008, 0.08), 'LED_Strip', leds,
              bevel=0.001, segs=1)
@@ -513,10 +568,11 @@ def build_cabinet(c):
     t = 0.006
     box_span('Chute_Wall_X', (CHUTE - t, -IN, Z_DECK), (CHUTE, CHUTE, CHUTE_TOP), 'Acrylic', c, bevel=0.0015, segs=1)
     box_span('Chute_Wall_Y', (-IN, CHUTE - t, Z_DECK), (CHUTE, CHUTE, CHUTE_TOP), 'Acrylic', c, bevel=0.0015, segs=1)
-    box_span('Chute_Rim_X', (CHUTE - t - 0.003, -IN, CHUTE_TOP), (CHUTE + 0.003, CHUTE + 0.003, CHUTE_TOP + 0.012),
-             'Amber_Trim', c, bevel=0.003)
-    box_span('Chute_Rim_Y', (-IN, CHUTE - t - 0.003, CHUTE_TOP), (CHUTE + 0.003, CHUTE + 0.003, CHUTE_TOP + 0.012),
-             'Amber_Trim', c, bevel=0.003)
+    rr = 0.006
+    box_span('Chute_Rim_X', (CHUTE - t / 2 - rr, -IN, CHUTE_TOP - rr), (CHUTE - t / 2 + rr, CHUTE + rr, CHUTE_TOP + rr),
+             'Chrome', c, bevel=rr * 0.95, segs=4)
+    box_span('Chute_Rim_Y', (-IN, CHUTE - t / 2 - rr, CHUTE_TOP - rr), (CHUTE - t / 2 - rr, CHUTE - t / 2 + rr,
+             CHUTE_TOP + rr), 'Chrome', c, bevel=rr * 0.95, segs=4)
 
     # крыша, подсветка внутри, вывеска
     box_span('Roof', (-h, -h, Z_ROOF), (h, h, Z_ROOF + 0.016), 'Graphite', c, bevel=0.004)
@@ -524,24 +580,34 @@ def build_cabinet(c):
              'Ceiling_Light', c, bevel=0.0)
     mz0, mz1 = Z_ROOF + 0.016, Z_ROOF + 0.25
     box_span('Marquee_Box', (-h, -h, mz0), (h, -h + 0.14, mz1), 'Graphite', c, bevel=0.01)
-    box_span('Marquee_Panel', (-h + 0.025, -h - 0.002, mz0 + 0.025), (h - 0.025, -h + 0.02, mz1 - 0.025),
-             'Marquee_Panel', c, bevel=0.004)
-    box_span('LED_Marquee', (-h + 0.012, -h - 0.004, mz0 + 0.012), (h - 0.012, -h + 0.0, mz0 + 0.017), 'LED_Strip',
-             leds, bevel=0.001, segs=1)
-    box_span('LED_Marquee_Top', (-h + 0.012, -h - 0.004, mz1 - 0.017), (h - 0.012, -h + 0.0, mz1 - 0.012),
-             'LED_Strip', leds, bevel=0.001, segs=1)
-    cu = bpy.data.curves.new('Marquee_Text', 'FONT')
-    cu.body = 'PESKOVSKII'
-    cu.align_x = 'CENTER'
-    cu.align_y = 'CENTER'
-    cu.size = 0.105
-    cu.space_character = 1.08
-    cu.extrude = 0.004
-    cu.bevel_depth = 0.0012
-    cu.materials.append(MATS['Marquee_Text'])
-    txt = link(bpy.data.objects.new('Marquee_Text', cu), c)
-    txt.location = (0, -h - 0.008, (mz0 + mz1) / 2)
-    txt.rotation_euler = (math.pi / 2, 0, 0)
+    fw, yf = 0.03, -h - 0.012    # ширина рамки, её лицевая плоскость
+    for nm, lo, hi in (('T', (-h, yf, mz1 - fw), (h, -h + 0.002, mz1)),
+                       ('B', (-h, yf, mz0), (h, -h + 0.002, mz0 + fw)),
+                       ('L', (-h, yf, mz0 + fw), (-h + fw, -h + 0.002, mz1 - fw)),
+                       ('R', (h - fw, yf, mz0 + fw), (h, -h + 0.002, mz1 - fw))):
+        box_span(f'Marquee_Frame_{nm}', lo, hi, 'Chrome', c, bevel=0.005, segs=3)
+    # подсвеченная панель утоплена в рамку на 1 см
+    image_plane('Marquee_Panel', 2 * (h - fw), mz1 - mz0 - 2 * fw, 'Marquee_Panel', c, (0, -h - 0.002, (mz0 + mz1) / 2),
+                (math.pi / 2, 0, 0))
+    # лампочки по рамке, через одну две группы
+    bulbs, k = [], 0
+    n = 19
+    for i in range(n):
+        x = -h + fw / 2 + i * (2 * h - fw) / (n - 1)
+        bulbs += [(x, mz1 - fw / 2), (x, mz0 + fw / 2)]
+    for sx in (-1, 1):
+        for j in range(1, 4):
+            bulbs.append((sx * (h - fw / 2), mz0 + fw / 2 + j * (mz1 - mz0 - fw) / 4))
+    for k, (x, z) in enumerate(bulbs):
+        sphere(f'Marquee_Bulb_{k:02d}', 0.0062, (x, yf - 0.004, z), 'Bulb_A' if k % 2 == 0 else 'Bulb_B', c, 14, 7)
+        cylinder(f'Marquee_Socket_{k:02d}', 0.0075, 0.003, (x, yf - 0.0008, z), 'Graphite_Matte', c,
+                 segs=14).rotation_euler = (math.pi / 2, 0, 0)
+    # объёмное имя с тёмной обводкой-подложкой
+    zt = (mz0 + mz1) / 2
+    text_obj('Marquee_Text', 'PESKOVSKII', 0.1, 'Marquee_Text', c, (0, -h - 0.012, zt), extrude=0.005, bevel=0.0012,
+             max_width=0.68)
+    text_obj('Marquee_Text_Outline', 'PESKOVSKII', 0.1, 'Marquee_Outline', c, (0, -h - 0.006, zt), extrude=0.003,
+             bevel=0.0, offset=0.0045, max_width=0.68 * 1.03)
 
 
 # ---------------------------------------------------------------- портал с клешнёй
@@ -563,6 +629,17 @@ def build_gantry(c):
     car = box_span('Claw_Carriage', (xc - 0.065, yc - 0.055, zk - 0.04), (xc + 0.065, yc + 0.055, zk + 0.04),
                    'Carriage_Blue', c, bevel=0.012)
     parent_keep(car, cross)
+    # детали каретки: хромовая крышка, решётка вентиляции, жёлто-чёрная полоса
+    top = box_span('Claw_Carriage_Cover', (xc - 0.058, yc - 0.048, zk + 0.036), (xc + 0.058, yc + 0.048, zk + 0.046),
+                   'Chrome', c, bevel=0.006)
+    parent_keep(top, car)
+    for i in range(4):
+        v = box_span(f'Claw_Carriage_Vent_{i}', (xc + 0.008 + i * 0.011, yc - 0.0575, zk - 0.012),
+                     (xc + 0.013 + i * 0.011, yc - 0.0545, zk + 0.022), 'Graphite_Matte', c, bevel=0.0015, segs=2)
+        parent_keep(v, car)
+    stripe = box_span('Claw_Carriage_Stripe', (xc - 0.06, yc - 0.0565, zk - 0.03), (xc + 0.06, yc - 0.0545, zk - 0.022),
+                      'Amber_Trim', c, bevel=0.001, segs=1)
+    parent_keep(stripe, car)
     mot = cylinder('Claw_Motor', 0.022, 0.05, (xc + 0.04, yc + 0.06, zk), 'Chrome', c, bevel=0.003)
     mot.rotation_euler = (math.pi / 2, 0, 0)
     parent_keep(mot, car)
@@ -604,6 +681,11 @@ def build_gantry(c):
     parent_keep(cap, claw)
     plate = cylinder('Claw_Plate', 0.042, 0.01, (xc, yc, z_hub - 0.055), 'Graphite', c, bevel=0.003)
     parent_keep(plate, claw)
+    for i, z in enumerate((z_hub - 0.012, z_hub - 0.038)):
+        ring = cylinder(f'Claw_Ring_{i}', 0.0305, 0.004, (xc, yc, z), 'Graphite', c, bevel=0.0012)
+        parent_keep(ring, claw)
+    bumper = cylinder('Claw_Bumper', 0.046, 0.005, (xc, yc, z_hub - 0.049), 'Rubber', c, bevel=0.002)
+    parent_keep(bumper, claw)
     zb = z_hub - 0.06
     for i in range(3):
         a = math.radians(90 + i * 120)
@@ -611,12 +693,18 @@ def build_gantry(c):
         prof = [(0.03, 0.0), (0.058, -0.02), (0.08, -0.07), (0.074, -0.12), (0.05, -0.155), (0.036, -0.158)]
         pts = [Vector((xc + r * ca, yc + r * sa, zb + z)) for r, z in prof]
         # origin лапы в шарнире: на сайте лапа сжимается поворотом вокруг касательной оси
-        prong = curve_obj(f'Claw_Prong_{i}', [p - pts[0] for p in pts], 0.0055, 'Chrome', c, kind='BEZIER', res=10)
+        prong = curve_obj(f'Claw_Prong_{i}', [p - pts[0] for p in pts], 0.0058, 'Chrome', c, kind='BEZIER', res=12)
         prong.location = pts[0]
         parent_keep(prong, claw)
-        knuckle = sphere(f'Claw_Knuckle_{i}', 0.009, pts[0], 'Graphite', c, segs=16, rings=8)
-        parent_keep(knuckle, claw)
-        tip = sphere(f'Claw_Tip_{i}', 0.0075, pts[-1], 'Rubber', c, segs=16, rings=8)
+        # шарнир: вилка-кронштейн под пластиной и ось поперёк лапы
+        fork = box(f'Claw_Fork_{i}', (0.016, 0.02, 0.016), pts[0] + Vector((0, 0, 0.002)), 'Graphite', c, bevel=0.003)
+        fork.rotation_euler = (0, 0, a)
+        parent_keep(fork, claw)
+        pin = cylinder(f'Claw_Pin_{i}', 0.0032, 0.026, pts[0], 'Chrome', c, segs=12, bevel=0.0008)
+        pin.rotation_euler = (math.pi / 2, 0, a)
+        parent_keep(pin, claw)
+        # резиновая подушечка на конце лапы
+        tip = sphere(f'Claw_Tip_{i}', 0.0085, pts[-1], 'Rubber', c, segs=20, rings=10)
         parent_keep(tip, prong)
     return dict(x=xc, y=yc)
 
@@ -653,6 +741,11 @@ def build_controls(c):
              k['z_front_bot'] + 0.018), 'LED_Strip', COLS['LED'], bevel=0.001, segs=1)
     deck = box('Console_Deck', (W - 0.05, 0.16, 0.004), (0, 0, 0.0), 'Graphite_Matte', c, bevel=0.002)
     on(deck, console_top(0, 0.5))
+    # печать на крышке (стрелки, подписи, динамик) на полмиллиметра над ней
+    on(image_plane('Console_Deck_Print', W - 0.054, 0.156, 'Console_Deck_Print', c, (0, 0, 0.0025)), console_top(0, 0.5))
+    for k, (u, v) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        on(cylinder(f'Console_Screw_{k}', 0.0045, 0.002, (u * (W / 2 - 0.045), v * 0.066, 0.0035), 'Chrome', c,
+                    segs=12, bevel=0.0006), console_top(0, 0.5))
 
     # джойстик
     m = console_top(-0.24, 0.52)
@@ -708,20 +801,50 @@ R_SIZES = (0.060, 0.066)
 
 
 def capsule_mesh(name, r, mats, clear=False):
-    """Шарик-капсула: верх и низ по материалам 0/1, поясок-шов материал 2."""
+    """Шарик-капсула как у гачапона: цветной верх (материал 0) с бортиком надет на белый низ (материал 1),
+    спереди защёлка. Верх и низ — разные материалы, на сайте капсула раскрывается."""
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=28, v_segments=14, radius=r)
+    seg, rings = 56, 28
+    lip = r * 0.09
+    # верхняя полусфера
+    top = bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=rings, radius=r)['verts']
+    bmesh.ops.delete(bm, geom=[v for v in top if v.co.z < -1e-6], context='VERTS')
+    rim = [e for e in bm.edges if e.is_boundary]
+    # бортик: вниз по наружной стенке, затем внутрь
+    ext = bmesh.ops.extrude_edge_only(bm, edges=rim)
+    bmesh.ops.translate(bm, verts=[v for v in ext['geom'] if isinstance(v, bmesh.types.BMVert)], vec=(0, 0, -lip))
+    rim = [e for e in ext['geom'] if isinstance(e, bmesh.types.BMEdge) and e.is_boundary]
+    ext = bmesh.ops.extrude_edge_only(bm, edges=rim)
+    for v in ext['geom']:
+        if isinstance(v, bmesh.types.BMVert):
+            v.co.x *= 0.955
+            v.co.y *= 0.955
     for f in bm.faces:
-        f.material_index = 0 if f.calc_center_median().z > 0 else 1
-    band = bmesh.ops.create_cone(bm, cap_ends=False, segments=28, radius1=r * 1.025, radius2=r * 1.025,
-                                 depth=r * 0.2)
-    for f in {f for v in band['verts'] for f in v.link_faces}:
-        f.material_index = 2
+        f.material_index = 0
+    # нижняя полусфера чуть меньше, её верх спрятан под бортиком
+    rb = r * 0.965
+    low = bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=rings, radius=rb)['verts']
+    bmesh.ops.delete(bm, geom=[v for v in low if v.co.z > 1e-6], context='VERTS')
+    low = [v for v in bm.verts if v.is_valid and abs(v.co.length - rb) < 1e-5 and v.co.z <= 1e-6]
+    rim = [e for e in bm.edges if e.is_boundary and all(abs(v.co.length - rb) < 1e-5 for v in e.verts)]
+    ext = bmesh.ops.extrude_edge_only(bm, edges=rim)
+    bmesh.ops.translate(bm, verts=[v for v in ext['geom'] if isinstance(v, bmesh.types.BMVert)], vec=(0, 0, lip * 0.6))
+    low_faces = {f for v in low for f in v.link_faces} | {f for g in ext['geom'] if isinstance(g, bmesh.types.BMFace) for f in [g]}
+    for f in low_faces:
+        f.material_index = 1
+    # защёлка спереди на бортике
+    tab = bmesh.ops.create_cube(bm, size=1.0)['verts']
+    for v in tab:
+        v.co = Vector((v.co.x * r * 0.32, v.co.y * r * 0.08 - r * 1.0, v.co.z * r * 0.16 - lip * 0.6))
+    for v in tab:
+        for f in v.link_faces:
+            f.material_index = 0
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
     me.shade_smooth()
-    for m in mats:
+    me.set_sharp_from_angle(angle=math.radians(40))
+    for m in mats[:2]:
         me.materials.append(MATS[m])
     return me
 

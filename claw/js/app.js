@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=12';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=12';
+import { Machine } from './machine.js?v=13';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=13';
 
-const VERSION = '12';
+const VERSION = '13';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -35,6 +35,11 @@ function setGameButtons(visible) {
   $('again').hidden = !visible;
   $('change').hidden = !visible;
 }
+
+// окно выбора карты поднимаем над кнопками внизу, сколько бы рядов они ни заняли
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty('--dock-h', `${$('dock').offsetHeight + 12}px`);
+}).observe($('dock'));
 
 // ------------------------------------------------------------------ загрузка модели с прогрессом
 async function fetchWithProgress(url, onProgress) {

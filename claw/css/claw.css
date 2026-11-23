@@ -157,7 +157,20 @@ a:hover { color: var(--pick-hover); }
 
 .logo:hover { color: var(--pick); }
 
-.topnav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+/* кнопки внизу по центру; окно выбора карты стоит над ними (--dock-h считает app.js) */
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+}
 
 /* --------------------------------------------------------------------------
    Загрузка
@@ -195,7 +208,7 @@ a:hover { color: var(--pick-hover); }
 .choose {
   position: fixed;
   left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--dock-h, 0px));
   transform: translateX(-50%);
   width: min(980px, calc(100vw - 24px));
   z-index: 10;
@@ -410,7 +423,9 @@ a:hover { color: var(--pick-hover); }
 @media (max-width: 720px) {
   html, body { font-size: 16px; }
   .logo { font-size: 14px; padding: 10px; }
-  .topnav .px-btn { font-size: 13px; padding: 7px 9px 8px; }
+  /* на телефоне кнопки сеткой 2 x 2, а не 3 + 1 */
+  .dock { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: calc(100vw - 24px); }
+  .dock .px-btn { font-size: 13px; padding: 9px 9px 10px; justify-content: center; text-align: center; }
   .px-title { font-size: 18px; }
   .choose { padding: 14px 12px; }
   .choose-lead { font-size: 15px; margin-bottom: 12px; }

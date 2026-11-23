@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
   <!-- ?v=… меняем при каждом деплое: Pages кэширует файлы на 10 минут -->
-  <link rel="stylesheet" href="css/claw.css?v=12">
-  <link rel="preload" href="claw_machine.glb?v=12" as="fetch" crossorigin>
+  <link rel="stylesheet" href="css/claw.css?v=13">
+  <link rel="preload" href="claw_machine.glb?v=13" as="fetch" crossorigin>
   <script type="importmap">
   {
     "imports": {
@@ -27,14 +27,15 @@
 
   <header class="topbar">
     <a class="win logo" href="./" aria-label="PESKOVSKII, на главную">PESKOVSKII</a>
-    <nav class="topnav" aria-label="Разделы">
-      <!-- кнопки игры появляются после выбора карты, отдельной нижней панели нет -->
-      <button class="px-btn px-btn-pick" type="button" id="again" hidden>Ещё шар</button>
-      <button class="px-btn" type="button" data-action="change" id="change" hidden>Сменить карту</button>
-      <button class="px-btn" type="button" data-open="list">Все работы</button>
-      <button class="px-btn" type="button" data-open="contacts">Контакты</button>
-    </nav>
   </header>
+
+  <!-- кнопки внизу экрана, без подложки; кнопки игры появляются после выбора карты -->
+  <nav class="dock" id="dock" aria-label="Управление">
+    <button class="px-btn px-btn-pick" type="button" id="again" hidden>Ещё шар</button>
+    <button class="px-btn" type="button" data-action="change" id="change" hidden>Сменить карту</button>
+    <button class="px-btn" type="button" data-open="list">Все работы</button>
+    <button class="px-btn" type="button" data-open="contacts">Контакты</button>
+  </nav>
 
   <div id="loader" class="win loader" role="status">
     <p class="px-title">Включаю автомат</p>
@@ -92,6 +93,6 @@
     </div>
   </noscript>
 
-  <script type="module" src="js/app.js?v=12"></script>
+  <script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>

@@ -121,6 +121,8 @@ function alongAttribute(mesh) {
   mesh.geometry.setAttribute('aAlong', new THREE.BufferAttribute(along, 1));
 }
 
+const WIN_TIME = 3.2;   // сколько секунд автомат празднует
+
 // ------------------------------------------------------------------ текстуры-холсты (экран терминала, постеры)
 function canvasTexture(w, h, draw, pixel = false) {
   const c = document.createElement('canvas');
@@ -156,7 +158,19 @@ function terminalScreen(state, category) {
     g.fillRect(0, 0, w, h);
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    if (state === 'approved') {
+    if (state === 'win') {
+      // звёзды-квадраты вокруг надписи
+      [[22, 30, '#ffd23f'], [130, 26, '#ff2bd6'], [28, 168, '#3ee0b0'], [128, 172, '#ffd23f'], [80, 18, '#4aa8ff']]
+        .forEach(([x, y, c]) => { g.fillStyle = c; g.fillRect(x - 6, y, 12, 4); g.fillRect(x - 2, y - 4, 4, 12); });
+      g.fillStyle = '#ffd23f';
+      g.font = `800 30px ${PIXEL_FONT}`;
+      g.fillText('ПОБЕДА', w / 2, 84);
+      g.fillStyle = '#ff2bd6';
+      g.fillText('!!!', w / 2, 116);
+      g.fillStyle = '#ffffff';
+      g.font = `800 14px ${PIXEL_FONT}`;
+      g.fillText('шар в лотке', w / 2, 156);
+    } else if (state === 'approved') {
       g.fillStyle = '#2bff88';
       g.fillRect(56, 44, 48, 48);
       g.fillStyle = '#07080b';
@@ -231,6 +245,7 @@ export class Machine {
     this.view = { px: 0, py: 1.3, pz: 5, tx: 0, ty: 1, tz: 0 };
     this.pointer = { x: 0, y: 0, sx: 0, sy: 0 };
     this.clock = new THREE.Clock();
+    this.winT = null;
     this.taken = new Set();
     this.shot = 'intro';
     this.ledMaterial = ledMaterial();
@@ -275,10 +290,12 @@ export class Machine {
     const inside = new THREE.PointLight(0xfff4e6, 2.2, 2.2, 1.6);
     inside.position.set(0, 1.78, 0);
     this.scene.add(inside);
+    this.inside = inside;
   }
 
   fixMaterials() {
     this.bulbs = {};
+    this.glow = new Map();   // что вспыхивает при победе: материал -> { исходная яркость, усиление }
     const glass = (opacity, color = 0xffffff) => new THREE.MeshPhysicalMaterial({
       color, metalness: 0, roughness: 0.04, transparent: true, opacity, depthWrite: false,
       envMapIntensity: 1.4, clearcoat: 1, clearcoatRoughness: 0.03
@@ -296,6 +313,11 @@ export class Machine {
         alongAttribute(o);
       } else if (name === 'Bulb_A' || name === 'Bulb_B') {
         this.bulbs[name] = { mat: o.material, base: o.material.emissiveIntensity || 1 };
+      } else if (name === 'Marquee_Panel' || name === 'Marquee_Text') {
+        this.glow.set(o.material, { base: o.material.emissiveIntensity || 1, gain: 0.8 });
+      } else if (name === 'Print_Front' || name === 'Print_Side' || name === 'Prize_Label') {
+        // печать на корпусе при победе подсвечивается изнутри: её видно, когда камера смотрит на дверцу
+        this.glow.set(o.material, { base: o.material.emissiveIntensity || 1, gain: 4 });
       }
       else if (swap[name]) o.material = swap[name];
       else if (name === 'Cap_Clear' || name === 'Cap_Clear_Bottom') {
@@ -431,12 +453,35 @@ export class Machine {
 
   tick() {
     const dt = Math.min(this.clock.getDelta(), 0.05);
-    const time = (this.ledMaterial.uniforms.uTime.value += dt);
-    // лампочки вывески мягко переливаются через одну
+    // победа: 0..1, быстро вспыхивает и плавно гаснет за WIN_TIME секунд
+    let win = 0;
+    if (this.winT !== null) {
+      this.winT += dt;
+      const k = this.winT / WIN_TIME;
+      win = k >= 1 ? 0 : Math.min(1, this.winT * 8) * (1 - k * k);
+      if (k >= 1) {
+        this.winT = null;
+        this.setScreen('approved', this.category);
+      }
+    }
+    // во время победы огни на лентах бегут в несколько раз быстрее
+    const time = (this.ledMaterial.uniforms.uTime.value += dt * (1 + 7 * win));
+    this.ledMaterial.uniforms.uBoost.value = 1 + 1.3 * win;
+    // лампочки вывески: обычно мягко переливаются через одну, при победе бегут быстрой волной
     if (this.bulbs.Bulb_A && this.bulbs.Bulb_B) {
-      const a = 0.5 + 0.5 * Math.sin(time * 2.2);
-      this.bulbs.Bulb_A.mat.emissiveIntensity = this.bulbs.Bulb_A.base * (0.45 + 0.55 * a);
-      this.bulbs.Bulb_B.mat.emissiveIntensity = this.bulbs.Bulb_B.base * (1 - 0.55 * a);
+      const calm = 0.5 + 0.5 * Math.sin(time * 2.2);
+      const chase = Math.floor(this.clock.elapsedTime * 9) % 2;
+      const a = win > 0 ? chase : calm;
+      const boost = 1 + 0.8 * win;
+      this.bulbs.Bulb_A.mat.emissiveIntensity = this.bulbs.Bulb_A.base * (0.45 + 0.55 * a) * boost;
+      this.bulbs.Bulb_B.mat.emissiveIntensity = this.bulbs.Bulb_B.base * (1 - 0.55 * a) * boost;
+    }
+    for (const [mat, g] of this.glow) mat.emissiveIntensity = g.base * (1 + g.gain * win);
+    if (this.inside) {
+      // свет в камере при победе вспыхивает и перебирает цвета вывески
+      this.inside.intensity = 2.2 * (1 + 2.6 * win);
+      if (win > 0) this.inside.color.setHSL((0.83 + this.winT * 0.9) % 1, 0.9, 0.62);
+      else this.inside.color.setHex(0xfff4e6);
     }
     const p = this.pointer;
     // доезжаем до мыши и останавливаемся: бесконечный сдвиг на доли пикселя давал рябь на полу
@@ -510,6 +555,7 @@ export class Machine {
   // ---------------------------------------------------------------- наполнение под карту
   /** В автомате остаются только шары выбранной карты: наполнители перекрашиваются, в прозрачных — её работы. */
   async fill(category, works) {
+    this.category = category;
     const mats = category.colors.map((hex) => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(hex), roughness: 0.22, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08
     }));
@@ -632,6 +678,12 @@ export class Machine {
     if (this.coil) this.coil.scale.y = k;
   }
 
+  /** Автомат «загорается победой»: огни бегут, вывеска и камера вспыхивают, на терминале «ПОБЕДА». */
+  celebrate() {
+    this.winT = 0;
+    this.setScreen('win');
+  }
+
   /** Целая партия: клешня едет к шару, хватает, несёт в приёмник, шар выкатывается из дверцы и раскрывается. */
   play(cap, status) {
     const tl = gsap.timeline();
@@ -679,7 +731,7 @@ export class Machine {
         y: '-=1.15', duration: 0.6, ease: 'power2.in',
         onUpdate: () => { cap.obj.position.y = drop.y; }
       }, t + 0.15)
-      .call(() => { cap.obj.visible = false; }, null, t + 0.75)
+      .call(() => { cap.obj.visible = false; this.celebrate(); }, null, t + 0.75)
       .add(this.applyShot('door', 1.0), t + 0.3);
     t += 1.35;
     // шар выкатывается из дверцы к зрителю

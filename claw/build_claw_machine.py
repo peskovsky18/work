@@ -579,29 +579,63 @@ def build_cabinet(c):
     box_span('Ceiling_Light', (-IN + 0.02, -IN + 0.02, Z_ROOF - 0.006), (IN - 0.02, IN - 0.02, Z_ROOF - 0.001),
              'Ceiling_Light', c, bevel=0.0)
     mz0, mz1 = Z_ROOF + 0.016, Z_ROOF + 0.25
-    box_span('Marquee_Box', (-h, -h, mz0), (h, -h + 0.14, mz1), 'Graphite', c, bevel=0.01)
-    fw, yf = 0.03, -h - 0.012    # ширина рамки, её лицевая плоскость
-    for nm, lo, hi in (('T', (-h, yf, mz1 - fw), (h, -h + 0.002, mz1)),
-                       ('B', (-h, yf, mz0), (h, -h + 0.002, mz0 + fw)),
-                       ('L', (-h, yf, mz0 + fw), (-h + fw, -h + 0.002, mz1 - fw)),
-                       ('R', (h - fw, yf, mz0 + fw), (h, -h + 0.002, mz1 - fw))):
-        box_span(f'Marquee_Frame_{nm}', lo, hi, 'Chrome', c, bevel=0.005, segs=3)
-    # подсвеченная панель утоплена в рамку на 1 см
-    image_plane('Marquee_Panel', 2 * (h - fw), mz1 - mz0 - 2 * fw, 'Marquee_Panel', c, (0, -h - 0.002, (mz0 + mz1) / 2),
-                (math.pi / 2, 0, 0))
-    # лампочки по рамке, через одну две группы
-    bulbs, k = [], 0
-    n = 19
-    for i in range(n):
-        x = -h + fw / 2 + i * (2 * h - fw) / (n - 1)
-        bulbs += [(x, mz1 - fw / 2), (x, mz0 + fw / 2)]
+    # световой короб на всю крышу: рамка, подсвеченные панели и лампочки по всем четырём сторонам,
+    # имя только спереди
+    box_span('Marquee_Box', (-h, -h, mz0), (h, h, mz1), 'Graphite', c, bevel=0.01)
+    fw, fo, fi = 0.03, 0.012, 0.002     # ширина рамки, вынос наружу, заход внутрь короба
+    hz = (mz0 + mz1) / 2
+    ph = mz1 - mz0 - 2 * fw
+    sides = {'F': (0, -1), 'B': (0, 1), 'L': (-1, 0), 'R': (1, 0)}
+    for nm, (sx, sy) in sides.items():
+        for bar, z0, z1 in (('T', mz1 - fw, mz1), ('B', mz0, mz0 + fw)):
+            if sx == 0:   # спереди и сзади планки во всю ширину с выносом, закрывают углы
+                ya, yb = sorted((sy * (h + fo), sy * (h - fi)))
+                lo, hi = (-h - fo, ya, z0), (h + fo, yb, z1)
+            else:         # боковые между ними
+                xa, xb = sorted((sx * (h + fo), sx * (h - fi)))
+                lo, hi = (xa, -h + fi, z0), (xb, h - fi, z1)
+            box_span(f'Marquee_Frame_{nm}{bar}', lo, hi, 'Chrome', c, bevel=0.005, segs=3)
+        # подсвеченная панель утоплена в рамку на 1 см
+        if sx == 0:
+            loc, rot = (0, sy * (h + fi), hz), (math.pi / 2, 0, 0 if sy < 0 else math.pi)
+        else:
+            loc, rot = (sx * (h + fi), 0, hz), (math.pi / 2, 0, sx * math.pi / 2)
+        image_plane(f'Marquee_Panel_{nm}', 2 * (h - fw), ph, 'Marquee_Panel', c, loc, rot)
+    # угловые стойки рамки
     for sx in (-1, 1):
-        for j in range(1, 4):
-            bulbs.append((sx * (h - fw / 2), mz0 + fw / 2 + j * (mz1 - mz0 - fw) / 4))
-    for k, (x, z) in enumerate(bulbs):
-        sphere(f'Marquee_Bulb_{k:02d}', 0.0062, (x, yf - 0.004, z), 'Bulb_A' if k % 2 == 0 else 'Bulb_B', c, 14, 7)
-        cylinder(f'Marquee_Socket_{k:02d}', 0.0075, 0.003, (x, yf - 0.0008, z), 'Graphite_Matte', c,
-                 segs=14).rotation_euler = (math.pi / 2, 0, 0)
+        for sy in (-1, 1):
+            xa, xb = sorted((sx * (h + fo), sx * (h - fw)))
+            ya, yb = sorted((sy * (h + fo), sy * (h - fw)))
+            box_span(f'Marquee_Corner_{"R" if sx > 0 else "L"}{"B" if sy > 0 else "F"}', (xa, ya, mz0 + fw - 0.001),
+                     (xb, yb, mz1 - fw + 0.001), 'Chrome', c, bevel=0.005, segs=3)
+    # лампочки: по верхней и нижней планке каждой стороны и по углам; через одну две группы.
+    # Склеены в три меша (A, B, патроны), чтобы на сайте не было сотен отдельных объектов
+    spots = []   # (точка на лицевой плоскости рамки, нормаль наружу)
+    n = 19
+    for nm, (sx, sy) in sides.items():
+        nrm = Vector((sx, sy, 0))
+        tang = Vector((-sy, sx, 0)) if sx == 0 else Vector((sy, -sx, 0))
+        face = nrm * (h + fo)
+        for i in range(n):
+            u = -h + fw / 2 + i * (2 * h - fw) / (n - 1)
+            for z in (mz1 - fw / 2, mz0 + fw / 2):
+                spots.append((face + tang * u + Vector((0, 0, z)), nrm))
+        for u in (-(h - fw / 2), h - fw / 2):
+            for j in range(1, 4):
+                spots.append((face + tang * u + Vector((0, 0, mz0 + fw / 2 + j * (mz1 - mz0 - fw) / 4)), nrm))
+    groups = {'Bulb_A': bmesh.new(), 'Bulb_B': bmesh.new(), 'Sockets': bmesh.new()}
+    for k, (p, nrm) in enumerate(spots):
+        bm = groups['Bulb_A' if k % 2 == 0 else 'Bulb_B']
+        v = bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=7, radius=0.0062)['verts']
+        bmesh.ops.translate(bm, verts=v, vec=p + nrm * 0.004)
+        v = bmesh.ops.create_cone(groups['Sockets'], cap_ends=True, segments=14, radius1=0.0075, radius2=0.0075,
+                                  depth=0.003)['verts']
+        rot = nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        bmesh.ops.transform(groups['Sockets'], matrix=Matrix.Translation(p + nrm * 0.0008) @ rot, verts=v)
+    mesh_obj('Marquee_Bulbs_A', groups['Bulb_A'], 'Bulb_A', c, smooth_angle=80)
+    mesh_obj('Marquee_Bulbs_B', groups['Bulb_B'], 'Bulb_B', c, smooth_angle=80)
+    mesh_obj('Marquee_Sockets', groups['Sockets'], 'Graphite_Matte', c, smooth_angle=30)
+    yf = -h - fo
     # объёмное имя с тёмной обводкой-подложкой
     zt = (mz0 + mz1) / 2
     text_obj('Marquee_Text', 'PESKOVSKII', 0.1, 'Marquee_Text', c, (0, -h - 0.012, zt), extrude=0.005, bevel=0.0012,

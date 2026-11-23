@@ -263,31 +263,15 @@ a:hover { color: var(--pick-hover); }
 .card-count { font-size: 15px; font-weight: 600; color: var(--pick); }
 .card-count.soon { color: var(--text-soft); }
 
-/* --------------------------------------------------------------------------
-   Строка статуса и панель игры
-   -------------------------------------------------------------------------- */
-.status,
-.playbar {
-  position: fixed;
-  left: 50%;
-  bottom: max(18px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px 12px 18px;
-  max-width: calc(100vw - 24px);
+/* статус игры читают только экранные дикторы */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
-
-.status { min-width: min(560px, calc(100vw - 24px)); }
-#status-text { flex: 1; }
-.status-cursor { color: var(--pick); animation: blink 0.8s steps(2) infinite; }
-
-@keyframes blink { 50% { opacity: 0; } }
-
-.playbar { flex-wrap: wrap; justify-content: center; }
-.playbar-left { color: var(--text-soft); }
 
 /* --------------------------------------------------------------------------
    Модальные окна: работа, список, контакты
@@ -435,8 +419,6 @@ a:hover { color: var(--pick-hover); }
   .card-name { font-size: 13px; }
   .card-key, .card-sub { display: none; }
   .card-count { font-size: 13px; }
-  .status { min-width: 0; width: calc(100vw - 24px); font-size: 15px; gap: 10px; }
-  .playbar { width: calc(100vw - 24px); gap: 8px; }
   .viewer-title { font-size: 20px; }
   .modal { padding: 8px; }
   .list-items { grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -453,6 +435,5 @@ a:hover { color: var(--pick-hover); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .status-cursor { animation: none; }
   .card-btn { transition: none; }
 }

@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
   <!-- ?v=… меняем при каждом деплое: Pages кэширует файлы на 10 минут -->
-  <link rel="stylesheet" href="css/claw.css?v=9">
-  <link rel="preload" href="claw_machine.glb?v=9" as="fetch" crossorigin>
+  <link rel="stylesheet" href="css/claw.css?v=10">
+  <link rel="preload" href="claw_machine.glb?v=10" as="fetch" crossorigin>
   <script type="importmap">
   {
     "imports": {
@@ -28,6 +28,9 @@
   <header class="topbar">
     <a class="win logo" href="./" aria-label="PESKOVSKII, на главную">PESKOVSKII</a>
     <nav class="topnav" aria-label="Разделы">
+      <!-- кнопки игры появляются после выбора карты, отдельной нижней панели нет -->
+      <button class="px-btn px-btn-pick" type="button" id="again" hidden>Ещё шар</button>
+      <button class="px-btn" type="button" data-action="change" id="change" hidden>Сменить карту</button>
       <button class="px-btn" type="button" data-open="list">Все работы</button>
       <button class="px-btn" type="button" data-open="contacts">Контакты</button>
     </nav>
@@ -45,18 +48,8 @@
     <div class="cards" id="cards"></div>
   </section>
 
-  <div id="status" class="win status" hidden>
-    <span class="status-cursor" aria-hidden="true">▶</span>
-    <span id="status-text" aria-live="polite"></span>
-    <button class="px-btn px-btn-small" type="button" id="fast">Быстрее ▶▶</button>
-  </div>
-
-  <div id="playbar" class="win playbar" hidden>
-    <span class="chip" id="playbar-card"></span>
-    <span class="playbar-left" id="playbar-left"></span>
-    <button class="px-btn px-btn-pick" type="button" id="again">Ещё шар</button>
-    <button class="px-btn" type="button" data-action="change">Сменить карту</button>
-  </div>
+  <!-- что делает автомат: только для экранных дикторов, на экране подписей нет -->
+  <p id="status-text" class="sr-only" aria-live="polite"></p>
 
   <div id="viewer" class="modal" hidden>
     <div class="win viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
@@ -99,6 +92,6 @@
     </div>
   </noscript>
 
-  <script type="module" src="js/app.js?v=9"></script>
+  <script type="module" src="js/app.js?v=10"></script>
 </body>
 </html>

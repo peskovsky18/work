@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=9';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=9';
+import { Machine } from './machine.js?v=10';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=10';
 
-const VERSION = '9';
+const VERSION = '10';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -21,27 +21,19 @@ const state = {
   again: false
 };
 
-// ------------------------------------------------------------------ строка статуса с печатью по буквам
-let typeTimer = 0;
+// ------------------------------------------------------------------ статус для экранных дикторов
 function status(text) {
-  const el = $('status-text');
-  clearInterval(typeTimer);
-  $('status').hidden = false;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    el.textContent = text;
-    return;
-  }
-  el.textContent = '';
-  let i = 0;
-  typeTimer = setInterval(() => {
-    el.textContent = text.slice(0, ++i);
-    if (i >= text.length) clearInterval(typeTimer);
-  }, 28);
+  $('status-text').textContent = text;
 }
 
 function hideStatus() {
-  clearInterval(typeTimer);
-  $('status').hidden = true;
+  $('status-text').textContent = '';
+}
+
+// кнопки игры в верхней панели: видны, когда карта выбрана и автомат свободен
+function setGameButtons(visible) {
+  $('again').hidden = !visible;
+  $('change').hidden = !visible;
 }
 
 // ------------------------------------------------------------------ загрузка модели с прогрессом
@@ -179,7 +171,11 @@ document.addEventListener('keydown', (e) => {
   const typing = /input|textarea/i.test(document.activeElement.tagName);
   if (typing || document.querySelector('.modal:not([hidden])')) return;
   if (!$('choose').hidden && ['1', '2', '3'].includes(e.key)) chooseCard(CATEGORIES[Number(e.key) - 1]);
-  if (!$('playbar').hidden && (e.key === ' ' || e.key === 'Enter') && document.activeElement === document.body) {
+  if (e.key === ' ' && state.timeline) {
+    // пробел во время партии ускоряет её (вместо бывшей кнопки «Быстрее»)
+    e.preventDefault();
+    state.timeline.timeScale(4);
+  } else if (!$('again').hidden && (e.key === ' ' || e.key === 'Enter') && document.activeElement === document.body) {
     e.preventDefault();
     playRound();
   }
@@ -253,19 +249,8 @@ function afterViewer() {
   state.again = false;
   if (!state.machine || !state.category || state.busy) return;
   state.machine.backToIdle();
-  showPlaybar();
+  setGameButtons(true);
   if (again) playRound();
-}
-
-function showPlaybar() {
-  if (!state.category) return;
-  const chip = $('playbar-card');
-  chip.textContent = `Карта: ${state.category.title}`;
-  chip.style.setProperty('--chip', state.category.colors[0]);
-  const works = worksOf(state.category.id);
-  const left = works.filter((w) => !state.seen.has(w.slug)).length;
-  $('playbar-left').textContent = !works.length ? 'проекты скоро' : left ? `ещё ${pluralWorks(left)}` : 'все работы открыты';
-  $('playbar').hidden = false;
 }
 
 // ------------------------------------------------------------------ игра
@@ -273,14 +258,13 @@ async function chooseCard(cat) {
   if (state.busy || !state.machine) return;
   state.busy = true;
   $('choose').hidden = true;
-  $('playbar').hidden = true;
+  setGameButtons(false);
   const m = state.machine;
   state.category = cat;
   state.seen.clear();
   m.resetCards();
   m.setScreen('idle');
   status(`Прикладываю карту «${cat.title}»…`);
-  $('fast').hidden = true;
   await m.pay(cat, () => status('Оплачено! Загружаю шары этой карты…'));
   m.applyShot('glass', 1.2);
   await gsap.delayedCall(0.6, () => {});
@@ -301,8 +285,7 @@ async function playRound() {
   }
   if (!cap) return;
   state.busy = true;
-  $('playbar').hidden = true;
-  $('fast').hidden = false;
+  setGameButtons(false);
   state.timeline = m.play(cap, status);
   await state.timeline;
   state.timeline = null;
@@ -315,7 +298,7 @@ async function playRound() {
 function changeCard() {
   if (state.busy) return;
   closeModal('viewer');
-  $('playbar').hidden = true;
+  setGameButtons(false);
   hideStatus();
   state.machine.resetCards();
   state.machine.setScreen('idle');
@@ -325,9 +308,6 @@ function changeCard() {
   if (first) first.focus();
 }
 
-$('fast').addEventListener('click', () => {
-  if (state.timeline) state.timeline.timeScale(4);
-});
 $('again').addEventListener('click', () => playRound());
 
 // ------------------------------------------------------------------ старт

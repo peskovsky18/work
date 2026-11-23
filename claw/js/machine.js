@@ -71,16 +71,16 @@ function ledMaterial() {
   return new THREE.ShaderMaterial({
     uniforms: { uTime: { value: 0 }, uBoost: { value: 1 } },
     vertexShader: /* glsl */`
-      attribute float aAlong;
-      varying float vA;
+      varying float vY;
       void main() {
-        vA = aAlong;
-        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        vY = w.y;
+        gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */`
       uniform float uTime;
       uniform float uBoost;
-      varying float vA;
+      varying float vY;
       // плавный переход пурпурный -> фиолетовый -> синий -> розовый (ступенчатые цвета мерцали)
       vec3 pal(float t) {
         vec3 c0 = vec3(1.0, 0.17, 0.84);
@@ -95,30 +95,12 @@ function ledMaterial() {
         return mix(c3, c0, f);
       }
       void main() {
-        // цвет и точки идут только вдоль ленты (aAlong), поперёк она ровная: иначе выходили косые полосы
-        float s = vA * 1.2 - uTime * 0.08;
-        // точки светодиодов со сглаживанием: когда точка меньше пикселя, лента светится ровно
-        float k = vA * 60.0;
-        float w = fwidth(k);
-        float d = abs(fract(k) - 0.5);
-        float dots = smoothstep(0.2 - w, 0.2 + w, d);
-        dots = mix(dots, 0.6, clamp(w * 1.5 - 0.3, 0.0, 1.0));
-        gl_FragColor = vec4(pal(s) * (0.82 + 0.28 * dots) * uBoost, 1.0);
+        // ровное свечение без точек; цвет зависит только от высоты: ленты на одной высоте одного цвета,
+        // на углах цвета сходятся, градиент медленно ползёт вверх
+        float s = vY * 0.42 - uTime * 0.05;
+        gl_FragColor = vec4(pal(s) * uBoost, 1.0);
       }`
   });
-}
-
-/** Координата вдоль ленты (по самой длинной оси в мире) для шейдера светодиодов. */
-function alongAttribute(mesh) {
-  mesh.updateWorldMatrix(true, false);
-  const pos = mesh.geometry.attributes.position;
-  const box = new THREE.Box3().setFromBufferAttribute(pos).applyMatrix4(mesh.matrixWorld);
-  const size = box.getSize(new THREE.Vector3());
-  const axis = size.x >= size.y && size.x >= size.z ? 'x' : size.y >= size.z ? 'y' : 'z';
-  const v = new THREE.Vector3();
-  const along = new Float32Array(pos.count);
-  for (let i = 0; i < pos.count; i++) along[i] = v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld)[axis];
-  mesh.geometry.setAttribute('aAlong', new THREE.BufferAttribute(along, 1));
 }
 
 const WIN_TIME = 3.2;   // сколько секунд автомат празднует
@@ -311,7 +293,6 @@ export class Machine {
       const name = o.material.name;
       if (name === 'LED_Strip') {
         o.material = this.ledMaterial;
-        alongAttribute(o);
       } else if (name === 'Bulb_A' || name === 'Bulb_B') {
         this.bulbs[name] = { mat: o.material, base: o.material.emissiveIntensity || 1 };
       } else if (name === 'Marquee_Panel' || name === 'Marquee_Text') {

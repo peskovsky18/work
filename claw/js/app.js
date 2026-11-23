@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=11';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=11';
+import { Machine } from './machine.js?v=12';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=12';
 
-const VERSION = '11';
+const VERSION = '12';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;

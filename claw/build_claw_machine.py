@@ -245,7 +245,7 @@ def build_materials():
     principled('Floor', '#26282d', rough=0.32)
     principled('Gold', '#e6b34a', metal=1.0, rough=0.25)
     principled('Card_Back', '#15161a', rough=0.35, coat=0.6)
-    principled('Gloss_Black', '#08090b', rough=0.15, coat=1.0)
+    principled('Gloss_Black', '#08090b', rough=0.45, coat=0.25)
     principled('LED_Green', '#2bff88', emission='#2bff88', strength=6.0)
     image_material('Print_Front', os.path.join(TEX, 'print_front.png'), emission=0.15, rough=0.35, coat=0.8)
     image_material('Print_Side', os.path.join(TEX, 'print_side.png'), emission=0.15, rough=0.35, coat=0.8)
@@ -673,11 +673,12 @@ def build_controls(c):
     mt = Matrix.Translation(base.to_translation() + Vector((0, 0, 0.022))) @ Euler((-0.22, 0, 0)).to_matrix().to_4x4()
     term = on(box('Terminal', (tw, td, th), (0, 0, th / 2), 'Gloss_Black', c, bevel=0.012), mt)
     sw, sh = 0.096, 0.12
-    on(image_plane('Terminal_Screen', sw, sh, 'Terminal_Screen', c, (0, -td / 2 - 0.0006, th - 0.016 - sh / 2),
+    # экран стоит на 2.5 мм перед рамкой, рамка на 1.5 мм перед корпусом: без общих плоскостей (иначе мерцает)
+    on(image_plane('Terminal_Screen', sw, sh, 'Terminal_Screen', c, (0, -td / 2 - 0.004, th - 0.016 - sh / 2),
                    (math.pi / 2, 0, 0)), mt)
-    on(box('Terminal_Bezel', (sw + 0.01, 0.002, sh + 0.01), (0, -td / 2 + 0.0004, th - 0.016 - sh / 2),
+    on(box('Terminal_Bezel', (sw + 0.01, 0.002, sh + 0.01), (0, -td / 2 - 0.0005, th - 0.016 - sh / 2),
            'Graphite_Matte', c, bevel=0.002), mt)
-    on(box('Terminal_Slot', (0.085, 0.004, 0.007), (0, -td / 2 - 0.001, 0.03), 'Graphite_Matte', c, bevel=0.002), mt)
+    on(box('Terminal_Slot', (0.085, 0.004, 0.007), (0, -td / 2 - 0.0015, 0.03), 'Graphite_Matte', c, bevel=0.002), mt)
     for i, mat in enumerate(['LED_Green', 'Button_Amber', 'Button_Amber', 'LED_Green']):
         on(sphere(f'Terminal_LED_{i}', 0.0032, (-0.024 + i * 0.016, -td / 2 - 0.0005, 0.05), mat, c, 12, 6), mt)
     term['role'] = 'card_payment'

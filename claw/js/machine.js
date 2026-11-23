@@ -39,19 +39,30 @@ function makeEnvironment(renderer) {
   return tex;
 }
 
-function floorTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 512;
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(256, 256, 10, 256, 256, 256);
-  grad.addColorStop(0, '#3a2f52');
-  grad.addColorStop(0.35, '#1c1a24');
-  grad.addColorStop(1, '#0e0f13');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 512, 512);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+// Пол: радиальный градиент в шейдере с шумом против полос (текстура 512 px на 14 м давала ступени)
+function floorMaterial() {
+  return new THREE.ShaderMaterial({
+    vertexShader: /* glsl */`
+      varying vec2 vP;
+      void main() {
+        vP = position.xy;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */`
+      varying vec2 vP;
+      void main() {
+        float r = length(vP) / 7.0;
+        vec3 center = vec3(0.227, 0.184, 0.322);
+        vec3 mid = vec3(0.110, 0.102, 0.141);
+        vec3 edge = vec3(0.055, 0.059, 0.075);
+        vec3 c = mix(center, mid, smoothstep(0.0, 0.3, r));
+        c = mix(c, edge, smoothstep(0.3, 0.95, r));
+        c *= mix(0.45, 1.0, smoothstep(0.045, 0.11, r)); // мягкая тень под автоматом
+        float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+        c += (n - 0.5) / 160.0;
+        gl_FragColor = vec4(c, 1.0);
+      }`
+  });
 }
 
 // Светодиодные ленты: бегущие точки пурпурный/фиолетовый/синий/розовый (в Blender тот же рисунок по позиции)
@@ -192,7 +203,7 @@ export class Machine {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0e0f13);
     this.scene.fog = new THREE.Fog(0x0e0f13, 5, 11);
-    this.camera = new THREE.PerspectiveCamera(30, 1, 0.05, 40);
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
     this.view = { px: 0, py: 1.3, pz: 5, tx: 0, ty: 1, tz: 0 };
     this.pointer = { x: 0, y: 0, sx: 0, sy: 0 };
     this.clock = new THREE.Clock();
@@ -226,8 +237,7 @@ export class Machine {
   }
 
   setupLights() {
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(7, 64),
-      new THREE.MeshStandardMaterial({ map: floorTexture(), roughness: 0.55, metalness: 0 }));
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(7, 96), floorMaterial());
     floor.rotation.x = -Math.PI / 2;
     this.scene.add(floor);
     this.scene.add(new THREE.HemisphereLight(0xcfd6ff, 0x1a1420, 0.5));
@@ -238,9 +248,6 @@ export class Machine {
     const inside = new THREE.PointLight(0xfff4e6, 2.2, 2.2, 1.6);
     inside.position.set(0, 1.78, 0);
     this.scene.add(inside);
-    const front = new THREE.PointLight(0xb06cff, 1.2, 2.5, 2);
-    front.position.set(0, 0.9, 1.4);
-    this.scene.add(front);
   }
 
   fixMaterials() {
@@ -264,6 +271,12 @@ export class Machine {
         o.renderOrder = 2;
       } else if (name.startsWith('Glass')) o.renderOrder = 3;
       if (name === 'Chrome' || name === 'Aluminum') o.material.envMapIntensity = 1.3;
+      if (name === 'Gloss_Black') {
+        // корпус терминала полуматовый: иначе фиолетовая подсветка ложится пятном поверх индикаторов
+        o.material.roughness = 0.45;
+        o.material.clearcoat = 0.25;
+        o.material.clearcoatRoughness = 0.5;
+      }
     });
   }
 

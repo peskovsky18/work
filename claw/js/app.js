@@ -3,8 +3,11 @@
  * -> клешня сама достаёт шар -> шар выкатывается и раскрывается -> окно с работой.
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
-import { Machine } from './machine.js';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js';
+// Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
+import { Machine } from './machine.js?v=3';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=3';
+
+const VERSION = '3';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -334,7 +337,7 @@ async function boot() {
   renderContacts();
   const fonts = document.fonts ? Promise.all(['800 16px "JetBrains Mono"', '400 16px "JetBrains Mono"'].map((f) => document.fonts.load(f, 'Ааz'))).catch(() => {}) : Promise.resolve();
   try {
-    const [buffer] = await Promise.all([fetchWithProgress('claw_machine.glb', setProgress), fonts]);
+    const [buffer] = await Promise.all([fetchWithProgress(`claw_machine.glb?v=${VERSION}`, setProgress), fonts]);
     state.machine = new Machine($('scene'));
     await state.machine.load(buffer);
     window.__claw = state; // для отладки в консоли

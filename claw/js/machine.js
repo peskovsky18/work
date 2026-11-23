@@ -8,6 +8,20 @@ import { GLTFLoader } from 'three/addons/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/DRACOLoader.js';
 
 const gsap = window.gsap;
+
+/** Пружина без перелёта (SmoothDamp): плавно догоняет цель, сглаживая резкие старты и остановки. */
+function smoothDamp(cur, target, vel, key, smoothTime, dt) {
+  const omega = 2 / smoothTime;
+  const x = omega * dt;
+  const exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+  const change = cur - target;
+  const temp = (vel[key] + omega * change) * dt;
+  vel[key] = (vel[key] - omega * temp) * exp;
+  return target + (change + temp) * exp;
+}
+const CAM_KEYS = ['px', 'py', 'pz', 'tx', 'ty', 'tz'];
+// клешня на тросе раскачивается от разгона и торможения каретки
+const SWING = { gain: 0.32, damp: 2.4, calm: 9, max: 0.18 };
 const PIXEL_FONT = '"JetBrains Mono", monospace';
 
 // ------------------------------------------------------------------ окружение для отражений
@@ -226,6 +240,9 @@ export class Machine {
     this.scene.fog = new THREE.Fog(0x0e0f13, 5, 11);
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
     this.view = { px: 0, py: 1.3, pz: 5, tx: 0, ty: 1, tz: 0 };
+    // камера не прыгает за this.view, а догоняет её пружиной
+    this.cam = null;
+    this.camVel = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0 };
     this.pointer = { x: 0, y: 0, sx: 0, sy: 0 };
     this.clock = new THREE.Clock();
     this.winT = null;
@@ -325,6 +342,15 @@ export class Machine {
     this.claw = get('Claw');
     this.cable = get('Claw_Cable');
     this.coil = get('Claw_Coil');
+    // подвес: трос, пружина и клешня висят на общей точке у верха троса и качаются вместе
+    this.root.updateMatrixWorld(true);
+    this.swing = new THREE.Group();
+    this.swing.name = 'Claw_Swing';
+    this.swing.position.copy(this.cable.position);
+    this.carriage.add(this.swing);
+    this.swing.updateMatrixWorld(true);
+    for (const o of [this.cable, this.coil, this.claw]) if (o) this.swing.attach(o);
+    this.pend = { x: 0, vx: 0, z: 0, vz: 0, prev: null, vel: new THREE.Vector3(), acc: new THREE.Vector3(), damp: SWING.damp };
     this.prongs = [0, 1, 2].map((i) => get(`Claw_Prong_${i}`)).filter(Boolean);
     this.screen = get('Terminal_Screen');
     this.markChute = get('Mark_Chute');
@@ -430,7 +456,7 @@ export class Machine {
     this.shot = name;
     const v = this.shotView(name);
     gsap.killTweensOf(this.view);
-    if (!duration) Object.assign(this.view, v);
+    if (!duration) { Object.assign(this.view, v); this.cam = null; }
     return gsap.to(this.view, { ...v, duration, ease });
   }
 
@@ -466,15 +492,59 @@ export class Machine {
       if (win > 0) this.inside.color.setHSL((0.83 + this.winT * 0.9) % 1, 0.9, 0.62);
       else this.inside.color.setHex(0xfff4e6);
     }
+    this.updateSwing(dt);
     const p = this.pointer;
     // доезжаем до мыши и останавливаемся: бесконечный сдвиг на доли пикселя давал рябь на полу
-    p.sx = Math.abs(p.x - p.sx) < 0.002 ? p.x : p.sx + (p.x - p.sx) * 0.06;
-    p.sy = Math.abs(p.y - p.sy) < 0.002 ? p.y : p.sy + (p.y - p.sy) * 0.06;
+    const pk = 1 - Math.exp(-dt * 3.5);
+    p.sx = Math.abs(p.x - p.sx) < 0.002 ? p.x : p.sx + (p.x - p.sx) * pk;
+    p.sy = Math.abs(p.y - p.sy) < 0.002 ? p.y : p.sy + (p.y - p.sy) * pk;
     const v = this.view;
+    if (!this.cam) {
+      this.cam = { ...v };
+      for (const k of CAM_KEYS) this.camVel[k] = 0;
+    }
+    const c = this.cam;
+    for (const k of CAM_KEYS) c[k] = Math.abs(v[k] - c[k]) < 1e-5 && Math.abs(this.camVel[k]) < 1e-4 ? v[k] : smoothDamp(c[k], v[k], this.camVel, k, 0.2, dt);
     // лёгкий параллакс от мыши, чтобы сцена жила
-    this.camera.position.set(v.px + p.sx * 0.12, v.py - p.sy * 0.06, v.pz);
-    this.camera.lookAt(v.tx, v.ty, v.tz);
+    this.camera.position.set(c.px + p.sx * 0.12, c.py - p.sy * 0.06, c.pz);
+    this.camera.lookAt(c.tx, c.ty, c.tz);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Маятник: каретка разгоняется — клешня отстаёт, тормозит — клешня уходит вперёд и затухает. */
+  updateSwing(dt) {
+    const pd = this.pend;
+    if (!this.swing || !pd || dt <= 0) return;
+    this.carriage.updateWorldMatrix(true, false);
+    const pos = new THREE.Vector3().setFromMatrixPosition(this.carriage.matrixWorld);
+    // первый кадр или рывок (вкладка была скрыта, кадр затянулся): скорость не считаем, иначе клешню дёрнет
+    if (!pd.prev || dt >= 0.05) { pd.prev = pos.clone(); pd.vel.set(0, 0, 0); return; }
+    const vel = pos.clone().sub(pd.prev).divideScalar(dt);
+    pd.prev.copy(pos);
+    const acc = vel.clone().sub(pd.vel).divideScalar(dt);
+    pd.vel.copy(vel);
+    // ускорение в осях каретки, со сглаживанием: кадры приходят неровно
+    const qInv = this.carriage.getWorldQuaternion(new THREE.Quaternion()).invert();
+    acc.applyQuaternion(qInv).clampLength(0, 8);
+    pd.acc.lerp(acc, 1 - Math.exp(-dt * 18));
+    this.claw.updateWorldMatrix(false, false);
+    const L = Math.max(0.15, this.swing.getWorldPosition(new THREE.Vector3()).y - this.claw.getWorldPosition(new THREE.Vector3()).y + 0.06);
+    const steps = 4;
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const ax = -(9.8 / L) * Math.sin(pd.x) - pd.damp * pd.vx - SWING.gain * pd.acc.x / L;
+      const az = -(9.8 / L) * Math.sin(pd.z) - pd.damp * pd.vz - SWING.gain * pd.acc.z / L;
+      pd.vx += ax * h; pd.vz += az * h;
+      pd.x = THREE.MathUtils.clamp(pd.x + pd.vx * h, -SWING.max, SWING.max);
+      pd.z = THREE.MathUtils.clamp(pd.z + pd.vz * h, -SWING.max, SWING.max);
+    }
+    // отклонение по X — поворот вокруг Z, по Z — вокруг X с обратным знаком
+    this.swing.rotation.set(-pd.z, 0, pd.x);
+  }
+
+  /** Пока клешня опускается и хватает, качание гасится быстрее: она встаёт ровно над шаром. */
+  calmSwing(on) {
+    if (this.pend) this.pend.damp = on ? SWING.calm : SWING.damp;
   }
 
   // ---------------------------------------------------------------- экран терминала
@@ -510,20 +580,22 @@ export class Machine {
     const lift = card.pos.clone().add(new THREE.Vector3(0, 0.09, 0.03));
     const qTarget = this.screen.quaternion.clone();
     const q = { t: 0 };
-    tl.to(o.position, { x: lift.x, y: lift.y, z: lift.z, duration: 0.45, ease: 'power2.out' }, 0.3)
+    tl.to(o.position, { x: lift.x, y: lift.y, z: lift.z, duration: 0.5, ease: 'power3.out' }, 0.3)
       .to(q, {
-        t: 1, duration: 0.7, ease: 'power2.inOut',
+        t: 1, duration: 0.75, ease: 'power3.inOut',
         onUpdate: () => o.quaternion.slerpQuaternions(card.quat, qTarget, q.t)
       }, 0.75)
-      .to(o.position, { x: near.x, y: near.y, z: near.z, duration: 0.7, ease: 'power2.inOut' }, 0.75)
+      .to(o.position, { x: near.x, y: near.y, z: near.z, duration: 0.75, ease: 'power3.inOut' }, 0.75)
       .call(() => this.setScreen('reading'), null, 1.45)
-      .to(o.position, { x: touch.x, y: touch.y, z: touch.z, duration: 0.18, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 1.5)
+      // прикладывается к терминалу и задерживается, как настоящая бесконтактная оплата
+      .to(o.position, { x: touch.x, y: touch.y, z: touch.z, duration: 0.3, ease: 'power2.out' }, 1.5)
+      .to(o.position, { x: near.x, y: near.y, z: near.z, duration: 0.35, ease: 'power2.inOut' }, 2.05)
       .call(() => { this.setScreen('approved', category); onApproved && onApproved(); }, null, 2.3)
       .to(q, {
-        t: 0, duration: 0.7, ease: 'power2.inOut',
+        t: 0, duration: 0.8, ease: 'power3.inOut',
         onUpdate: () => o.quaternion.slerpQuaternions(card.quat, qTarget, q.t)
       }, 2.8)
-      .to(o.position, { x: card.pos.x, y: card.pos.y, z: card.pos.z, duration: 0.7, ease: 'power2.inOut' }, 2.8);
+      .to(o.position, { x: card.pos.x, y: card.pos.y, z: card.pos.z, duration: 0.8, ease: 'power3.inOut' }, 2.8);
     return tl;
   }
 
@@ -581,9 +653,9 @@ export class Machine {
     fillers.forEach((cap, i) => {
       const s = cap.obj.scale;
       const at = 0.15 + Math.random() * 0.7;
-      tl.to(s, { x: 0.05, y: 0.05, z: 0.05, duration: 0.18, ease: 'power2.in' }, at)
+      tl.to(s, { x: 0.05, y: 0.05, z: 0.05, duration: 0.2, ease: 'power3.in' }, at)
         .call(() => cap.tint.forEach((t) => { t.material = mats[i % mats.length]; }), null, at + 0.18)
-        .to(s, { x: 1, y: 1, z: 1, duration: 0.35, ease: 'back.out(2.2)' }, at + 0.18);
+        .to(s, { x: 1, y: 1, z: 1, duration: 0.5, ease: 'back.out(1.6)' }, at + 0.2);
     });
     this.category = category;
     this.works = works;
@@ -689,22 +761,25 @@ export class Machine {
 
     tl.add(this.applyShot('glass', 1.2), 0)
       .call(() => status('Клешня ищет шар…'), null, 0.1)
-      .to(this.crossbar.position, { z: crossTarget, duration: travel, ease: 'power1.inOut' }, 0.4)
-      .to(this.carriage.position, { x: carTarget, duration: travel, ease: 'power1.inOut' }, 0.4)
-      .to(grip, { v: fit.open, duration: 0.4, onUpdate: onGrip }, 0.4 + travel - 0.2)
-      .to(this.claw.position, { y: clawDown, duration: 1.1, ease: 'power2.in', onUpdate: onClaw }, 0.4 + travel + 0.1);
+      .to(this.crossbar.position, { z: crossTarget, duration: travel, ease: 'sine.inOut' }, 0.4)
+      .to(this.carriage.position, { x: carTarget, duration: travel, ease: 'sine.inOut' }, 0.4)
+      .to(grip, { v: fit.open, duration: 0.5, ease: 'power2.inOut', onUpdate: onGrip }, 0.4 + travel - 0.25)
+      .call(() => this.calmSwing(true), null, 0.4 + travel - 0.1)
+      // опускается с разгоном и мягко притормаживает у шара, а не врезается в него
+      .to(this.claw.position, { y: clawDown, duration: 1.15, ease: 'power2.inOut', onUpdate: onClaw }, 0.4 + travel + 0.1);
     let t = 0.4 + travel + 1.25;
-    tl.to(grip, { v: fit.closed, duration: 0.45, ease: 'power2.out', onUpdate: onGrip }, t)
-      .call(() => { this.claw.attach(cap.obj); this.taken.add(cap); status('Есть! Везу в лоток…'); }, null, t + 0.4)
-      .to(this.claw.position, { y: this.rest.clawY, duration: 1.1, ease: 'power2.inOut', onUpdate: onClaw }, t + 0.55);
+    tl.to(grip, { v: fit.closed, duration: 0.5, ease: 'power2.inOut', onUpdate: onGrip }, t)
+      .call(() => { this.claw.attach(cap.obj); this.taken.add(cap); status('Есть! Везу в лоток…'); }, null, t + 0.45)
+      .to(this.claw.position, { y: this.rest.clawY, duration: 1.15, ease: 'power2.inOut', onUpdate: onClaw }, t + 0.55)
+      .call(() => this.calmSwing(false), null, t + 1.2);
     t += 1.7;
     const crossChute = toCross(chute).z;
     const carChute = toCar(new THREE.Vector3(chute.x, world.y, crossChute)).x;
-    tl.to(this.crossbar.position, { z: crossChute, duration: 1.2, ease: 'power1.inOut' }, t)
-      .to(this.carriage.position, { x: carChute, duration: 1.2, ease: 'power1.inOut' }, t);
+    tl.to(this.crossbar.position, { z: crossChute, duration: 1.25, ease: 'sine.inOut' }, t)
+      .to(this.carriage.position, { x: carChute, duration: 1.25, ease: 'sine.inOut' }, t);
     t += 1.25;
     const drop = { y: 0 };
-    tl.to(grip, { v: -0.15, duration: 0.3, onUpdate: onGrip }, t)
+    tl.to(grip, { v: -0.15, duration: 0.35, ease: 'power2.out', onUpdate: onGrip }, t)
       .call(() => {
         this.root.attach(cap.obj);
         drop.y = cap.obj.position.y;
@@ -726,24 +801,25 @@ export class Machine {
       cap.obj.visible = true;
       status('Твой шар!');
     }, null, t)
-      .to(cap.obj.position, { x: present.x, z: present.z, duration: 0.9, ease: 'power2.out' }, t)
-      .to(cap.obj.position, { y: present.y, duration: 0.9, ease: 'back.out(1.6)' }, t)
+      .to(cap.obj.position, { x: present.x, z: present.z, duration: 1.0, ease: 'power3.out' }, t)
+      .to(cap.obj.position, { y: present.y, duration: 1.0, ease: 'back.out(1.15)' }, t)
       // докатывается осью к зрителю: постер внутри смотрит в камеру
-      .to(cap.obj.rotation, { x: Math.PI * 2.5, duration: 0.9, ease: 'power2.out' }, t)
+      .to(cap.obj.rotation, { x: Math.PI * 2.5, duration: 1.0, ease: 'power3.out' }, t)
       .add(this.applyShot('prize', 0.9), t + 0.1)
       // вернуть клешню домой, пока смотрим на приз
-      .to(this.crossbar.position, { z: this.rest.crossZ, duration: 1.4, ease: 'power1.inOut' }, t)
-      .to(this.carriage.position, { x: this.rest.carX, duration: 1.4, ease: 'power1.inOut' }, t)
-      .to(grip, { v: 0, duration: 0.3, onUpdate: onGrip }, t + 1);
+      .to(this.crossbar.position, { z: this.rest.crossZ, duration: 1.5, ease: 'sine.inOut' }, t)
+      .to(this.carriage.position, { x: this.rest.carX, duration: 1.5, ease: 'sine.inOut' }, t)
+      .to(grip, { v: 0, duration: 0.4, ease: 'power2.inOut', onUpdate: onGrip }, t + 1);
     t += 1.1;
     // раскрыть капсулу: половинки разъезжаются
     if (cap.top && cap.bottom) {
       // локальная +Y шара смотрит в камеру, -Z вверх: верх уходит вверх, низ вниз
-      tl.to(cap.top.position, { y: 0.04, z: -0.12, duration: 0.6, ease: 'back.out(2)' }, t)
-        .to(cap.bottom.position, { y: -0.04, z: 0.12, duration: 0.6, ease: 'back.out(2)' }, t);
+      tl.to(cap.top.position, { y: 0.04, z: -0.12, duration: 0.8, ease: 'back.out(1.35)' }, t)
+        .to(cap.bottom.position, { y: -0.04, z: 0.12, duration: 0.8, ease: 'back.out(1.35)' }, t);
       if (cap.poster) {
-        tl.to(cap.poster.scale, { x: 1.9, y: 1.9, z: 1.9, duration: 0.6, ease: 'back.out(2)' }, t)
-          .to(cap.poster.position, { y: '+=0.03', duration: 0.6 }, t);
+        // постер выплывает чуть позже половинок
+        tl.to(cap.poster.scale, { x: 1.9, y: 1.9, z: 1.9, duration: 0.8, ease: 'expo.out' }, t + 0.08)
+          .to(cap.poster.position, { y: '+=0.03', duration: 0.8, ease: 'power3.out' }, t + 0.08);
       }
     }
     tl.to({}, { duration: 0.5 });

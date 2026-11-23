@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=19';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=19';
+import { Machine } from './machine.js?v=20';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=20';
 
-const VERSION = '19';
+const VERSION = '20';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -28,6 +28,21 @@ function status(text) {
 
 function hideStatus() {
   $('status-text').textContent = '';
+}
+
+// окна появляются и уходят плавно (анимации в claw.css); прячем по-настоящему, когда уход доиграл
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+function showEl(el) {
+  clearTimeout(el._leave);
+  el.classList.remove('leaving');
+  el.hidden = false;
+}
+function hideEl(el, done) {
+  if (el.hidden || el.classList.contains('leaving')) return;
+  const finish = () => { el.classList.remove('leaving'); el.hidden = true; if (done) done(); };
+  if (reduceMotion.matches) return finish();
+  el.classList.add('leaving');
+  el._leave = setTimeout(finish, 220);
 }
 
 // кнопки игры в верхней панели: видны, когда карта выбрана и автомат свободен
@@ -139,19 +154,18 @@ function renderContacts() {
 let lastFocus = null;
 function openModal(id) {
   lastFocus = document.activeElement;
-  $(id).hidden = false;
+  showEl($(id));
   const focusable = $(id).querySelector('button, a, video');
   if (focusable) focusable.focus();
 }
 
 function closeModal(id) {
   const m = $(id);
-  if (m.hidden) return;
-  m.hidden = true;
+  if (m.hidden || m.classList.contains('leaving')) return;
+  hideEl(m, () => { if (id === 'viewer') $('viewer-media').replaceChildren(); });
   if (id === 'viewer') {
     const v = m.querySelector('video');
     if (v) v.pause();
-    $('viewer-media').replaceChildren();
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     afterViewer();
   }
@@ -262,7 +276,7 @@ function afterViewer() {
 async function chooseCard(cat) {
   if (state.busy || !state.machine) return;
   state.busy = true;
-  $('choose').hidden = true;
+  hideEl($('choose'));
   setGameButtons(false);
   const m = state.machine;
   state.category = cat;
@@ -308,7 +322,7 @@ function changeCard() {
   state.machine.resetCards();
   state.machine.setScreen('idle');
   state.machine.applyShot('intro', 1.2);
-  $('choose').hidden = false;
+  showEl($('choose'));
   const first = $('cards').querySelector('button');
   if (first) first.focus();
 }
@@ -332,8 +346,8 @@ async function boot() {
     $('loader-pct').innerHTML = 'Не удалось загрузить 3D. <a href="../simple.html">Простая версия</a>';
     return;
   }
-  $('loader').hidden = true;
-  $('choose').hidden = false;
+  hideEl($('loader'));
+  showEl($('choose'));
   const slug = decodeURIComponent(location.hash.slice(1));
   const work = slug && workBySlug(slug);
   if (work) openViewer(work, categoryById(work.group), true);

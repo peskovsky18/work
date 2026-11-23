@@ -387,10 +387,9 @@ export class FreeRoamController {
         { minX: -1.50, maxX: 0.40, minZ: 4.25, maxZ: 4.75 },
         // Правая скамейка Парижского метро (4 места, X = +2.85, Z = 4.52)
         { minX: 1.90, maxX: 3.80, minZ: 4.25, maxZ: 4.75 },
-        // Тумбы эскалатора с петлями поручней (две ленты): левая, средняя, правая
-        { minX: -5.30, maxX: -5.06, minZ: 3.25, maxZ: 4.90 },
-        { minX: -4.14, maxX: -3.39, minZ: 3.25, maxZ: 4.90 },
-        { minX: -2.47, maxX: -2.23, minZ: 3.25, maxZ: 4.90 }
+        // Эскалатор целиком: проём портала (x -6.0…-1.5) с тумбами и петлями поручней (z ≥ 3.30).
+        // Запас ~0.2 м, чтобы камера не заходила в поручни, стекло и тоннель сбоку от лент
+        { minX: -6.25, maxX: -1.25, minZ: 3.10, maxZ: 5.00 }
       ];
 
       for (const obs of obstacles) {
@@ -446,9 +445,9 @@ export class FreeRoamController {
       if (pos.z <= minZ) { pos.z = minZ; if (this.velocity.z < 0) this.velocity.z = 0; }
     } else if (pos.z >= PLATFORM_WALL_Z) {
       // На платформе станции
-      const minX = -8.80;
-      const maxX = 5.80;
-      const maxZ = 4.05; // Вплотную перед парижскими сиденьями и автоматом
+      const minX = -7.60;
+      const maxX = 5.00;
+      const maxZ = 3.90; // Перед парижскими сиденьями и автоматом
       if (pos.x <= minX) { pos.x = minX; if (this.velocity.x < 0) this.velocity.x = 0; }
       if (pos.x >= maxX) { pos.x = maxX; if (this.velocity.x > 0) this.velocity.x = 0; }
       if (pos.z >= maxZ) { pos.z = maxZ; if (this.velocity.z > 0) this.velocity.z = 0; }

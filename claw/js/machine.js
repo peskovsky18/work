@@ -429,7 +429,8 @@ export class Machine {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    if (this.root) this.applyShot(this.shot, 0);
+    // под новый размер окна пересчитываем кадр, но не трогаем идущие переходы камеры внутри раунда
+    if (this.root) { Object.assign(this.view, this.shotView(this.shot)); this.cam = null; }
   }
 
   shotView(name) {
@@ -450,6 +451,15 @@ export class Machine {
     const dir = new THREE.Vector3(...s.d).normalize();
     const p = new THREE.Vector3(...s.t).addScaledVector(dir, dist);
     return { px: p.x, py: p.y, pz: p.z, tx: s.t[0], ty: s.t[1], tz: s.t[2] };
+  }
+
+  /**
+   * Переход камеры как часть таймлайна: срабатывает в свой момент и не отменяет соседние переходы.
+   * applyShot сразу убивает все твины камеры, поэтому внутри одной партии его звать нельзя:
+   * выживал только последний кадр, и следующая партия начиналась с камерой на призе.
+   */
+  shotTo(tl, name, duration, at, ease = 'power2.inOut') {
+    return tl.to(this.view, { ...this.shotView(name), duration, ease, onStart: () => { this.shot = name; } }, at);
   }
 
   applyShot(name, duration = 1.4, ease = 'power2.inOut') {
@@ -759,8 +769,10 @@ export class Machine {
     const onGrip = () => this.setGrip(grip.v);
     const onClaw = () => this.updateCable();
 
-    tl.add(this.applyShot('glass', 1.2), 0)
-      .call(() => status('Клешня ищет шар…'), null, 0.1)
+    // переходы прошлой партии и возврата к общему плану больше не нужны: камерой управляет эта партия
+    gsap.killTweensOf(this.view);
+    this.shotTo(tl, 'glass', 1.2, 0);
+    tl.call(() => status('Клешня ищет шар…'), null, 0.1)
       .to(this.crossbar.position, { z: crossTarget, duration: travel, ease: 'sine.inOut' }, 0.4)
       .to(this.carriage.position, { x: carTarget, duration: travel, ease: 'sine.inOut' }, 0.4)
       .to(grip, { v: fit.open, duration: 0.5, ease: 'power2.inOut', onUpdate: onGrip }, 0.4 + travel - 0.25)
@@ -789,8 +801,8 @@ export class Machine {
         y: '-=1.15', duration: 0.6, ease: 'power2.in',
         onUpdate: () => { cap.obj.position.y = drop.y; }
       }, t + 0.15)
-      .call(() => { cap.obj.visible = false; this.celebrate(); }, null, t + 0.75)
-      .add(this.applyShot('door', 1.0), t + 0.3);
+      .call(() => { cap.obj.visible = false; this.celebrate(); }, null, t + 0.75);
+    this.shotTo(tl, 'door', 1.0, t + 0.3);
     t += 1.35;
     // шар выкатывается из дверцы к зрителю
     const out = this.root.worldToLocal(door.clone());
@@ -804,10 +816,10 @@ export class Machine {
       .to(cap.obj.position, { x: present.x, z: present.z, duration: 1.0, ease: 'power3.out' }, t)
       .to(cap.obj.position, { y: present.y, duration: 1.0, ease: 'back.out(1.15)' }, t)
       // докатывается осью к зрителю: постер внутри смотрит в камеру
-      .to(cap.obj.rotation, { x: Math.PI * 2.5, duration: 1.0, ease: 'power3.out' }, t)
-      .add(this.applyShot('prize', 0.9), t + 0.1)
-      // вернуть клешню домой, пока смотрим на приз
-      .to(this.crossbar.position, { z: this.rest.crossZ, duration: 1.5, ease: 'sine.inOut' }, t)
+      .to(cap.obj.rotation, { x: Math.PI * 2.5, duration: 1.0, ease: 'power3.out' }, t);
+    this.shotTo(tl, 'prize', 0.9, t + 0.1);
+    // вернуть клешню домой, пока смотрим на приз
+    tl.to(this.crossbar.position, { z: this.rest.crossZ, duration: 1.5, ease: 'sine.inOut' }, t)
       .to(this.carriage.position, { x: this.rest.carX, duration: 1.5, ease: 'sine.inOut' }, t)
       .to(grip, { v: 0, duration: 0.4, ease: 'power2.inOut', onUpdate: onGrip }, t + 1);
     t += 1.1;

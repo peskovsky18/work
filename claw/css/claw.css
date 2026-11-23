@@ -1,0 +1,458 @@
+/* ==========================================================================
+   Автомат с клешнёй: пиксельный интерфейс поверх гладкой 3D-сцены.
+   Читаемость важнее стилизации: пиксельные рамки, кнопки и тени, а шрифт один —
+   JetBrains Mono (у пиксельных шрифтов плохо читается кириллица). Заголовки жирные капсом.
+   ========================================================================== */
+
+:root {
+  --p: 3px;                 /* «пиксель» рамок */
+  --ink: #050506;
+  --win: #24262c;
+  --win-2: #1d1f24;
+  --well: #121316;
+  --frame: #f2efe6;
+  --frame-inner: #8f8a7c;
+  --text: #f2efe6;
+  --text-soft: #b8b3a6;
+  --pick: #f5a623;
+  --pick-hover: #ffc45c;
+  --ok: #2bff88;
+  --font-ui: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-title: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+@media (max-width: 720px) {
+  :root { --p: 2px; }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0e0f13;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+[hidden] { display: none !important; }
+
+a { color: var(--pick); }
+a:hover { color: var(--pick-hover); }
+
+::selection { background: var(--pick); color: var(--ink); }
+
+:focus-visible {
+  outline: var(--p) solid var(--pick);
+  outline-offset: calc(var(--p) * 2);
+}
+
+/* --------------------------------------------------------------------------
+   Окно: заливка полосами, светлая двойная рамка, жёсткая тень без размытия
+   -------------------------------------------------------------------------- */
+.win {
+  position: relative;
+  background:
+    repeating-linear-gradient(180deg, var(--win) 0 calc(var(--p) * 2), var(--win-2) calc(var(--p) * 2) calc(var(--p) * 4));
+  border: var(--p) solid var(--frame);
+  box-shadow:
+    inset 0 0 0 var(--p) var(--ink),
+    inset 0 0 0 calc(var(--p) * 2) var(--frame-inner),
+    calc(var(--p) * 2) calc(var(--p) * 2) 0 var(--ink);
+  padding: calc(var(--p) * 6);
+}
+
+.px-title {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.chip {
+  display: inline-block;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 6px 9px 7px;
+  background: var(--chip, var(--pick));
+  color: var(--ink);
+  text-transform: uppercase;
+  box-shadow: var(--p) var(--p) 0 var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   Кнопки
+   -------------------------------------------------------------------------- */
+.px-btn {
+  font: inherit;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--well);
+  border: var(--p) solid var(--frame);
+  box-shadow: 0 calc(var(--p) * 2) 0 var(--ink);
+  padding: 10px 16px 11px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.px-btn:hover { background: var(--pick); color: var(--ink); }
+.px-btn:active { transform: translateY(var(--p)); box-shadow: 0 var(--p) 0 var(--ink); }
+.px-btn-small { font-size: 15px; padding: 7px 11px 8px; }
+.px-btn-pick { background: var(--pick); color: var(--ink); }
+.px-btn-pick:hover { background: var(--pick-hover); }
+
+/* --------------------------------------------------------------------------
+   Верхняя панель
+   -------------------------------------------------------------------------- */
+.topbar {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.topbar > * { pointer-events: auto; }
+
+.logo {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+  text-decoration: none;
+  padding: 12px 14px;
+}
+
+.logo:hover { color: var(--pick); }
+
+.topnav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* --------------------------------------------------------------------------
+   Загрузка
+   -------------------------------------------------------------------------- */
+.loader {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  text-align: center;
+  z-index: 30;
+}
+
+.bar {
+  margin: 18px 0 10px;
+  height: 22px;
+  background: var(--well);
+  border: var(--p) solid var(--frame);
+  padding: var(--p);
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0%;
+  background: repeating-linear-gradient(90deg, var(--pick) 0 12px, transparent 12px 15px);
+  transition: width 0.15s steps(4);
+}
+
+.loader-pct { margin: 0; color: var(--text-soft); }
+
+/* --------------------------------------------------------------------------
+   Выбор карты
+   -------------------------------------------------------------------------- */
+.choose {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(980px, calc(100vw - 24px));
+  z-index: 10;
+  text-align: center;
+}
+
+.choose-lead { margin: 6px 0 16px; color: var(--text-soft); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.card-btn {
+  font: inherit;
+  color: var(--text);
+  background: var(--well);
+  border: var(--p) solid var(--frame-inner);
+  padding: 12px 12px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  text-align: left;
+  box-shadow: 0 calc(var(--p) * 2) 0 var(--ink);
+  transition: transform 0.12s steps(3);
+}
+
+.card-btn img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1024 / 646;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
+}
+
+.card-btn:hover,
+.card-btn:focus-visible {
+  border-color: var(--pick);
+  transform: translateY(-6px);
+}
+
+.card-name {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1.2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-key {
+  color: var(--ink);
+  background: var(--frame);
+  padding: 2px 6px;
+  font-size: 14px;
+  align-self: center;
+}
+
+.card-sub { font-size: 15px; color: var(--text-soft); line-height: 1.35; min-height: 2.7em; }
+.card-count { font-size: 15px; font-weight: 600; color: var(--pick); }
+.card-count.soon { color: var(--text-soft); }
+
+/* --------------------------------------------------------------------------
+   Строка статуса и панель игры
+   -------------------------------------------------------------------------- */
+.status,
+.playbar {
+  position: fixed;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 18px;
+  max-width: calc(100vw - 24px);
+}
+
+.status { min-width: min(560px, calc(100vw - 24px)); }
+#status-text { flex: 1; }
+.status-cursor { color: var(--pick); animation: blink 0.8s steps(2) infinite; }
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.playbar { flex-wrap: wrap; justify-content: center; }
+.playbar-left { color: var(--text-soft); }
+
+/* --------------------------------------------------------------------------
+   Модальные окна: работа, список, контакты
+   -------------------------------------------------------------------------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(5, 5, 6, 0.55);
+  overflow: auto;
+}
+
+.viewer, .list, .contacts {
+  width: min(900px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
+.contacts { width: min(520px, 100%); }
+
+.viewer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.viewer-title { font-size: 26px; margin-bottom: 14px; }
+
+.viewer-media {
+  background: var(--ink);
+  border: var(--p) solid var(--frame-inner);
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.viewer-media video,
+.viewer-media img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.viewer-media.soon {
+  aspect-ratio: auto;
+  padding: 36px 20px;
+  text-align: center;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--pick);
+}
+
+.viewer-text { margin: 14px 0 0; color: var(--text-soft); }
+.viewer-text:empty { display: none; }
+
+.viewer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 12px 0 0;
+}
+
+.viewer-meta:empty { display: none; }
+.viewer-meta div { display: flex; gap: 8px; }
+.viewer-meta dt { color: var(--text-soft); }
+.viewer-meta dd { margin: 0; }
+
+.viewer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.list-group + .list-group { margin-top: 22px; }
+
+.list-group h3 {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 17px;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list-group h3::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: var(--chip);
+  box-shadow: var(--p) var(--p) 0 var(--ink);
+}
+
+.list-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.list-item {
+  font: inherit;
+  color: var(--text);
+  background: var(--well);
+  border: var(--p) solid var(--frame-inner);
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item:hover, .list-item:focus-visible { border-color: var(--pick); }
+.list-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.list-empty { color: var(--text-soft); margin: 0; }
+
+.contacts-body p { margin: 0 0 12px; }
+.contact-row { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+.contact-row span { color: var(--text-soft); min-width: 110px; }
+
+.noscript {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, calc(100vw - 32px));
+}
+
+/* --------------------------------------------------------------------------
+   Телефон
+   -------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  html, body { font-size: 16px; }
+  .logo { font-size: 14px; padding: 10px; }
+  .topnav .px-btn { font-size: 13px; padding: 7px 9px 8px; }
+  .px-title { font-size: 18px; }
+  .choose { padding: 14px 12px; }
+  .choose-lead { font-size: 15px; margin-bottom: 12px; }
+  .cards { gap: 8px; }
+  .card-btn { padding: 6px; gap: 6px; }
+  .card-name { font-size: 13px; }
+  .card-key, .card-sub { display: none; }
+  .card-count { font-size: 13px; }
+  .status { min-width: 0; width: calc(100vw - 24px); font-size: 15px; gap: 10px; }
+  .playbar { width: calc(100vw - 24px); gap: 8px; }
+  .viewer-title { font-size: 20px; }
+  .modal { padding: 8px; }
+  .list-items { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .list-item { font-size: 14px; padding: 6px; }
+}
+
+/* невысокие экраны: окно выбора не должно закрывать автомат */
+@media (max-height: 760px) and (min-width: 721px) {
+  .choose { width: min(760px, calc(100vw - 24px)); padding: 14px 16px; }
+  .choose-lead { margin: 4px 0 10px; }
+  .cards { gap: 12px; }
+  .card-btn { padding: 8px; gap: 6px; }
+  .card-sub { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-cursor { animation: none; }
+  .card-btn { transition: none; }
+}

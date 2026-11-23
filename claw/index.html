@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>PESKOVSKII — автомат с работами</title>
+  <meta name="description" content="Портфолио Александра Песковского: выбери карту, и клешня достанет шар с работой.">
+  <meta name="theme-color" content="#0e0f13">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/claw.css">
+  <link rel="preload" href="claw_machine.glb" as="fetch" crossorigin>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../js/vendor/three.module.js",
+      "three/addons/": "../js/vendor/"
+    }
+  }
+  </script>
+  <script src="../js/vendor/gsap.min.js"></script>
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <a class="win logo" href="./" aria-label="PESKOVSKII, на главную">PESKOVSKII</a>
+    <nav class="topnav" aria-label="Разделы">
+      <button class="px-btn" type="button" data-open="list">Все работы</button>
+      <button class="px-btn" type="button" data-open="contacts">Контакты</button>
+    </nav>
+  </header>
+
+  <div id="loader" class="win loader" role="status">
+    <p class="px-title">Включаю автомат</p>
+    <div class="bar" aria-hidden="true"><div class="bar-fill" id="loader-fill"></div></div>
+    <p class="loader-pct" id="loader-pct">0%</p>
+  </div>
+
+  <section id="choose" class="win choose" hidden aria-labelledby="choose-title">
+    <h1 class="px-title" id="choose-title">Выбери карту</h1>
+    <p class="choose-lead">Карта решает, какие шары с работами окажутся в автомате.</p>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <div id="status" class="win status" hidden>
+    <span class="status-cursor" aria-hidden="true">▶</span>
+    <span id="status-text" aria-live="polite"></span>
+    <button class="px-btn px-btn-small" type="button" id="fast">Быстрее ▶▶</button>
+  </div>
+
+  <div id="playbar" class="win playbar" hidden>
+    <span class="chip" id="playbar-card"></span>
+    <span class="playbar-left" id="playbar-left"></span>
+    <button class="px-btn px-btn-pick" type="button" id="again">Ещё шар</button>
+    <button class="px-btn" type="button" data-action="change">Сменить карту</button>
+  </div>
+
+  <div id="viewer" class="modal" hidden>
+    <div class="win viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
+      <div class="viewer-head">
+        <span class="chip" id="viewer-chip"></span>
+        <button class="px-btn px-btn-small close" type="button" data-close aria-label="Закрыть">X</button>
+      </div>
+      <h2 class="px-title viewer-title" id="viewer-title"></h2>
+      <div class="viewer-media" id="viewer-media"></div>
+      <p class="viewer-text" id="viewer-text"></p>
+      <dl class="viewer-meta" id="viewer-meta"></dl>
+      <div class="viewer-actions" id="viewer-actions"></div>
+    </div>
+  </div>
+
+  <div id="list" class="modal" hidden>
+    <div class="win list" role="dialog" aria-modal="true" aria-labelledby="list-title">
+      <div class="viewer-head">
+        <h2 class="px-title" id="list-title">Все работы</h2>
+        <button class="px-btn px-btn-small close" type="button" data-close aria-label="Закрыть">X</button>
+      </div>
+      <div id="list-body"></div>
+    </div>
+  </div>
+
+  <div id="contacts" class="modal" hidden>
+    <div class="win contacts" role="dialog" aria-modal="true" aria-labelledby="contacts-title">
+      <div class="viewer-head">
+        <h2 class="px-title" id="contacts-title">Контакты</h2>
+        <button class="px-btn px-btn-small close" type="button" data-close aria-label="Закрыть">X</button>
+      </div>
+      <div id="contacts-body"></div>
+    </div>
+  </div>
+
+  <noscript>
+    <div class="win noscript">
+      <p class="px-title">PESKOVSKII</p>
+      <p>Автомату нужен JavaScript. Работы можно посмотреть на <a href="../simple.html">простой странице</a>.</p>
+    </div>
+  </noscript>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

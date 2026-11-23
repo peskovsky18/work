@@ -1,28 +1,35 @@
 /* ==========================================================================
-   Автомат с клешнёй: пиксельный интерфейс поверх гладкой 3D-сцены.
-   Читаемость важнее стилизации: пиксельные рамки, кнопки и тени, а шрифт один —
-   JetBrains Mono (у пиксельных шрифтов плохо читается кириллица). Заголовки жирные капсом.
+   Автомат с клешнёй: интерфейс в языке плакатов на корпусе.
+   Фиолетовые окна в пиксельный растр, чернильные рамки со ступенчатыми углами,
+   жёлтые надписи с чернильной обводкой и розовой тенью. Шрифт один: Tiny5 — пиксельный, с нормальной кириллицей. Начертание одно, жирность не синтезируем.
    ========================================================================== */
 
 :root {
-  --p: 3px;                 /* «пиксель» рамок */
-  --ink: #050506;
-  --win: #24262c;
-  --win-2: #1d1f24;
-  --well: #121316;
-  --frame: #f2efe6;
-  --frame-inner: #8f8a7c;
-  --text: #f2efe6;
-  --text-soft: #b8b3a6;
-  --pick: #f5a623;
-  --pick-hover: #ffc45c;
-  --ok: #2bff88;
-  --font-ui: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-title: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --b: 3px;                 /* «пиксель» рамок и теней */
+  --ink: #140726;
+  --night: #1b0a44;
+  --violet: #2a0d68;
+  --violet-hi: #3d0f8e;
+  --violet-hot: #5a1aff;
+  --magenta: #ff2bd6;
+  --sun: #ffd23f;
+  --sun-hi: #ffe680;
+  --paper: #fff6e0;
+  --muted: #c4b5ec;
+  --font: 'Tiny5', 'JetBrains Mono', ui-monospace, monospace;
+  /* рамка в 2 пикселя без углов: так рисуют окна в пиксель-арте */
+  --frame: 0 calc(var(--b) * -2) 0 0 var(--ink), 0 calc(var(--b) * 2) 0 0 var(--ink),
+           calc(var(--b) * -2) 0 0 0 var(--ink), calc(var(--b) * 2) 0 0 0 var(--ink);
+  --frame-thin: 0 calc(var(--b) * -1) 0 0 var(--ink), 0 var(--b) 0 0 var(--ink),
+                calc(var(--b) * -1) 0 0 0 var(--ink), var(--b) 0 0 0 var(--ink);
+  /* надпись как на плакате: чернильная обводка и сдвинутая розовая тень */
+  --poster-text: 0 -2px 0 var(--ink), 2px 0 0 var(--ink), 0 2px 0 var(--ink), -2px 0 0 var(--ink),
+                 2px 2px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink),
+                 4px 4px 0 var(--magenta), 6px 6px 0 var(--ink);
 }
 
 @media (max-width: 720px) {
-  :root { --p: 2px; }
+  :root { --b: 2px; }
 }
 
 * { box-sizing: border-box; }
@@ -32,10 +39,11 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #0e0f13;
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 17px;
-  line-height: 1.5;
+  color: var(--paper);
+  font-family: var(--font);
+  font-size: 20px;
+  line-height: 1.35;
+  font-synthesis: none;
 }
 
 #scene {
@@ -48,93 +56,99 @@ html, body {
 
 [hidden] { display: none !important; }
 
-a { color: var(--pick); }
-a:hover { color: var(--pick-hover); }
+a { color: var(--sun); text-underline-offset: 3px; }
+a:hover { color: var(--sun-hi); }
 
-::selection { background: var(--pick); color: var(--ink); }
+::selection { background: var(--magenta); color: var(--paper); }
 
 :focus-visible {
-  outline: var(--p) solid var(--pick);
-  outline-offset: calc(var(--p) * 2);
+  outline: var(--b) solid var(--sun);
+  outline-offset: calc(var(--b) * 3);
 }
 
 /* --------------------------------------------------------------------------
-   Окно: заливка полосами, светлая двойная рамка, жёсткая тень без размытия
+   Окно: полосы от тёмного к светлому, сверху мелкий шахматный растр, как на плакатах
    -------------------------------------------------------------------------- */
 .win {
   position: relative;
   background:
-    repeating-linear-gradient(180deg, var(--win) 0 calc(var(--p) * 2), var(--win-2) calc(var(--p) * 2) calc(var(--p) * 4));
-  border: var(--p) solid var(--frame);
+    conic-gradient(rgba(255, 255, 255, 0.035) 25%, transparent 0 50%, rgba(255, 255, 255, 0.035) 0 75%, transparent 0)
+      0 0 / calc(var(--b) * 2) calc(var(--b) * 2),
+    linear-gradient(180deg, var(--night) 0 30%, #210b55 30% 60%, var(--violet) 60% 85%, #33107c 85%);
   box-shadow:
-    inset 0 0 0 var(--p) var(--ink),
-    inset 0 0 0 calc(var(--p) * 2) var(--frame-inner),
-    calc(var(--p) * 2) calc(var(--p) * 2) 0 var(--ink);
-  padding: calc(var(--p) * 6);
+    var(--frame),
+    inset 0 var(--b) 0 rgba(255, 255, 255, 0.14),
+    inset 0 calc(var(--b) * -1) 0 rgba(0, 0, 0, 0.3),
+    calc(var(--b) * 3) calc(var(--b) * 4) 0 0 var(--magenta),
+    calc(var(--b) * 3) calc(var(--b) * 6) 0 0 var(--ink);
+  padding: calc(var(--b) * 7);
 }
 
 .px-title {
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--sun);
+  text-shadow: var(--poster-text);
   margin: 0;
 }
 
 .chip {
   display: inline-block;
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 17px;
   line-height: 1;
-  letter-spacing: 0.04em;
-  padding: 6px 9px 7px;
-  background: var(--chip, var(--pick));
+  padding: 6px 10px 7px;
+  background: var(--chip, var(--sun));
   color: var(--ink);
-  text-transform: uppercase;
-  box-shadow: var(--p) var(--p) 0 var(--ink);
+  box-shadow: var(--frame-thin);
 }
 
 /* --------------------------------------------------------------------------
-   Кнопки
+   Кнопки: пиксельные «клавиши» с толщиной снизу; нажатие опускает клавишу
    -------------------------------------------------------------------------- */
 .px-btn {
   font: inherit;
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 16px;
+  font-weight: 400;
+  font-size: 20px;
   line-height: 1;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--text);
-  background: var(--well);
-  border: var(--p) solid var(--frame);
-  box-shadow: 0 calc(var(--p) * 2) 0 var(--ink);
-  padding: 10px 16px 11px;
+  color: var(--paper);
+  background: var(--violet-hi);
+  border: 0;
+  box-shadow:
+    var(--frame-thin),
+    inset 0 var(--b) 0 rgba(255, 255, 255, 0.18),
+    0 calc(var(--b) * 3) 0 0 var(--ink);
+  padding: 11px 18px 12px;
+  margin: var(--b);
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  transition: transform 0.08s steps(2), background-color 0.08s steps(2);
 }
 
-.px-btn:hover { background: var(--pick); color: var(--ink); }
-.px-btn:active { transform: translateY(var(--p)); box-shadow: 0 var(--p) 0 var(--ink); }
-.px-btn-small { font-size: 15px; padding: 7px 11px 8px; }
-.px-btn-pick { background: var(--pick); color: var(--ink); }
-.px-btn-pick:hover { background: var(--pick-hover); }
+.px-btn:hover { background: var(--violet-hot); color: var(--paper); }
+.px-btn:active {
+  transform: translateY(calc(var(--b) * 2));
+  box-shadow: var(--frame-thin), inset 0 var(--b) 0 rgba(255, 255, 255, 0.18), 0 var(--b) 0 0 var(--ink);
+}
+.px-btn-small { font-size: 18px; padding: 7px 11px 8px; }
+.px-btn-pick { background: var(--sun); color: var(--ink); }
+.px-btn-pick:hover { background: var(--sun-hi); color: var(--ink); }
 
 /* --------------------------------------------------------------------------
-   Верхняя панель
+   Верх: имя набрано как надпись на плакате, без подложки
    -------------------------------------------------------------------------- */
 .topbar {
   position: fixed;
-  top: max(14px, env(safe-area-inset-top));
-  left: 14px;
-  right: 14px;
+  top: max(16px, env(safe-area-inset-top));
+  left: 18px;
+  right: 18px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -145,23 +159,31 @@ a:hover { color: var(--pick-hover); }
 
 .topbar > * { pointer-events: auto; }
 
-.logo {
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 18px;
-  line-height: 1;
-  color: var(--text);
-  text-decoration: none;
-  padding: 12px 14px;
+/* класс .win у логотипа остаётся в разметке, но окном он не выглядит */
+.logo.win {
+  background: none;
+  box-shadow: none;
+  padding: 4px 2px;
 }
 
-.logo:hover { color: var(--pick); }
+.logo {
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+  text-shadow: var(--poster-text);
+  text-decoration: none;
+}
+
+.logo:hover { color: var(--sun); }
 
 /* кнопки внизу по центру; окно выбора карты стоит над ними (--dock-h считает app.js) */
 .dock {
   position: fixed;
   left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: max(18px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 20;
   display: flex;
@@ -173,34 +195,38 @@ a:hover { color: var(--pick-hover); }
 }
 
 /* --------------------------------------------------------------------------
-   Загрузка
+   Загрузка: полоска наполняется шарами цветов автомата
    -------------------------------------------------------------------------- */
 .loader {
   position: fixed;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: min(420px, calc(100vw - 32px));
+  width: min(420px, calc(100vw - 40px));
   text-align: center;
   z-index: 30;
 }
 
 .bar {
-  margin: 18px 0 10px;
-  height: 22px;
-  background: var(--well);
-  border: var(--p) solid var(--frame);
-  padding: var(--p);
+  margin: 22px 0 12px;
+  height: 24px;
+  background: var(--ink);
+  box-shadow: var(--frame-thin);
+  padding: var(--b);
 }
 
 .bar-fill {
   height: 100%;
   width: 0%;
-  background: repeating-linear-gradient(90deg, var(--pick) 0 12px, transparent 12px 15px);
+  background: repeating-linear-gradient(90deg,
+    var(--magenta) 0 12px, transparent 12px 15px,
+    var(--sun) 15px 27px, transparent 27px 30px,
+    #5ff0c4 30px 42px, transparent 42px 45px,
+    #4f8bff 45px 57px, transparent 57px 60px);
   transition: width 0.15s steps(4);
 }
 
-.loader-pct { margin: 0; color: var(--text-soft); }
+.loader-pct { margin: 0; color: var(--muted); }
 
 /* --------------------------------------------------------------------------
    Выбор карты
@@ -208,34 +234,36 @@ a:hover { color: var(--pick-hover); }
 .choose {
   position: fixed;
   left: 50%;
-  bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--dock-h, 0px));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + var(--dock-h, 0px) + var(--b) * 4);
   transform: translateX(-50%);
-  width: min(980px, calc(100vw - 24px));
+  width: min(980px, calc(100vw - 32px));
   z-index: 10;
   text-align: center;
 }
 
-.choose-lead { margin: 6px 0 16px; color: var(--text-soft); }
+.choose .px-title { font-size: 46px; }
+.choose-lead { margin: 10px 0 20px; color: var(--muted); }
 
 .cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 20px;
 }
 
 .card-btn {
   font: inherit;
-  color: var(--text);
-  background: var(--well);
-  border: var(--p) solid var(--frame-inner);
+  color: var(--paper);
+  background: var(--ink);
+  border: 0;
+  box-shadow: var(--frame-thin), inset 0 0 0 var(--b) var(--violet-hi);
   padding: 12px 12px 14px;
+  margin: var(--b);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
   text-align: left;
-  box-shadow: 0 calc(var(--p) * 2) 0 var(--ink);
   transition: transform 0.12s steps(3);
 }
 
@@ -248,33 +276,41 @@ a:hover { color: var(--pick-hover); }
   box-shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
 }
 
+/* выбранная карта приподнимается и подсвечивается жёлтой рамкой, под ней розовая тень */
 .card-btn:hover,
 .card-btn:focus-visible {
-  border-color: var(--pick);
-  transform: translateY(-6px);
+  transform: translateY(calc(var(--b) * -3));
+  box-shadow: var(--frame-thin), inset 0 0 0 var(--b) var(--sun), 0 calc(var(--b) * 4) 0 0 var(--magenta);
+  outline: none;
 }
 
 .card-name {
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 17px;
-  line-height: 1.2;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 8px;
 }
 
+/* клавиша, которой можно выбрать карту */
 .card-key {
   color: var(--ink);
-  background: var(--frame);
-  padding: 2px 6px;
-  font-size: 14px;
-  align-self: center;
+  background: var(--paper);
+  box-shadow: 0 var(--b) 0 0 var(--muted);
+  min-width: 24px;
+  padding: 3px 6px 4px;
+  font-size: 17px;
+  text-align: center;
 }
 
-.card-sub { font-size: 15px; color: var(--text-soft); line-height: 1.35; min-height: 2.7em; }
-.card-count { font-size: 15px; font-weight: 600; color: var(--pick); }
-.card-count.soon { color: var(--text-soft); }
+.card-btn:hover .card-key,
+.card-btn:focus-visible .card-key { background: var(--sun); }
+
+.card-sub { font-size: 18px; color: var(--muted); line-height: 1.3; min-height: 2.6em; }
+.card-count { font-size: 18px; font-weight: 400; color: var(--sun); }
+.card-count.soon { color: var(--muted); font-weight: 400; }
 
 /* статус игры читают только экранные дикторы */
 .sr-only {
@@ -295,14 +331,14 @@ a:hover { color: var(--pick-hover); }
   z-index: 40;
   display: grid;
   place-items: center;
-  padding: 16px;
-  background: rgba(5, 5, 6, 0.55);
+  padding: 24px;
+  background: rgba(20, 7, 38, 0.62);
   overflow: auto;
 }
 
 .viewer, .list, .contacts {
   width: min(900px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 56px);
   overflow: auto;
 }
 
@@ -313,14 +349,14 @@ a:hover { color: var(--pick-hover); }
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
-.viewer-title { font-size: 26px; margin-bottom: 14px; }
+.viewer-title { font-size: 38px; margin-bottom: 18px; }
 
 .viewer-media {
   background: var(--ink);
-  border: var(--p) solid var(--frame-inner);
+  box-shadow: var(--frame-thin);
   aspect-ratio: 16 / 9;
   display: grid;
   place-items: center;
@@ -332,82 +368,89 @@ a:hover { color: var(--pick-hover); }
 
 .viewer-media.soon {
   aspect-ratio: auto;
-  padding: 36px 20px;
+  padding: 40px 20px;
   text-align: center;
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 28px;
-  color: var(--pick);
+  font-weight: 400;
+  font-size: 34px;
+  color: var(--sun);
+  text-shadow: var(--poster-text);
 }
 
-.viewer-text { margin: 14px 0 0; color: var(--text-soft); }
+.viewer-text { margin: 16px 0 0; color: var(--muted); max-width: 70ch; }
 .viewer-text:empty { display: none; }
 
 .viewer-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 22px;
+  gap: 6px 24px;
   margin: 12px 0 0;
 }
 
 .viewer-meta:empty { display: none; }
 .viewer-meta div { display: flex; gap: 8px; }
-.viewer-meta dt { color: var(--text-soft); }
+.viewer-meta dt { color: var(--muted); }
 .viewer-meta dd { margin: 0; }
 
 .viewer-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
-.list-group + .list-group { margin-top: 22px; }
+.list-group + .list-group { margin-top: 26px; }
 
 .list-group h3 {
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 17px;
-  margin: 0 0 10px;
+  font-weight: 400;
+  font-size: 24px;
+  margin: 0 0 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* квадратик цвета карты перед названием группы */
 .list-group h3::before {
   content: '';
   width: 14px;
   height: 14px;
   background: var(--chip);
-  box-shadow: var(--p) var(--p) 0 var(--ink);
+  box-shadow: var(--frame-thin);
 }
 
 .list-items {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .list-item {
   font: inherit;
-  color: var(--text);
-  background: var(--well);
-  border: var(--p) solid var(--frame-inner);
-  padding: 8px;
+  color: var(--paper);
+  background: var(--ink);
+  border: 0;
+  box-shadow: var(--frame-thin), inset 0 0 0 var(--b) var(--violet-hi);
+  padding: 8px 8px 10px;
+  margin: var(--b);
   cursor: pointer;
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: transform 0.12s steps(3);
 }
 
-.list-item:hover, .list-item:focus-visible { border-color: var(--pick); }
+.list-item:hover, .list-item:focus-visible {
+  transform: translateY(calc(var(--b) * -2));
+  box-shadow: var(--frame-thin), inset 0 0 0 var(--b) var(--sun), 0 calc(var(--b) * 3) 0 0 var(--magenta);
+  outline: none;
+}
 .list-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
-.list-empty { color: var(--text-soft); margin: 0; }
+.list-empty { color: var(--muted); margin: 0; }
 
-.contacts-body p { margin: 0 0 12px; }
+.contacts-body p { margin: 0 0 14px; font-size: 24px; }
 .contact-row { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
-.contact-row span { color: var(--text-soft); min-width: 110px; }
+.contact-row span { color: var(--muted); min-width: 110px; }
 
 .noscript {
   position: fixed;
@@ -421,30 +464,32 @@ a:hover { color: var(--pick-hover); }
    Телефон
    -------------------------------------------------------------------------- */
 @media (max-width: 720px) {
-  html, body { font-size: 16px; }
-  .logo { font-size: 14px; padding: 10px; }
+  html, body { font-size: 18px; }
+  .logo { font-size: 22px; }
   /* на телефоне кнопки сеткой 2 x 2, а не 3 + 1 */
   .dock { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: calc(100vw - 24px); }
-  .dock .px-btn { font-size: 13px; padding: 9px 9px 10px; justify-content: center; text-align: center; }
-  .px-title { font-size: 18px; }
-  .choose { padding: 14px 12px; }
-  .choose-lead { font-size: 15px; margin-bottom: 12px; }
+  .dock .px-btn { font-size: 17px; padding: 9px 9px 10px; justify-content: center; text-align: center; }
+  .px-title { font-size: 26px; }
+  .choose .px-title { font-size: 30px; }
+  .choose { padding: 14px 12px; width: calc(100vw - 24px); }
+  .choose-lead { font-size: 17px; margin: 6px 0 12px; }
   .cards { gap: 8px; }
   .card-btn { padding: 6px; gap: 6px; }
-  .card-name { font-size: 13px; }
+  .card-name { font-size: 17px; }
   .card-key, .card-sub { display: none; }
-  .card-count { font-size: 13px; }
-  .viewer-title { font-size: 20px; }
-  .modal { padding: 8px; }
+  .card-count { font-size: 15px; }
+  .viewer-title { font-size: 28px; }
+  .modal { padding: 12px; }
   .list-items { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .list-item { font-size: 14px; padding: 6px; }
+  .list-item { font-size: 16px; padding: 6px; }
 }
 
 /* невысокие экраны: окно выбора не должно закрывать автомат */
 @media (max-height: 760px) and (min-width: 721px) {
-  .choose { width: min(760px, calc(100vw - 24px)); padding: 14px 16px; }
-  .choose-lead { margin: 4px 0 10px; }
-  .cards { gap: 12px; }
+  .choose { width: min(760px, calc(100vw - 32px)); padding: 16px 18px; }
+  .choose .px-title { font-size: 36px; }
+  .choose-lead { margin: 6px 0 12px; }
+  .cards { gap: 14px; }
   .card-btn { padding: 8px; gap: 6px; }
   .card-sub { display: none; }
 }

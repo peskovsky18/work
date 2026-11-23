@@ -489,7 +489,7 @@ def build_cabinet(c):
                 lo, hi = (min(nx * gd0, nx * gd1), t0, za), (max(nx * gd0, nx * gd1), t1, zb)
             box_span(f'Print_Glow_{nm}{bn}', lo, hi, 'Lightbox_Glow', c, bevel=0)
     # дверца выдачи приза под приёмником (слева внизу на фронте)
-    dx = (-IN + CHUTE) / 2
+    dx = (-IN + CHUTE) / 2 + 0.07   # на 7 см правее середины под приёмником
     dz0, dz1 = 0.2, 0.42
     yh = -h - 0.012   # лицевая плоскость корпуса дверцы
     box_span('Prize_Door_Housing', (dx - 0.105, yh, dz0), (dx + 0.105, -po, dz1), 'Graphite', c, bevel=0.008)

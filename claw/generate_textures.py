@@ -187,7 +187,7 @@ def print_front():
     rnd = random.Random(4)
     for _ in range(40):
         px_star(d, rnd.randint(0, VW), rnd.randint(70, VH), rnd.random() < 0.3)
-    door = (0, 136, 84, VH)
+    door = (20, 136, 104, VH)   # под дверцей приза шаров нет: их закроет корпус дверцы
     scatter_px(d, 40, 6, 12, [door], seed=11, area=(0, 78, VW, VH))
     save_px(img, 'print_front.png')
 

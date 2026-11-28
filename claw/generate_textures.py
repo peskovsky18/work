@@ -236,9 +236,80 @@ CARDS = [  # выбор при входе на сайт: категория ра
          ink='#ffffff', accent='#ffd23f'),
     dict(slug='creative', title='КРЕАТИВ', sub='креативные и продюсерские проекты', num='0002',
          colors=('#3a1606', '#ff8a3d', '#ffd23f'), ink='#ffffff', accent='#1b0b3a'),
-    dict(slug='vibecode', title='ПРОЕКТЫ', sub='сайты и сервисы', num='0003', colors=('#04161a', '#0f6b6b', '#3ee0b0'),
+    dict(slug='vibecode', title='ПРОЕКТЫ', sub='сайты и сервисы', num='0003', colors=('#061430', '#0d5c74', '#3ee0b0'),
          ink='#e9fff8', accent='#3ee0b0'),
 ]
+
+
+def browser_windows(img):
+    """Узор карты «Проекты»: точечная сетка холста и три окна браузера внахлёст, в переднем курсор."""
+    w, h = img.size
+    k = SS
+    lay = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    for y in range(18 * k, h, 28 * k):  # сетка точек, как в редакторе макетов
+        for x in range(18 * k, w, 28 * k):
+            d.ellipse((x - 2 * k, y - 2 * k, x + 2 * k, y + 2 * k), fill=(233, 255, 248, 34))
+    mint, sky, sun = (62, 224, 176), (74, 168, 255), (255, 210, 63)
+    small = font(FONT_BOLD, 15)
+
+    def window(x0, y0, x1, y1, line, alpha, url, body):
+        x0, y0, x1, y1 = (v * k for v in (x0, y0, x1, y1))
+        d.rounded_rectangle((x0 + 10 * k, y0 + 12 * k, x1 + 10 * k, y1 + 12 * k), 14 * k, fill=(2, 8, 20, 90))
+        d.rounded_rectangle((x0, y0, x1, y1), 14 * k, fill=(6, 22, 40, alpha), outline=line + (255,), width=3 * k)
+        bar = y0 + 36 * k
+        d.line((x0, bar, x1, bar), fill=line + (255,), width=3 * k)
+        for i, col in enumerate(((255, 95, 120), sun, mint)):
+            cx = x0 + (22 + i * 20) * k
+            d.ellipse((cx - 6 * k, y0 + 12 * k, cx + 6 * k, y0 + 24 * k), fill=col + (255,))
+        ax = x0 + 92 * k
+        d.rounded_rectangle((ax, y0 + 9 * k, x1 - 16 * k, y0 + 27 * k), 9 * k, fill=(233, 255, 248, 40))
+        d.text((ax + 12 * k, y0 + 18 * k), url, font=small, fill=(233, 255, 248, 210), anchor='lm')
+        body(x0 + 18 * k, bar + 16 * k, x1 - 18 * k, y1 - 16 * k)
+
+    def landing(x0, y0, x1, y1):  # заголовок, строки, кнопка и картинка
+        mid = x0 + (x1 - x0) * 0.55
+        d.rounded_rectangle((x0, y0, mid - 14 * k, y0 + 26 * k), 5 * k, fill=(233, 255, 248, 230))
+        for i, frac in enumerate((1.0, 0.86, 0.66)):
+            yy = y0 + (44 + i * 20) * k
+            d.rounded_rectangle((x0, yy, x0 + (mid - 14 * k - x0) * frac, yy + 9 * k), 4 * k, fill=(233, 255, 248, 120))
+        by = y0 + 116 * k
+        d.rounded_rectangle((x0, by, x0 + 118 * k, by + 34 * k), 8 * k, fill=mint + (255,))
+        d.rounded_rectangle((mid, y0, x1, y1 - 4 * k), 10 * k, fill=sky + (150,))
+        # картинка-заглушка: солнце и горы
+        cx, cy = mid + (x1 - mid) * 0.7, y0 + 34 * k
+        d.ellipse((cx - 16 * k, cy - 16 * k, cx + 16 * k, cy + 16 * k), fill=sun + (255,))
+        d.polygon([(mid + 10 * k, y1 - 10 * k), (mid + (x1 - mid) * 0.42, y0 + 70 * k), (x1 - 10 * k, y1 - 10 * k)],
+                  fill=(6, 22, 40, 170))
+        return by
+
+    def cards_grid(x0, y0, x1, y1):  # сетка карточек
+        cw = (x1 - x0 - 2 * 14 * k) / 3
+        for i in range(3):
+            cx = x0 + i * (cw + 14 * k)
+            d.rounded_rectangle((cx, y0, cx + cw, y1), 8 * k, outline=mint + (170,), width=2 * k)
+            d.rounded_rectangle((cx + 10 * k, y0 + 10 * k, cx + cw - 10 * k, y0 + 60 * k), 5 * k, fill=mint + (70,))
+
+    def bars(x0, y0, x1, y1):  # дашборд со столбиками
+        n = 7
+        bw = (x1 - x0) / (n * 1.6)
+        r = random.Random(3)
+        for i in range(n):
+            bh = (y1 - y0) * r.uniform(0.3, 0.95)
+            bx = x0 + i * bw * 1.6
+            d.rounded_rectangle((bx, y1 - bh, bx + bw, y1), 3 * k, fill=sky + (150,))
+
+    window(640, 150, 975, 360, sky, 150, 'dashboard', bars)
+    window(600, 205, 935, 420, mint, 170, 'catalog', cards_grid)
+    btn = []
+    window(545, 265, 900, 500, mint, 235, 'peskovskii.com', lambda *a: btn.append(landing(*a)))
+    # курсор над кнопкой
+    px, py = (545 + 18 + 92) * k, btn[0] + 22 * k
+    arrow = [(0, 0), (0, 30), (8, 23), (14, 36), (19, 34), (13, 21), (23, 21)]
+    pts = [(px + x * k * 1.1, py + y * k * 1.1) for x, y in arrow]
+    d.polygon(pts, fill=(255, 255, 255, 255), outline=(6, 20, 38, 255))
+    d.line(pts + [pts[0]], fill=(6, 20, 38, 255), width=2 * k)
+    return Image.alpha_composite(img.convert('RGBA'), lay).convert('RGB')
 
 
 def card(c):
@@ -246,13 +317,9 @@ def card(c):
     img = gradient(w, h, *c['colors'])
     d = ImageDraw.Draw(img)
     rnd = random.Random(c['num'])
-    if c['slug'] == 'vibecode':  # строчки кода
-        f = font(FONT_BOLD, 18)
-        for i in range(26):
-            y = 20 * SS + i * 24 * SS
-            x = 610 * SS + rnd.randint(0, 5) * 20 * SS
-            d.text((x, y), rnd.choice(['const', 'await', '<div>', 'return', '=>', 'vibe()', '{ }', 'npm run']),
-                   font=f, fill=(62, 224, 176, 70))
+    if c['slug'] == 'vibecode':  # окна сайтов стопкой, как макеты на холсте
+        img = browser_windows(img)
+        d = ImageDraw.Draw(img)
     else:
         for _ in range(12):  # капсулы-узор
             r = rnd.randint(70, 170) * SS

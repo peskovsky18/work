@@ -236,7 +236,7 @@ CARDS = [  # выбор при входе на сайт: категория ра
          ink='#ffffff', accent='#ffd23f'),
     dict(slug='creative', title='КРЕАТИВ', sub='креативные и продюсерские проекты', num='0002',
          colors=('#3a1606', '#ff8a3d', '#ffd23f'), ink='#ffffff', accent='#1b0b3a'),
-    dict(slug='vibecode', title='ВАЙБКОД', sub='вайбкод-проекты', num='0003', colors=('#04161a', '#0f6b6b', '#3ee0b0'),
+    dict(slug='vibecode', title='ПРОЕКТЫ', sub='сайты и сервисы', num='0003', colors=('#04161a', '#0f6b6b', '#3ee0b0'),
          ink='#e9fff8', accent='#3ee0b0'),
 ]
 
@@ -250,7 +250,7 @@ def card(c):
         f = font(FONT_BOLD, 18)
         for i in range(26):
             y = 20 * SS + i * 24 * SS
-            x = 520 * SS + rnd.randint(0, 6) * 20 * SS
+            x = 610 * SS + rnd.randint(0, 5) * 20 * SS
             d.text((x, y), rnd.choice(['const', 'await', '<div>', 'return', '=>', 'vibe()', '{ }', 'npm run']),
                    font=f, fill=(62, 224, 176, 70))
     else:

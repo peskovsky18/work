@@ -4,10 +4,10 @@
  * Ссылка вида claw/#slug сразу открывает работу без игры.
  */
 // Номер версии файлов: тот же, что в index.html (?v=…), меняется при каждом деплое
-import { Machine } from './machine.js?v=27';
-import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=27';
+import { Machine } from './machine.js?v=28';
+import { CATEGORIES, PROFILE, worksOf, workBySlug, categoryById, pluralWorks } from './catalog.js?v=28';
 
-const VERSION = '27';
+const VERSION = '28';
 
 const $ = (id) => document.getElementById(id);
 const gsap = window.gsap;
@@ -229,6 +229,7 @@ function openViewer(work, cat, direct = false) {
     actions.append(el('a', { class: 'px-btn px-btn-pick', href: `mailto:${PROFILE.email}`, text: 'Написать' }));
   } else {
     $('viewer-title').textContent = work.title;
+    $('viewer-text').textContent = work.text || '';
     if (work.preview) {
       const v = el('video', {
         src: work.preview, poster: work.poster, playsinline: '', muted: '', loop: '', autoplay: '', controls: '',
